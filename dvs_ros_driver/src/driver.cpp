@@ -16,8 +16,20 @@ dvs::DVS_Driver* driver;
 
 int streaming_rate = 30;
 
+bool first_callback = true;
+dvs_ros_driver::DVS_ROS_DriverConfig last_config;
+
 void callback(dvs_ros_driver::DVS_ROS_DriverConfig &config, uint32_t level) {
-  ROS_INFO("Reconfigure Request: %d %d %d", config.diffOff, config.diffOn, config.streaming_rate);
+  if (first_callback) {
+    first_callback = false;
+  }
+  else {
+    if (last_config.diffOff != config.diffOff) {
+      ROS_ERROR("Reconfigure Request: %d (old: %d)", config.diffOff, last_config.diffOff);
+    }
+  }
+
+  last_config = config;
 }
 
 int main(int argc, char* argv[]) {
