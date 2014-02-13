@@ -1,0 +1,16 @@
+<launch>  
+  <!-- camera driver -->
+  <node name="dvs_ros_driver" pkg="dvs_ros_driver" type="dvs_ros_driver" />
+
+  <!-- visualization -->
+  <node name="dvs_renderer" pkg="dvs_renderer" type="dvs_renderer" />
+  
+  <!-- display -->
+  <node name="image_view" pkg="image_view" type="image_view">
+  	<remap from="image" to="dvs_rendering"/>
+  </node>
+
+  <!-- configure -->
+  <node name="dynamic_reconfigure" pkg="dynamic_reconfigure" type="reconfigure_gui" />
+  
+</launch>
