@@ -23,8 +23,9 @@ void eventsCallback(const dvs_msgs::EventArray::ConstPtr& msg) {
     int x = msg->events[i].x;
     int y = msg->events[i].y;
 
-    if (x < 0 || x > 127 || y < 0 || y > 127)
+    if (x < 0 || x > 127 || y < 0 || y > 127) {
       ROS_WARN("Pixel location out of range!");
+    }
 
     cv_image.image.at<cv::Vec3b>(y,x) = (msg->events[i].polarity == true ? cv::Vec3b(255, 0, 0) : cv::Vec3b(0, 0, 255));
   }

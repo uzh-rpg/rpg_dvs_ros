@@ -76,8 +76,6 @@ bool DVS_Driver::open_device() {
     libusb_free_transfer(transfer);
   }
 
-  std::cout << "DVS128: data acquisition thread ready to process events." << std::endl;
-
   libusb_control_transfer(device_handle,
                           LIBUSB_ENDPOINT_OUT | LIBUSB_REQUEST_TYPE_VENDOR | LIBUSB_RECIPIENT_DEVICE,
                           VENDOR_REQUEST_START_TRANSFER, 0, 0, NULL, 0, 0);
@@ -112,7 +110,7 @@ void DVS_Driver::run() {
   }
   catch(boost::thread_interrupted const& ) {
     //clean resources
-    std::cout << "Worker thread interrupted" << std::endl;
+    std::cout << "Worker thread interrupted!" << std::endl;
   }
 }
 

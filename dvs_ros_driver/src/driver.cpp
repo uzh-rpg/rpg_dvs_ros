@@ -34,6 +34,9 @@ void callback(dvs_ros_driver::DVS_ROS_DriverConfig &config, uint32_t level) {
     }
   }
 
+  streaming_rate = config.streaming_rate;
+  loop_rate = new ros::Rate(streaming_rate);
+
   // remember parameters
   last_config = config;
 }
@@ -62,8 +65,6 @@ int main(int argc, char* argv[]) {
     dvs_msgs::EventArray msg;
     
     events = driver->get_events();
-
-    ROS_WARN("New events! %d", events.size());
 
     for (int i=0; i<events.size(); ++i) {
       dvs_msgs::Event e;
