@@ -7,6 +7,7 @@
 
 #include <opencv2/core/core.hpp>
 
+#include <dvs_msgs/Event.h>
 #include <dvs_msgs/EventArray.h>
 
 image_transport::Publisher image_pub_;
@@ -23,11 +24,9 @@ void eventsCallback(const dvs_msgs::EventArray::ConstPtr& msg) {
     int y = msg->events[i].y;
 
     if (x < 0 || x > 127 || y < 0 || y > 127)
-      ROS_INFO("strange...");
+      ROS_WARN("Pixel location out of range!");
 
-    cv_image.image.at<cv::Vec3b>(y,x)[0] = (msg->events[i].polarity == 1 ? 255 : 0  );
-    cv_image.image.at<cv::Vec3b>(y,x)[1] = (msg->events[i].polarity == 1 ? 0   : 0  );
-    cv_image.image.at<cv::Vec3b>(y,x)[2] = (msg->events[i].polarity == 1 ? 0   : 255);
+    cv_image.image.at<cv::Vec3b>(y,x) = (msg->events[i].polarity == true ? cv::Vec3b(255, 0, 0) : cv::Vec3b(0, 0, 255));
   }
 
   image_pub_.publish(cv_image.toImageMsg());

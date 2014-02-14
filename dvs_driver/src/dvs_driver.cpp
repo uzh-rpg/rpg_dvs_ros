@@ -30,13 +30,17 @@ DVS_Driver::DVS_Driver() {
 
   libusb_init(NULL);
 
+  device_mutex.lock();
   open_device();
+  device_mutex.unlock();
 
   thread = new boost::thread(boost::bind(&DVS_Driver::run, this));
 }
 
 DVS_Driver::~DVS_Driver() {
+  device_mutex.lock();
   close_device();
+  device_mutex.unlock();
 }
 
 bool DVS_Driver::open_device() {
@@ -45,7 +49,7 @@ bool DVS_Driver::open_device() {
   if (device_handle == NULL)
     return false;
 
-  //	libusb_set_auto_detach_kernel_driver(device_handle, 1);
+// libusb_set_auto_detach_kernel_driver(device_handle, 1);
   libusb_claim_interface(device_handle, 0);
 
   transfer = libusb_alloc_transfer(0);
@@ -62,15 +66,15 @@ bool DVS_Driver::open_device() {
   transfer->timeout = 0;
   transfer->flags = LIBUSB_TRANSFER_FREE_BUFFER;
 
-  libusb_submit_transfer(transfer);
-  //	int errno = libusb_submit_transfer(transfer);
-  //	if (errno != LIBUSB_SUCCESS) {
-  //		std::cout << "Unable to submit libusb transfer: " << errno << std::endl;
-  //
-  //		// The transfer buffer is freed automatically here thanks to
-  //		// the LIBUSB_TRANSFER_FREE_BUFFER flag set above.
-  //		libusb_free_transfer(transfer);
-  //	}
+//  libusb_submit_transfer(transfer);
+  int status = libusb_submit_transfer(transfer);
+  if (status != LIBUSB_SUCCESS) {
+    std::cout << "Unable to submit libusb transfer: " << status << std::endl;
+
+    // The transfer buffer is freed automatically here thanks to
+    // the LIBUSB_TRANSFER_FREE_BUFFER flag set above.
+    libusb_free_transfer(transfer);
+  }
 
   std::cout << "DVS128: data acquisition thread ready to process events." << std::endl;
 
@@ -84,11 +88,10 @@ void DVS_Driver::close_device() {
   thread->join();
 
   // close transfer
-  libusb_cancel_transfer(transfer);
-  //	int errno = libusb_cancel_transfer(transfer);
-  //	if (errno != LIBUSB_SUCCESS && errno != LIBUSB_ERROR_NOT_FOUND) {
-  //		std::cout << "Unable to cancel libusb transfer: " << errno << std::endl;
-  //	}
+  int status = libusb_cancel_transfer(transfer);
+  if (status != LIBUSB_SUCCESS && status != LIBUSB_ERROR_NOT_FOUND) {
+    std::cout << "Unable to cancel libusb transfer: " << status << std::endl;
+  }
 
   libusb_close(device_handle);
   libusb_exit(NULL);
@@ -101,8 +104,11 @@ void DVS_Driver::run() {
 
   try {
     int completed;
-    while(true)
+    while(true) {
+      device_mutex.lock();
       libusb_handle_events_timeout_completed(NULL, &te, &completed);
+      device_mutex.unlock();
+    }
   }
   catch(boost::thread_interrupted const& ) {
     //clean resources
@@ -113,9 +119,9 @@ void DVS_Driver::run() {
 void DVS_Driver::callback(struct libusb_transfer *transfer) {
   if (transfer->status == LIBUSB_TRANSFER_COMPLETED) {
     // Handle data.
-    event_buffer_lock.lock();
+    event_buffer_mutex.lock();
     event_translator(transfer->buffer, (size_t) transfer->actual_length);
-    event_buffer_lock.unlock();
+    event_buffer_mutex.unlock();
   }
 
   if (transfer->status != LIBUSB_TRANSFER_CANCELLED && transfer->status != LIBUSB_TRANSFER_NO_DEVICE) {
@@ -289,10 +295,10 @@ void DVS_Driver::event_translator(uint8_t *buffer, size_t bytesSent) {
 }
 
 std::vector<Event> DVS_Driver::get_events() {
-  event_buffer_lock.lock();
+  event_buffer_mutex.lock();
   std::vector<Event> test = event_buffer;
   event_buffer.clear();
-  event_buffer_lock.unlock();
+  event_buffer_mutex.unlock();
   return test;
 }
 
@@ -368,8 +374,10 @@ bool DVS_Driver::send_parameters() {
   biases[34] = (uint8_t) (pr >> 8);
   biases[35] = (uint8_t) (pr >> 0);
 
+  device_mutex.lock();
   libusb_control_transfer(device_handle, LIBUSB_ENDPOINT_OUT | LIBUSB_REQUEST_TYPE_VENDOR | LIBUSB_RECIPIENT_DEVICE,
                           VENDOR_REQUEST_SEND_BIASES, 0, 0, biases, sizeof(biases), 0);
+  device_mutex.unlock();
 }
 
 } // namespace

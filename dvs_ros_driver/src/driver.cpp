@@ -25,10 +25,16 @@ void callback(dvs_ros_driver::DVS_ROS_DriverConfig &config, uint32_t level) {
   }
   else {
     if (last_config.diffOff != config.diffOff) {
-      ROS_ERROR("Reconfigure Request: %d (old: %d)", config.diffOff, last_config.diffOff);
+      ROS_INFO("Reconfigure Request for diffOff: %d (old: %d)", config.diffOff, last_config.diffOff);
+      driver->change_parameter("diffOff", config.diffOff);
+    }
+    if (last_config.diffOn != config.diffOn) {
+      ROS_INFO("Reconfigure Request for diffOn: %d (old: %d)", config.diffOn, last_config.diffOn);
+      driver->change_parameter("diffOn", config.diffOn);
     }
   }
 
+  // remember parameters
   last_config = config;
 }
 

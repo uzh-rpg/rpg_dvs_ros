@@ -1,7 +1,7 @@
 #ifndef DVS_DRIVER_H_
 #define DVS_DRIVER_H_
 
-#include <libusb.h>
+#include <libusb-1.0/libusb.h>
 #include <boost/thread.hpp>
 #include <vector>
 #include <iostream>
@@ -58,7 +58,8 @@ private:
   bool open_device();
   void close_device();
 
-  boost::mutex event_buffer_lock;
+  boost::mutex event_buffer_mutex;
+  boost::mutex device_mutex;
   boost::thread* thread;
   void run();
 

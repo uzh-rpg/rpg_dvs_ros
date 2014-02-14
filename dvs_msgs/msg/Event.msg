@@ -1,5 +1,5 @@
 # A DVS event
-int8 x
-int8 y
+int16 x
+int16 y
 int32 time
-int8 polarity
+bool polarity
