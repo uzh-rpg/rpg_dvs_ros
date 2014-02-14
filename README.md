@@ -1,7 +1,8 @@
 rpg_dvs_ros
 ===========
 
-ROS packages for DVS
+ROS packages for the Dynamic Vision Sensor (DVS).  
+Find out more on the website of the [Institute of Neuroinformatics](http://siliconretina.ini.uzh.ch/wiki/index.php).
 
 # Driver installation
 Only a udev rule is needed to run the DVS driver. An install script is provided in the package dvs_driver.  
