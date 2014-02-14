@@ -141,8 +141,6 @@ void DVS_Driver::event_translator(uint8_t *buffer, size_t bytesSent) {
   bytesSent &= (size_t) ~0x03;
 
   for (size_t i = 0; i < bytesSent; i += 4) {
-    bool forcePacketCommit = false;
-
     if ((buffer[i + 3] & 0x80) == 0x80) {
       // timestamp bit 15 is one -> wrap: now we need to increment
       // the wrapAdd, uses only 14 bit timestamps
@@ -153,17 +151,6 @@ void DVS_Driver::event_translator(uint8_t *buffer, size_t bytesSent) {
         // Reset lastTimestamp to zero at this point, so we can again
         // start detecting overruns of the 32bit value.
         lastTimestamp = 0;
-
-        // std::cout << "caerSpecialEvent 1" << std::endl;
-
-        // caerSpecialEvent currentEvent = caerSpecialEventPacketGetEvent(state->currentSpecialPacket,
-        // 	state->currentSpecialPacketPosition++);
-        // caerSpecialEventSetTimestamp(currentEvent, UINT32_MAX);
-        // caerSpecialEventSetType(currentEvent, TIMESTAMP_WRAP);
-        // caerSpecialEventValidate(currentEvent, state->currentSpecialPacket);
-
-        // Commit packets to separate before wrap from after cleanly.
-        forcePacketCommit = true;
       }
     }
     else if ((buffer[i + 3] & 0x40) == 0x40) {
@@ -171,18 +158,6 @@ void DVS_Driver::event_translator(uint8_t *buffer, size_t bytesSent) {
       // version uses reset events to reset timestamps
       wrapAdd = 0;
       lastTimestamp = 0;
-
-      // std::cout << "caerSpecialEvent 2" << std::endl;
-
-      // // Create timestamp reset event.
-      // caerSpecialEvent currentEvent = caerSpecialEventPacketGetEvent(state->currentSpecialPacket,
-      // 	state->currentSpecialPacketPosition++);
-      // caerSpecialEventSetTimestamp(currentEvent, UINT32_MAX);
-      // caerSpecialEventSetType(currentEvent, TIMESTAMP_RESET);
-      // caerSpecialEventValidate(currentEvent, state->currentSpecialPacket);
-
-      // Commit packets when doing a reset to clearly separate them.
-      forcePacketCommit = true;
     }
     else {
       // address is LSB MSB (USB is LE)
@@ -203,94 +178,23 @@ void DVS_Driver::event_translator(uint8_t *buffer, size_t bytesSent) {
       lastTimestamp = timestamp;
 
       if ((addressUSB & DVS128_SYNC_EVENT_MASK) != 0) {
-        // // Special Trigger Event (MSB is set)
-        // caerSpecialEvent currentEvent = caerSpecialEventPacketGetEvent(currentSpecialPacket,
-        // 	state->currentSpecialPacketPosition++);
-        // caerSpecialEventSetTimestamp(currentEvent, timestamp);
-        // caerSpecialEventSetType(currentEvent, EXTERNAL_TRIGGER);
-        // caerSpecialEventValidate(currentEvent, state->currentSpecialPacket);
-        // std::cout << "caerSpecialEvent 3" << std::endl;
+        // Special Trigger Event (MSB is set)
       }
       else {
         // Invert x values (flip along the x axis).
         uint16_t x = (uint16_t) (127 - ((uint16_t) ((addressUSB >> DVS128_X_ADDR_SHIFT) & DVS128_X_ADDR_MASK)));
-        uint16_t y = (uint16_t) ((addressUSB >> DVS128_Y_ADDR_SHIFT) & DVS128_Y_ADDR_MASK);
+        uint16_t y = (uint16_t) (127 - ((uint16_t) ((addressUSB >> DVS128_Y_ADDR_SHIFT) & DVS128_Y_ADDR_MASK)));
         bool polarity = (((addressUSB >> DVS128_POLARITY_SHIFT) & DVS128_POLARITY_MASK) == 0) ? (1) : (0);
 
-        std::cout << "Event: <x, y, t, p> = <" << x << ", " << y << ", " << timestamp << ", " << polarity << ">" << std::endl;
+//        std::cout << "Event: <x, y, t, p> = <" << x << ", " << y << ", " << timestamp << ", " << polarity << ">" << std::endl;
         Event e;
         e.x = x;
         e.y = y;
         e.timestamp = timestamp;
         e.polarity = polarity;
         event_buffer.push_back(e);
-
-        // caerPolarityEvent currentEvent = caerPolarityEventPacketGetEvent(state->currentPolarityPacket,
-        // 	state->currentPolarityPacketPosition++);
-        // caerPolarityEventSetTimestamp(currentEvent, timestamp);
-        // caerPolarityEventSetPolarity(currentEvent, polarity);
-        // caerPolarityEventSetY(currentEvent, y);
-        // caerPolarityEventSetX(currentEvent, x);
-        // caerPolarityEventValidate(currentEvent, state->currentP<olarityPacket);
       }
     }
-
-    // // Commit packet to the ring-buffer, so they can be processed by the
-    // // main-loop, when their stated conditions are met.
-    // if (forcePacketCommit
-    // 	|| (state->currentPolarityPacketPosition
-    // 		>= caerEventPacketHeaderGetEventCapacity(&state->currentPolarityPacket->packetHeader))
-    // 	|| ((state->currentPolarityPacketPosition > 1)
-    // 		&& (caerPolarityEventGetTimestamp(
-    // 			caerPolarityEventPacketGetEvent(state->currentPolarityPacket,
-    // 				state->currentPolarityPacketPosition - 1))
-    // 			- caerPolarityEventGetTimestamp(caerPolarityEventPacketGetEvent(state->currentPolarityPacket, 0))
-    // 			>= state->maxPolarityPacketInterval))) {
-    // 	if (!ringBufferPut(state->dataExchangeBuffer, state->currentPolarityPacket)) {
-    // 		// Failed to forward packet, drop it.
-    // 		free(state->currentPolarityPacket);
-    // 		caerLog(LOG_DEBUG, "Dropped Polarity Event Packet because ring-buffer full!");
-    // 	}
-    // 	else {
-    // 		caerMainloopDataAvailableIncrease(state->mainloopNotify);
-    // 	}
-
-    // 	// Allocate new packet for next iteration.
-    // 	state->currentPolarityPacket = caerPolarityEventPacketAllocate(state->maxPolarityPacketSize,
-    // 		state->sourceID);
-    // 	state->currentPolarityPacketPosition = 0;
-    // }
-
-    // if (forcePacketCommit
-    // 	|| (state->currentSpecialPacketPosition
-    // 		>= caerEventPacketHeaderGetEventCapacity(&state->currentSpecialPacket->packetHeader))
-    // 	|| ((state->currentSpecialPacketPosition > 1)
-    // 		&& (caerSpecialEventGetTimestamp(
-    // 			caerSpecialEventPacketGetEvent(state->currentSpecialPacket,
-    // 				state->currentSpecialPacketPosition - 1))
-    // 			- caerSpecialEventGetTimestamp(caerSpecialEventPacketGetEvent(state->currentSpecialPacket, 0))
-    // 			>= state->maxSpecialPacketInterval))) {
-    // 	retry_special: if (!ringBufferPut(state->dataExchangeBuffer, state->currentSpecialPacket)) {
-    // 		// Failed to forward packet, drop it, unless it contains a timestamp
-    // 		// related change, those are critical, so we just spin until we can
-    // 		// deliver that one. (Easily detected by forcePacketCommit!)
-    // 		if (forcePacketCommit) {
-    // 			goto retry_special;
-    // 		}
-    // 		else {
-    // 			// Failed to forward packet, drop it.
-    // 			free(state->currentSpecialPacket);
-    // 			caerLog(LOG_DEBUG, "Dropped Special Event Packet because ring-buffer full!");
-    // 		}
-    // 	}
-    // 	else {
-    // 		caerMainloopDataAvailableIncrease(state->mainloopNotify);
-    // 	}
-
-    // 	// Allocate new packet for next iteration.
-    // 	state->currentSpecialPacket = caerSpecialEventPacketAllocate(state->maxSpecialPacketSize, state->sourceID);
-    // 	state->currentSpecialPacketPosition = 0;
-    // }
   }
 }
 
