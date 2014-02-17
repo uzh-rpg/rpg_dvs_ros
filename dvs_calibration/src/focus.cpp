@@ -44,18 +44,14 @@ int main( int argc, char** argv )
 
   namedWindow(window_name, WINDOW_NORMAL | CV_GUI_NORMAL);
 
-  if (blinking)
-  {
-    while (ros::ok()) {
-      imshow(window_name, image);
-      waitKey(wait_time_ms);
+  while (ros::ok()) {
+    imshow(window_name, image);
+    waitKey(wait_time_ms);
+
+    if (blinking) {
       imshow(window_name, black);
       waitKey(wait_time_ms);
     }
-  }
-  else {
-    imshow(window_name, image);
-    waitKey(0);
   }
 
   return 0;

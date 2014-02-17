@@ -10,7 +10,7 @@
   	<remap from="image" to="dvs_rendering"/>
   </node>
 
-  <!-- configure -->
-  <node name="rqt_reconfigure" pkg="rqt_reconfigure" type="rqt_reconfigure" />
-  
+  <!-- calibration pattern -->
+  <node name="dvs_calibration_focus" pkg="dvs_calibration" type="focus"/>
+
 </launch>
