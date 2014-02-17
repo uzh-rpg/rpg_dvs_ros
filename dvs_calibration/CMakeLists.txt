@@ -11,14 +11,14 @@ find_package(OpenCV REQUIRED)
 
 # export the dependencis of this package for who ever depends on us
 catkin_package(
-#  INCLUDE_DIRS include
+  INCLUDE_DIRS include
   CATKIN_DEPENDS roscpp
   DEPENDS OpenCV
 )
 
 # tell catkin where to find the headers for this project
 include_directories(
-#  include
+  include
   ${catkin_INCLUDE_DIRS}
   ${OpenCV_INCLUDE_DIRS}
 )
@@ -32,10 +32,16 @@ add_executable(dots
   src/dots.cpp
 )
 
+add_executable(calibration
+  src/calibration.cpp
+  src/DVSCalibration.cpp
+)
+
 # to build the executable we depend on other packets, 
 # they need to be build beforehand, especially the messages
 add_dependencies(focus ${catkin_EXPORTED_TARGETS})
 add_dependencies(dots ${catkin_EXPORTED_TARGETS})
+add_dependencies(calibration ${catkin_EXPORTED_TARGETS})
 
 # link the executable to the necesarry libs
 target_link_libraries(focus
@@ -44,6 +50,11 @@ target_link_libraries(focus
 )
 
 target_link_libraries(dots
+   ${catkin_LIBRARIES}
+   ${OpenCV_LIBRARIES}
+)
+
+target_link_libraries(calibration
    ${catkin_LIBRARIES}
    ${OpenCV_LIBRARIES}
 )
