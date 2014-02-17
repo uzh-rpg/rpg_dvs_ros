@@ -28,12 +28,22 @@ add_executable(focus
   src/focus.cpp
 )
 
+add_executable(dots
+  src/dots.cpp
+)
+
 # to build the executable we depend on other packets, 
 # they need to be build beforehand, especially the messages
 add_dependencies(focus ${catkin_EXPORTED_TARGETS})
+add_dependencies(dots ${catkin_EXPORTED_TARGETS})
 
 # link the executable to the necesarry libs
 target_link_libraries(focus
+   ${catkin_LIBRARIES}
+   ${OpenCV_LIBRARIES}
+)
+
+target_link_libraries(dots
    ${catkin_LIBRARIES}
    ${OpenCV_LIBRARIES}
 )
