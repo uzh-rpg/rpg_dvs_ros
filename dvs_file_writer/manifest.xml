@@ -1,0 +1,14 @@
+<package>
+  <description brief="dvs_file_writer">
+
+     dvs_file_writer
+
+  </description>
+  <author>Elias</author>
+  <license>BSD</license>
+  <review status="unreviewed" notes=""/>
+  <url></url>
+
+  <depend package="dvs_msgs"/>
+  
+</package>
