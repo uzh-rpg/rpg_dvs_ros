@@ -22,11 +22,15 @@ int main( int argc, char** argv )
 
   ros::NodeHandle nh();
 
-  DVSCalibration calib();
+  // load parameters from rosparam
+  int dots = 7;
 
-  while (ros::ok()) {
+  DVSCalibration calib(dots);
 
-  }
+  // register callback
+
+
+  ros::spin();
 
   return 0;
 }
