@@ -1,5 +1,9 @@
 #include "ros/ros.h"
 
+// boost
+#include <boost/thread.hpp>
+#include <boost/thread/thread_time.hpp>
+
 // messages
 #include <dvs_msgs/Event.h>
 #include <dvs_msgs/EventArray.h>
@@ -14,31 +18,58 @@
 ros::Rate* loop_rate;
 dvs::DVS_Driver* driver;
 
-int streaming_rate = 30;
+dvs_ros_driver::DVS_ROS_DriverConfig current_config;
 
-bool first_callback = true;
-dvs_ros_driver::DVS_ROS_DriverConfig last_config;
+bool parameter_update_required = false;
+
+void change_dvs_parameters() {
+  while(true) {
+    try {
+      if (parameter_update_required) {
+        parameter_update_required = false;
+        driver->change_parameters(current_config.cas, current_config.injGnd, current_config.reqPd, current_config.puX,
+                                  current_config.diffOff, current_config.req, current_config.refr, current_config.puY,
+                                  current_config.diffOn, current_config.diff, current_config.foll, current_config.pr);
+      }
+
+      boost::this_thread::sleep(boost::posix_time::milliseconds(10));
+    } 
+    catch(boost::thread_interrupted&) {
+      return;
+    }
+  }
+}
 
 void callback(dvs_ros_driver::DVS_ROS_DriverConfig &config, uint32_t level) {
-  if (first_callback) {
-    first_callback = false;
-  }
-  else {
-    if (last_config.diffOff != config.diffOff) {
-      ROS_INFO("Reconfigure Request for diffOff: %d (old: %d)", config.diffOff, last_config.diffOff);
-      driver->change_parameter("diffOff", config.diffOff);
-    }
-    if (last_config.diffOn != config.diffOn) {
-      ROS_INFO("Reconfigure Request for diffOn: %d (old: %d)", config.diffOn, last_config.diffOn);
-      driver->change_parameter("diffOn", config.diffOn);
-    }
-  }
+  // did any DVS bias setting change?
+   if (current_config.cas != config.cas || current_config.injGnd != config.injGnd ||
+       current_config.reqPd != config.reqPd || current_config.puX != config.puX ||
+       current_config.diffOff != config.diffOff || current_config.req != config.req ||
+       current_config.refr != config.refr || current_config.puY != config.puY ||
+       current_config.diffOn != config.diffOn || current_config.diff != config.diff ||
+       current_config.foll != config.foll || current_config.pr != config.pr) {
 
-  streaming_rate = config.streaming_rate;
-  loop_rate = new ros::Rate(streaming_rate);
+     current_config.cas = config.cas;
+     current_config.injGnd = config.injGnd;
+     current_config.reqPd = config.reqPd;
+     current_config.puX = config.puX;
+     current_config.diffOff = config.diffOff;
+     current_config.req = config.req;
+     current_config.refr = config.refr;
+     current_config.puY = config.puY;
+     current_config.diffOn = config.diffOn;
+     current_config.diff = config.diff;
+     current_config.foll = config.foll;
+     current_config.pr = config.pr;
 
-  // remember parameters
-  last_config = config;
+     parameter_update_required = true;
+   }
+
+   // did streaming rate change?
+   if (current_config.streaming_rate != config.streaming_rate) {
+     current_config.streaming_rate = config.streaming_rate;
+     loop_rate = new ros::Rate(current_config.streaming_rate );
+   }
 }
 
 int main(int argc, char* argv[]) {
@@ -46,7 +77,8 @@ int main(int argc, char* argv[]) {
 
   ros::NodeHandle nh;
 
-  loop_rate = new ros::Rate(streaming_rate);
+  current_config.streaming_rate = 30;
+  loop_rate = new ros::Rate(current_config.streaming_rate);
 
   ros::Publisher event_array_pub = nh.advertise<dvs_msgs::EventArray>("dvs_events", 1);
 
@@ -59,6 +91,9 @@ int main(int argc, char* argv[]) {
   // Load driver
   driver = new dvs::DVS_Driver();
   std::vector<dvs::Event> events;
+
+  // start parameter updater
+  boost::thread parameter_thread(&change_dvs_parameters);
 
   while (ros::ok()) {
     events.clear();
@@ -82,6 +117,10 @@ int main(int argc, char* argv[]) {
 
     loop_rate->sleep();
   }
+
+  // end thread
+  parameter_thread.interrupt();
+  parameter_thread.join();
 
   return 0;
 }

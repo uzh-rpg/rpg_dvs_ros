@@ -14,19 +14,19 @@ static void callback_wrapper(struct libusb_transfer *transfer)
 } // extern "C"
 
 DVS_Driver::DVS_Driver() {
-  // initialize parameters
-  parameters.insert(std::pair<std::string, uint32_t>("cas", 1992));
-  parameters.insert(std::pair<std::string, uint32_t>("injGnd", 1108364));
-  parameters.insert(std::pair<std::string, uint32_t>("reqPd", 16777215));
-  parameters.insert(std::pair<std::string, uint32_t>("puX", 8159221));
-  parameters.insert(std::pair<std::string, uint32_t>("diffOff", 132));
-  parameters.insert(std::pair<std::string, uint32_t>("req", 309590));
-  parameters.insert(std::pair<std::string, uint32_t>("refr", 969));
-  parameters.insert(std::pair<std::string, uint32_t>("puY", 16777215));
-  parameters.insert(std::pair<std::string, uint32_t>("diffOn", 209996));
-  parameters.insert(std::pair<std::string, uint32_t>("diff", 13125));
-  parameters.insert(std::pair<std::string, uint32_t>("foll", 271));
-  parameters.insert(std::pair<std::string, uint32_t>("pr", 217));
+  // initialize parameters (min, max, value)
+  parameters.insert(std::pair<std::string, Parameter>("cas", Parameter(1992, 1992, 1992)));
+  parameters.insert(std::pair<std::string, Parameter>("injGnd", Parameter(1108364, 1108364, 1108364)));
+  parameters.insert(std::pair<std::string, Parameter>("reqPd", Parameter(16777215, 16777215, 16777215)));
+  parameters.insert(std::pair<std::string, Parameter>("puX", Parameter(8159221, 8159221, 8159221)));
+  parameters.insert(std::pair<std::string, Parameter>("diffOff", Parameter(20, 500, 132)));
+  parameters.insert(std::pair<std::string, Parameter>("req", Parameter(309590, 309590, 309590)));
+  parameters.insert(std::pair<std::string, Parameter>("refr", Parameter(969, 969, 969)));
+  parameters.insert(std::pair<std::string, Parameter>("puY", Parameter(16777215, 16777215, 16777215)));
+  parameters.insert(std::pair<std::string, Parameter>("diffOn", Parameter(120000, 700000, 209996)));
+  parameters.insert(std::pair<std::string, Parameter>("diff", Parameter(13125, 13125, 13125)));
+  parameters.insert(std::pair<std::string, Parameter>("foll", Parameter(271, 271, 271)));
+  parameters.insert(std::pair<std::string, Parameter>("pr", Parameter(217, 217, 217)));
 
   libusb_init(NULL);
 
@@ -198,80 +198,104 @@ void DVS_Driver::event_translator(uint8_t *buffer, size_t bytesSent) {
 
 std::vector<Event> DVS_Driver::get_events() {
   event_buffer_mutex.lock();
-  std::vector<Event> test = event_buffer;
+  std::vector<Event> buffer_copy = event_buffer;
   event_buffer.clear();
   event_buffer_mutex.unlock();
-  return test;
+  return buffer_copy;
 }
 
 bool DVS_Driver::change_parameter(std::string parameter, uint32_t value) {
+  // does parameter exist?
   if (parameters.find(parameter) != parameters.end()) {
-    parameters[parameter] = value;
-    return send_parameters();
-  } else {
-    return false;
+    // did it change? (only if within range)
+    if (parameters[parameter].set_value(value)) {
+      return true;
+    }
+    else
+      return false;
   }
+  else
+    return false;
+}
+
+bool DVS_Driver::change_parameters(uint32_t cas, uint32_t injGnd, uint32_t reqPd, uint32_t puX,
+                                   uint32_t diffOff, uint32_t req, uint32_t refr, uint32_t puY,
+                                   uint32_t diffOn, uint32_t diff, uint32_t foll, uint32_t pr) {
+  change_parameter("cas", cas);
+  change_parameter("injGnd", injGnd);
+  change_parameter("reqPd", reqPd);
+  change_parameter("puX", puX);
+  change_parameter("diffOff", diffOff);
+  change_parameter("req", req);
+  change_parameter("refr", refr);
+  change_parameter("puY", puY);
+  change_parameter("diffOn", diffOn);
+  change_parameter("diff", diff);
+  change_parameter("foll", foll);
+  change_parameter("pr", pr);
+
+  return send_parameters();
 }
 
 bool DVS_Driver::send_parameters() {
   uint8_t biases[12 * 3];
 
-  uint32_t cas = parameters["cas"];
+  uint32_t cas = parameters["cas"].get_value();
   biases[0] = (uint8_t) (cas >> 16);
   biases[1] = (uint8_t) (cas >> 8);
   biases[2] = (uint8_t) (cas >> 0);
 
-  uint32_t injGnd = parameters["injGnd"];
+  uint32_t injGnd = parameters["injGnd"].get_value();
   biases[3] = (uint8_t) (injGnd >> 16);
   biases[4] = (uint8_t) (injGnd >> 8);
   biases[5] = (uint8_t) (injGnd >> 0);
 
-  uint32_t reqPd = parameters["reqPd"];
+  uint32_t reqPd = parameters["reqPd"].get_value();
   biases[6] = (uint8_t) (reqPd >> 16);
   biases[7] = (uint8_t) (reqPd >> 8);
   biases[8] = (uint8_t) (reqPd >> 0);
 
-  uint32_t puX = parameters["puX"];
+  uint32_t puX = parameters["puX"].get_value();
   biases[9] = (uint8_t) (puX >> 16);
   biases[10] = (uint8_t) (puX >> 8);
   biases[11] = (uint8_t) (puX >> 0);
 
-  uint32_t diffOff = parameters["diffOff"];
+  uint32_t diffOff = parameters["diffOff"].get_value();
   biases[12] = (uint8_t) (diffOff >> 16);
   biases[13] = (uint8_t) (diffOff >> 8);
   biases[14] = (uint8_t) (diffOff >> 0);
 
-  uint32_t req = parameters["req"];
+  uint32_t req = parameters["req"].get_value();
   biases[15] = (uint8_t) (req >> 16);
   biases[16] = (uint8_t) (req >> 8);
   biases[17] = (uint8_t) (req >> 0);
 
-  uint32_t refr = parameters["refr"];
+  uint32_t refr = parameters["refr"].get_value();
   biases[18] = (uint8_t) (refr >> 16);
   biases[19] = (uint8_t) (refr >> 8);
   biases[20] = (uint8_t) (refr >> 0);
 
-  uint32_t puY = parameters["puY"];
+  uint32_t puY = parameters["puY"].get_value();
   biases[21] = (uint8_t) (puY >> 16);
   biases[22] = (uint8_t) (puY >> 8);
   biases[23] = (uint8_t) (puY >> 0);
 
-  uint32_t diffOn = parameters["diffOn"];
+  uint32_t diffOn = parameters["diffOn"].get_value();
   biases[24] = (uint8_t) (diffOn >> 16);
   biases[25] = (uint8_t) (diffOn >> 8);
   biases[26] = (uint8_t) (diffOn >> 0);
 
-  uint32_t diff = parameters["diff"];
+  uint32_t diff = parameters["diff"].get_value();
   biases[27] = (uint8_t) (diff >> 16);
   biases[28] = (uint8_t) (diff >> 8);
   biases[29] = (uint8_t) (diff >> 0);
 
-  uint32_t foll = parameters["foll"];
+  uint32_t foll = parameters["foll"].get_value();
   biases[30] = (uint8_t) (foll >> 16);
   biases[31] = (uint8_t) (foll >> 8);
   biases[32] = (uint8_t) (foll >> 0);
 
-  uint32_t pr = parameters["pr"];
+  uint32_t pr = parameters["pr"].get_value();
   biases[33] = (uint8_t) (pr >> 16);
   biases[34] = (uint8_t) (pr >> 8);
   biases[35] = (uint8_t) (pr >> 0);

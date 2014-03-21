@@ -48,11 +48,15 @@ public:
 
   std::vector<Event> get_events();
 
-  bool change_parameter(std::string parameter, uint32_t value);
+
+  bool change_parameters(uint32_t cas, uint32_t injGnd, uint32_t reqPd, uint32_t puX,
+                         uint32_t diffOff, uint32_t req, uint32_t refr, uint32_t puY,
+                         uint32_t diffOn, uint32_t diff, uint32_t foll, uint32_t pr);
 
   void callback(struct libusb_transfer *transfer);
 
 private:
+  bool change_parameter(std::string parameter, uint32_t value);
   bool send_parameters();
 
   bool open_device();
@@ -73,15 +77,38 @@ private:
   // event buffer
   std::vector<dvs::Event> event_buffer;
 
-  // parameters
-  std::map<std::string, uint32_t> parameters;
-
   // buffers
   static const uint32_t bufferNumber = 8;
   static const uint32_t bufferSize = 4096;
 
   uint32_t wrapAdd;
   uint32_t lastTimestamp;
+
+  class Parameter {
+  public:
+    Parameter(uint32_t min = 0, uint32_t max = 0, uint32_t value = 0) :
+      _min(min), _max(max), _value(value) {}
+
+    uint32_t get_value() { return _value; }
+
+    bool set_value(uint32_t value) {
+      if (value >= _min && value <= _max) {
+        _value = value;
+        return true;
+      }
+      else {
+        return false;
+      }
+    }
+  private:
+    uint32_t _min;
+    uint32_t _max;
+    uint32_t _value;
+
+  };
+
+  // parameters
+  std::map<std::string, Parameter> parameters;
 };
 
 } // namespace
