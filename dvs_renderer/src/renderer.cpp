@@ -82,9 +82,8 @@ int main(int argc, char* argv[])
   ros::NodeHandle nh;
 
   // get parameters of display method
-  ros::NodeHandle nh_private("~");
   std::string display_method_str;
-  nh_private.getParam("display_method", display_method_str);
+  ros::param::get("~display_method", display_method_str);
 
   if (display_method_str == std::string("grayscale"))
     display_method = GRAYSCALE;
