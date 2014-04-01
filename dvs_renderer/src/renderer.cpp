@@ -12,13 +12,19 @@
 
 image_transport::Publisher image_pub_;
 
+enum DisplayMethod {
+  GRAYSCALE,
+  RED_BLUE
+} display_method;
+
 void eventsCallback(const dvs_msgs::EventArray::ConstPtr& msg)
 {
+  // only create image if at least one subscriber
   if (image_pub_.getNumSubscribers() > 0)
   {
     cv_bridge::CvImage cv_image;
 
-    if (false)
+    if (display_method == RED_BLUE)
     {
       cv_image.encoding = "bgr8";
       cv_image.image = cv::Mat(128, 128, CV_8UC3);
@@ -75,6 +81,17 @@ int main(int argc, char* argv[])
 
   ros::NodeHandle nh;
 
+  // get parameters of display method
+  ros::NodeHandle nh_private("~");
+  std::string display_method_str;
+  nh_private.getParam("display_method", display_method_str);
+
+  if (display_method_str == std::string("grayscale"))
+    display_method = GRAYSCALE;
+  else
+    display_method = RED_BLUE;
+
+  // setup subscribers and publishers
   ros::Subscriber sub = nh.subscribe("dvs_events", 1, eventsCallback);
 
   image_transport::ImageTransport it_(nh);
