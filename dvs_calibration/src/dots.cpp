@@ -32,7 +32,6 @@ int main( int argc, char** argv )
       double x = (i - (dots-1)/2.0)/(0.5*(dots-1));
       double y = (j - (dots-1)/2.0)/(0.5*(dots-1));
       pattern_points.push_back(Eigen::Vector3d(x, y, 10.0));
-      std::cout << Eigen::Vector3d(x, y, 2.0) << std::endl;
     }
   }
 
@@ -46,7 +45,6 @@ int main( int argc, char** argv )
       R = Eigen::AngleAxisd(roll, Eigen::Vector3d::UnitX())
       * Eigen::AngleAxisd(pitch, Eigen::Vector3d::UnitY());
       pattern_orientations.push_back(R);
-      std::cout << R << std::endl;
     }
   }
 
@@ -76,18 +74,10 @@ int main( int argc, char** argv )
       max.y() = std::max(max.y(), image_points[i].y());
     }
 
-    std::cout << min << std::endl;
-    std::cout << max << std::endl;
-    std::cout << std::endl;
-
-
     double width = max.x() - min.x();
     double height = max.y() - min.y();
 
-    std::cout << width << std::endl;
-
     double factor = (resolution - 2*radius)/std::max(width, height);
-    std::cout << factor << std::endl;
 
     Mat image = Mat(resolution, resolution, CV_8UC3);
     image = Scalar(0, 0, 0);
