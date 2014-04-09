@@ -8,18 +8,20 @@ find_package(catkin REQUIRED COMPONENTS
 # since we need eigen and boost search them as well
 # find_package makes the ${..._INCLUDE_DIRS} ${..._LIBRARIES} variables we use later
 find_package(OpenCV REQUIRED)
+find_package(Eigen REQUIRED)
 
 # export the dependencis of this package for who ever depends on us
 catkin_package(
   INCLUDE_DIRS include
   CATKIN_DEPENDS roscpp
-  DEPENDS OpenCV
+  DEPENDS eigen OpenCV
 )
 
 # tell catkin where to find the headers for this project
 include_directories(
   include
   ${catkin_INCLUDE_DIRS}
+  ${EIGEN_INCLUDE_DIRS}
   ${OpenCV_INCLUDE_DIRS}
 )
 
@@ -34,7 +36,7 @@ add_executable(dots
 
 add_executable(calibration
   src/calibration.cpp
-  src/DVSCalibration.cpp
+  src/DvsCalibration.cpp
 )
 
 # to build the executable we depend on other packets, 
