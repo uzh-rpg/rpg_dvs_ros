@@ -3,6 +3,7 @@
 // boost
 #include <boost/thread.hpp>
 #include <boost/thread/thread_time.hpp>
+#include <boost/date_time/posix_time/posix_time.hpp>
 
 // messages
 #include <dvs_msgs/Event.h>
@@ -15,7 +16,7 @@
 #include <dynamic_reconfigure/server.h>
 #include <dvs_ros_driver/DVS_ROS_DriverConfig.h>
 
-ros::Rate* loop_rate;
+ros::Publisher* event_array_pub;
 dvs::DVS_Driver* driver;
 
 dvs_ros_driver::DVS_ROS_DriverConfig current_config;
@@ -65,11 +66,45 @@ void callback(dvs_ros_driver::DVS_ROS_DriverConfig &config, uint32_t level) {
      parameter_update_required = true;
    }
 
-   // did streaming rate change?
-   if (current_config.streaming_rate != config.streaming_rate) {
-     current_config.streaming_rate = config.streaming_rate;
-     loop_rate = new ros::Rate(current_config.streaming_rate );
-   }
+   // change streaming rate
+   current_config.streaming_rate = config.streaming_rate;
+}
+
+void readout() {
+  std::vector<dvs::Event> events;
+  dvs_msgs::EventArray msg;
+
+  boost::posix_time::ptime next_send_time = boost::posix_time::microsec_clock::local_time();
+
+  while(true) {
+    try {
+      events = driver->get_events();
+
+      for (int i=0; i<events.size(); ++i) {
+        dvs_msgs::Event e;
+        e.x = events[i].x;
+        e.y = events[i].y;
+        e.time = events[i].timestamp;
+        e.polarity = events[i].polarity;
+
+        msg.events.push_back(e);
+      }
+
+      if (boost::posix_time::microsec_clock::local_time() > next_send_time)
+      {
+        event_array_pub->publish(msg);
+        ros::spinOnce();
+        events.clear();
+        msg.events.clear();
+
+        boost::posix_time::time_duration delta = boost::posix_time::microseconds(1e6/current_config.streaming_rate);
+        next_send_time += delta;
+      }
+    }
+    catch(boost::thread_interrupted&) {
+      return;
+    }
+  }
 }
 
 int main(int argc, char* argv[]) {
@@ -78,9 +113,9 @@ int main(int argc, char* argv[]) {
   ros::NodeHandle nh;
 
   current_config.streaming_rate = 30;
-  loop_rate = new ros::Rate(current_config.streaming_rate);
 
-  ros::Publisher event_array_pub = nh.advertise<dvs_msgs::EventArray>("dvs_events", 1);
+  ros::Publisher event_array_pub_instance = nh.advertise<dvs_msgs::EventArray>("dvs_events", 1);
+  event_array_pub = &event_array_pub_instance;
 
   // Dynamic reconfigure
   dynamic_reconfigure::Server<dvs_ros_driver::DVS_ROS_DriverConfig> server;
@@ -90,37 +125,20 @@ int main(int argc, char* argv[]) {
 
   // Load driver
   driver = new dvs::DVS_Driver();
-  std::vector<dvs::Event> events;
 
-  // start parameter updater
+  // start threads
   boost::thread parameter_thread(&change_dvs_parameters);
+  boost::thread readout_thread(&readout);
 
-  while (ros::ok()) {
-    events.clear();
-    dvs_msgs::EventArray msg;
-    
-    events = driver->get_events();
+  // spin ros
+  ros::spin();
 
-    for (int i=0; i<events.size(); ++i) {
-      dvs_msgs::Event e;
-      e.x = events[i].x;
-      e.y = events[i].y;
-      e.time = events[i].timestamp;
-      e.polarity = events[i].polarity;
-
-      msg.events.push_back(e);
-    }
-
-    event_array_pub.publish(msg);
-
-    ros::spinOnce();
-
-    loop_rate->sleep();
-  }
-
-  // end thread
+  // end threads
   parameter_thread.interrupt();
+  readout_thread.interrupt();
+
   parameter_thread.join();
+  readout_thread.join();
 
   return 0;
 }
