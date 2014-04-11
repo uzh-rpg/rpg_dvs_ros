@@ -18,10 +18,11 @@ int main( int argc, char** argv )
   ros::NodeHandle nh;
 
   // load parameters from rosparam
-  int resolution = 500;
+  int resolution = 800;
+  int border = 200;
   int dots = 4;
-  double radius = 25;
-  bool blinking = true;
+  double radius = 10;
+  bool blinking = false;
   int wait_time_ms = 500;
   string window_name = "intrinsic calibration pattern";
 
@@ -77,14 +78,14 @@ int main( int argc, char** argv )
     double width = max.x() - min.x();
     double height = max.y() - min.y();
 
-    double factor = (resolution - 2*radius)/std::max(width, height);
+    double factor = (resolution - 2*radius - 2*border)/std::max(width, height);
 
     Mat image = Mat(resolution, resolution, CV_8UC3);
     image = Scalar(0, 0, 0);
 
     for (int i=0; i<image_points.size(); i++) {
-      circle(image, Point(radius + (image_points[i].x()-min.x())*factor,
-                          radius + (image_points[i].y()-min.y())*factor),
+      circle(image, Point(border + radius + (image_points[i].x()-min.x())*factor,
+                          border + radius + (image_points[i].y()-min.y())*factor),
              radius, Scalar(255, 255, 255), CV_FILLED);
     }
 
