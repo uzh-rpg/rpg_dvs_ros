@@ -16,6 +16,8 @@
 #include <dynamic_reconfigure/server.h>
 #include <dvs_ros_driver/DVS_ROS_DriverConfig.h>
 
+
+boost::posix_time::time_duration delta;
 ros::Publisher* event_array_pub;
 dvs::DVS_Driver* driver;
 
@@ -66,8 +68,11 @@ void callback(dvs_ros_driver::DVS_ROS_DriverConfig &config, uint32_t level) {
      parameter_update_required = true;
    }
 
-   // change streaming rate
-   current_config.streaming_rate = config.streaming_rate;
+   // change streaming rate, if necessary
+   if (current_config.streaming_rate != config.streaming_rate) {
+     current_config.streaming_rate = config.streaming_rate;
+     delta = boost::posix_time::microseconds(1e6/current_config.streaming_rate);
+   }
 }
 
 void readout() {
@@ -97,9 +102,10 @@ void readout() {
         events.clear();
         msg.events.clear();
 
-        boost::posix_time::time_duration delta = boost::posix_time::microseconds(1e6/current_config.streaming_rate);
         next_send_time += delta;
       }
+
+      boost::this_thread::sleep(delta/10.0);
     }
     catch(boost::thread_interrupted&) {
       return;
@@ -113,6 +119,7 @@ int main(int argc, char* argv[]) {
   ros::NodeHandle nh;
 
   current_config.streaming_rate = 30;
+  delta = boost::posix_time::microseconds(1e6/current_config.streaming_rate);
 
   ros::Publisher event_array_pub_instance = nh.advertise<dvs_msgs::EventArray>("dvs_events", 1);
   event_array_pub = &event_array_pub_instance;
