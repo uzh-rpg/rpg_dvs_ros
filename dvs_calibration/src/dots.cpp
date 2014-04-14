@@ -23,7 +23,7 @@ int main( int argc, char** argv )
   int dots = 4;
   double radius = 10;
   bool blinking = false;
-  int wait_time_ms = 500;
+  int wait_time_ms = 5000;
   string window_name = "intrinsic calibration pattern";
 
   // initialize pattern points

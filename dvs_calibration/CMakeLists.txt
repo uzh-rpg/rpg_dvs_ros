@@ -36,7 +36,7 @@ add_executable(dots
 
 add_executable(calibration
   src/calibration.cpp
-  src/DvsCalibration.cpp
+  src/circlesgrid.cpp
 )
 
 # to build the executable we depend on other packets, 
