@@ -4,7 +4,13 @@ project(dvs_calibration)
 # search for everything we need to build the package
 find_package(catkin REQUIRED COMPONENTS
   roscpp
+  dynamic_reconfigure
 )
+
+generate_dynamic_reconfigure_options(
+  cfg/DvsCalibration.cfg
+)
+
 # since we need eigen and boost search them as well
 # find_package makes the ${..._INCLUDE_DIRS} ${..._LIBRARIES} variables we use later
 find_package(OpenCV REQUIRED)
@@ -13,7 +19,7 @@ find_package(Eigen REQUIRED)
 # export the dependencis of this package for who ever depends on us
 catkin_package(
   INCLUDE_DIRS include
-  CATKIN_DEPENDS roscpp
+  CATKIN_DEPENDS roscpp dynamic_reconfigure
   DEPENDS eigen OpenCV
 )
 
@@ -26,36 +32,17 @@ include_directories(
 )
 
 # make the executable
-add_executable(focus
-  src/focus.cpp
-)
-
-add_executable(dots
-  src/dots.cpp
-)
-
 add_executable(calibration
   src/calibration.cpp
+  src/pattern.cpp
   src/circlesgrid.cpp
 )
 
 # to build the executable we depend on other packets, 
 # they need to be build beforehand, especially the messages
-add_dependencies(focus ${catkin_EXPORTED_TARGETS})
-add_dependencies(dots ${catkin_EXPORTED_TARGETS})
-add_dependencies(calibration ${catkin_EXPORTED_TARGETS})
+add_dependencies(calibration ${catkin_EXPORTED_TARGETS} ${PROJECT_NAME}_gencfg)
 
 # link the executable to the necesarry libs
-target_link_libraries(focus
-   ${catkin_LIBRARIES}
-   ${OpenCV_LIBRARIES}
-)
-
-target_link_libraries(dots
-   ${catkin_LIBRARIES}
-   ${OpenCV_LIBRARIES}
-)
-
 target_link_libraries(calibration
    ${catkin_LIBRARIES}
    ${OpenCV_LIBRARIES}

@@ -6,6 +6,7 @@
 #include <opencv2/imgproc/imgproc.hpp>
 
 #include "dvs_calibration/circlesgrid.hpp"
+#include "dvs_calibration/pattern.h"
 
 #include <iostream>
 #include <vector>
@@ -111,7 +112,6 @@ void eventsCallback(const dvs_msgs::EventArray::ConstPtr& msg)
       std::vector<cv::Point2f> centers_good;
       grid.findGrid(centers, patternsize, centers_good);
 
-
       ROS_ERROR("centers: %i", centers_good.size());
 
       cv::Mat img2;
@@ -135,10 +135,18 @@ int main(int argc, char** argv)
   // load parameters from rosparam
   int dots = 4;
 
-  // register callback
-  ros::Subscriber sub = nh.subscribe("dvs_events", 1, eventsCallback);
+  Pattern p;
+  cv::imshow("test", p.get_intrinsic_calibration_pattern(45.0/180.0*M_PI, 0.0));
+  cv::waitKey(0);
+  cv::imshow("test", p.get_window_outline_pattern());
+  cv::waitKey(0);
+  cv::imshow("test", p.get_focus_adjustment_pattern());
+  cv::waitKey(0);
 
-  ros::spin();
+  // register callback
+//  ros::Subscriber sub = nh.subscribe("dvs_events", 1, eventsCallback);
+//
+//  ros::spin();
 
   return 0;
 }
