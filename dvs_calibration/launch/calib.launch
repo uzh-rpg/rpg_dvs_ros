@@ -1,0 +1,32 @@
+<launch>  
+  <!-- camera driver -->
+  <node name="dvs_ros_driver" pkg="dvs_ros_driver" type="dvs_ros_driver" />
+
+  <!-- visualization -->
+  <node name="dvs_renderer" pkg="dvs_renderer" type="dvs_renderer">
+    <param name="display_method" value="grayscale"/>
+    <!-- <param name="display_method" value="red-blue"/> -->
+  </node>
+  
+  <!-- display -->
+  <node name="image_view_rendering" pkg="image_view" type="image_view">
+  	<remap from="image" to="dvs_rendering"/>
+  </node>
+
+  <!-- image view for pattern -->
+  <node name="image_view_pattern" pkg="image_view" type="image_view">
+    <remap from="image" to="dvs_calib/pattern"/>
+  </node>
+
+  <!-- image view for visualization -->
+  <node name="image_view_visualization" pkg="image_view" type="image_view">
+    <remap from="image" to="dvs_calib/visualization"/>
+  </node>
+
+  <!-- calib node -->
+  <node name="dvs_calibration" pkg="dvs_calibration" type="calibration" />
+
+  <!-- configure -->
+  <node name="rqt_reconfigure" pkg="rqt_reconfigure" type="rqt_reconfigure" />
+  
+</launch>
