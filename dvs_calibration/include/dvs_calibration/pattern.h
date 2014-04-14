@@ -15,7 +15,7 @@ public:
 
   cv::Mat get_window_outline_pattern();
   cv::Mat get_focus_adjustment_pattern();
-  cv::Mat get_intrinsic_calibration_pattern(double roll, double pitch);
+  cv::Mat get_intrinsic_calibration_pattern(Eigen::Matrix3d orientation);
 
   void set_dots(int dots);
 

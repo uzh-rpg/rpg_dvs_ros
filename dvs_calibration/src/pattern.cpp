@@ -44,19 +44,16 @@ cv::Mat Pattern::get_focus_adjustment_pattern()
   return pattern;
 }
 
-cv::Mat Pattern::get_intrinsic_calibration_pattern(double roll, double pitch)
+cv::Mat Pattern::get_intrinsic_calibration_pattern(Eigen::Matrix3d orientation)
 {
   cv::Mat pattern = cv::Mat(pattern_size, pattern_size, CV_8U);
   pattern = cv::Scalar(0);
-
-  Eigen::Matrix3d R;
-  R = Eigen::AngleAxisd(roll, Eigen::Vector3d::UnitX()) * Eigen::AngleAxisd(pitch, Eigen::Vector3d::UnitY());
 
   // transform all points
   std::vector<Eigen::Vector2d> image_points;
   for (int i = 0; i < pattern_points_.size(); i++)
   {
-    Eigen::Vector3d p = R * pattern_points_[i];
+    Eigen::Vector3d p = orientation * pattern_points_[i];
     image_points.push_back(Eigen::Vector2d(p.x() / p.z(), p.y() / p.z()));
   }
 

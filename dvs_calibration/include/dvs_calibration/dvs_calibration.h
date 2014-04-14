@@ -3,6 +3,7 @@
 
 #include "ros/ros.h"
 
+#include <Eigen/Geometry>
 #include <dvs_msgs/Event.h>
 #include <dvs_msgs/EventArray.h>
 #include "dvs_calibration/pattern.h"
@@ -12,9 +13,6 @@
 #include <opencv2/calib3d/calib3d.hpp>
 #include <image_transport/image_transport.h>
 #include <cv_bridge/cv_bridge.h>
-
-//tmp
-#include <opencv2/highgui/highgui.hpp>
 
 class DvsCalibration
 {
@@ -42,10 +40,13 @@ private:
   std::vector<cv::Point2f> findPattern();
   void publishVisualizationImage(std::vector<cv::Point2f> pattern);
   void publishPatternImage(cv::Mat image);
+  std::vector<Eigen::Matrix3d> orientations;
+  int orientation_id;
 
   // calibration stuff
   void calibrate();
   void resetIntrinsicCalibration();
+  std::vector<cv::Point3f> world_pattern;
   std::vector< std::vector<cv::Point3f> > object_points;
   std::vector< std::vector<cv::Point2f> > image_points;
 

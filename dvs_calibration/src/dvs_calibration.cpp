@@ -5,6 +5,27 @@ DvsCalibration::DvsCalibration()
   dots = 4;
   mode = WINDOW_OUTLINE;
 
+  for (int i = -45; i <= 45; i += 15)
+  {
+    for (int j = -45; j <= 45; j += 15)
+    {
+      double roll = i / 180.0 * M_PI;
+      double pitch = j / 180.0 * M_PI;
+      Eigen::Matrix3d R;
+      R = Eigen::AngleAxisd(roll, Eigen::Vector3d::UnitX()) * Eigen::AngleAxisd(pitch, Eigen::Vector3d::UnitY());
+      orientations.push_back(R);
+    }
+  }
+  orientation_id = 0;
+
+  for (int i = 0; i < dots; i++)
+  {
+    for (int j = 0; j < dots; j++)
+    {
+      world_pattern.push_back(cv::Point3f(i * 0.05, j * 0.05, 0.0));
+    }
+  }
+
   eventSubscriber = nh.subscribe("/dvs_events", 10, &DvsCalibration::eventsCallback, this);
 
   image_transport::ImageTransport it(nh);
@@ -50,8 +71,21 @@ void DvsCalibration::eventsCallback(const dvs_msgs::EventArray::ConstPtr& msg)
     if (centers.size() == dots * dots)
     {
       publishVisualizationImage(centers);
+      orientation_id++;
+      if (orientation_id < orientations.size())
+      {
+        image_points.push_back(centers);
+        object_points.push_back(world_pattern);
+        publishPatternImage(pattern.get_intrinsic_calibration_pattern(orientations[orientation_id]));
+      }
+      else
+      {
+        ROS_ERROR("Got them all!");
+        calibrate();
+      }
     }
     reset_maps();
+
   }
 }
 
@@ -86,7 +120,7 @@ void DvsCalibration::dynamicReconfigureCallback(dvs_calibration::DvsCalibrationC
       break;
     case 2:
       mode = INTRINSIC_CALIBRATION;
-      publishPatternImage(pattern.get_intrinsic_calibration_pattern(45.0 / 180.0 * M_PI, 0.0));
+      publishPatternImage(pattern.get_intrinsic_calibration_pattern(orientations[orientation_id]));
       break;
   }
 }
@@ -149,8 +183,10 @@ std::vector<cv::Point2f> DvsCalibration::findPattern()
 void DvsCalibration::calibrate()
 {
   cv::Mat cameraMatrix, distCoeffs, rvecs, tvecs;
-  cv::calibrateCamera(object_points, image_points, cv::Size(sensor_width, sensor_height), cameraMatrix, distCoeffs,
-                      rvecs, tvecs);
+  double error = cv::calibrateCamera(object_points, image_points, cv::Size(sensor_width, sensor_height), cameraMatrix,
+                                     distCoeffs, rvecs, tvecs);
+
+  ROS_ERROR("error: %f", error);
 }
 
 void DvsCalibration::publishVisualizationImage(std::vector<cv::Point2f> pattern)
@@ -183,6 +219,7 @@ void DvsCalibration::publishPatternImage(cv::Mat image)
 
 void DvsCalibration::resetIntrinsicCalibration()
 {
+  orientation_id = 0;
   object_points.clear();
   image_points.clear();
 }
