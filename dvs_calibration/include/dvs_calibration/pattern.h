@@ -8,9 +8,10 @@
 class Pattern
 {
 public:
-  Pattern(int pattern_size = 1000, int border_size = 10, int dots = 4);
+  Pattern(int pattern_size = 1000, int border_size = 10, int dots = 4, bool blinking = false);
   int pattern_size;
   int border_size;
+  bool blinking;
 
   cv::Mat get_window_outline_pattern();
   cv::Mat get_focus_adjustment_pattern();

@@ -1,7 +1,7 @@
 #include "dvs_calibration/pattern.h"
 
-Pattern::Pattern(int pattern_size, int border_size, int dots) :
-    pattern_size(pattern_size), border_size(border_size), dots_(dots)
+Pattern::Pattern(int pattern_size, int border_size, int dots, bool blinking) :
+    pattern_size(pattern_size), border_size(border_size), dots_(dots), blinking(blinking)
 {
   init_pattern_points();
 }

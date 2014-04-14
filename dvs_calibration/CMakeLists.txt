@@ -5,6 +5,8 @@ project(dvs_calibration)
 find_package(catkin REQUIRED COMPONENTS
   roscpp
   dynamic_reconfigure
+  image_transport
+  cv_bridge
 )
 
 generate_dynamic_reconfigure_options(
@@ -19,7 +21,7 @@ find_package(Eigen REQUIRED)
 # export the dependencis of this package for who ever depends on us
 catkin_package(
   INCLUDE_DIRS include
-  CATKIN_DEPENDS roscpp dynamic_reconfigure
+  CATKIN_DEPENDS roscpp dynamic_reconfigure image_transport cv_bridge
   DEPENDS eigen OpenCV
 )
 
@@ -34,6 +36,7 @@ include_directories(
 # make the executable
 add_executable(calibration
   src/calibration.cpp
+  src/dvs_calibration.cpp
   src/pattern.cpp
   src/circlesgrid.cpp
 )
