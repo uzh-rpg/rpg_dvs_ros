@@ -1,0 +1,12 @@
+<library path="src">
+  <class name="Calib" type="dvs_calib_gui.calib.Calib" base_class_type="rqt_gui_py::Plugin">
+    <description>
+      Plugin for DVS Calibration
+    </description>
+    <qtgui>
+      <label>Calib</label>
+      <icon type="theme">system-help</icon>
+      <statustip>Great user interface to provide real value.</statustip>
+    </qtgui>
+  </class>
+</library>
