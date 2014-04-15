@@ -49,7 +49,6 @@ private:
   bool instrinsic_calibration_running_;
   void calibrate();
   void resetIntrinsicCalibration();
-  std::vector<cv::Point3f> world_pattern;
   std::vector< std::vector<cv::Point3f> > object_points;
   std::vector< std::vector<cv::Point2f> > image_points;
 

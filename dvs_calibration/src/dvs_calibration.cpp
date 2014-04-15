@@ -18,14 +18,6 @@ DvsCalibration::DvsCalibration()
   }
   orientation_id = 0;
 
-  for (int i = 0; i < dots; i++)
-  {
-    for (int j = 0; j < dots; j++)
-    {
-      world_pattern.push_back(cv::Point3f(i * 0.05, j * 0.05, 0.0));
-    }
-  }
-
   instrinsic_calibration_running_ = false;
 
   startCalibrationService = nh.advertiseService("/start_calibration", &DvsCalibration::startCalibrationCallback, this);
@@ -90,6 +82,16 @@ void DvsCalibration::eventsCallback(const dvs_msgs::EventArray::ConstPtr& msg)
         if (orientation_id < orientations.size())
         {
           image_points.push_back(centers);
+
+          std::vector<cv::Point3f> world_pattern;
+          for (int i = 0; i < dots; i++)
+          {
+            for (int j = 0; j < dots; j++)
+            {
+              world_pattern.push_back(cv::Point3f(i * 0.05, j * 0.05, 0.0));
+            }
+          }
+
           object_points.push_back(world_pattern);
           publishPatternImage(pattern.get_intrinsic_calibration_pattern(orientations[orientation_id]));
         }
@@ -198,7 +200,9 @@ std::vector<cv::Point2f> DvsCalibration::findPattern()
 
 void DvsCalibration::calibrate()
 {
-  cv::Mat cameraMatrix, distCoeffs, rvecs, tvecs;
+  instrinsic_calibration_running_ = false;
+  cv::Mat cameraMatrix, distCoeffs;
+  std::vector<cv::Mat> rvecs, tvecs;
   double error = cv::calibrateCamera(object_points, image_points, cv::Size(sensor_width, sensor_height), cameraMatrix,
                                      distCoeffs, rvecs, tvecs);
 

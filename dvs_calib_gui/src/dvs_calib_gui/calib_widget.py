@@ -117,6 +117,8 @@ class CalibWidget(QWidget):
     self._num_pattern_detections = 0
     self.calibrationResultText.clear()
 
+    self.button_start.setEnabled( True )
+
     rospy.wait_for_service('reset_calibration')
     try:
         reset_service = rospy.ServiceProxy('reset_calibration', Empty)
@@ -129,6 +131,7 @@ class CalibWidget(QWidget):
   @Slot(bool)
   def on_button_start_calibration_pressed(self):
     self.calibrationResultText.appendPlainText('Starting calibration...')
+    self.button_start.setEnabled( False )
 
     rospy.wait_for_service('start_calibration')
     try:
