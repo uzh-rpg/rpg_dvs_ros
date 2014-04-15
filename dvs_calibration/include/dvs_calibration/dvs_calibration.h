@@ -14,7 +14,9 @@
 #include <image_transport/image_transport.h>
 #include <cv_bridge/cv_bridge.h>
 #include <std_msgs/Int32.h>
+#include <std_msgs/Float64.h>
 #include <std_srvs/Empty.h>
+#include <sensor_msgs/CameraInfo.h>
 
 class DvsCalibration
 {
@@ -62,6 +64,8 @@ private:
   ros::NodeHandle nh;
   ros::Subscriber eventSubscriber;
   ros::Publisher detectionPublisher;
+  ros::Publisher cameraInfoPublisher;
+  ros::Publisher reprojectionErrorPublisher;
   image_transport::Publisher visualizationPublisher;
   image_transport::Publisher patternPublisher;
   ros::ServiceServer startCalibrationService;

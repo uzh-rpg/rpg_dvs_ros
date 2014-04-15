@@ -25,6 +25,8 @@ DvsCalibration::DvsCalibration()
 
   eventSubscriber = nh.subscribe("/dvs_events", 10, &DvsCalibration::eventsCallback, this);
   detectionPublisher = nh.advertise<std_msgs::Int32>("/pattern_detections", 1);
+  cameraInfoPublisher = nh.advertise<sensor_msgs::CameraInfo>("/dvs_camera_info", 1);
+  reprojectionErrorPublisher = nh.advertise<std_msgs::Float64>("/calibration_reprojection_error", 1);
 
   image_transport::ImageTransport it(nh);
   patternPublisher = it.advertise("dvs_calib/pattern", 1);
@@ -203,10 +205,24 @@ void DvsCalibration::calibrate()
   instrinsic_calibration_running_ = false;
   cv::Mat cameraMatrix, distCoeffs;
   std::vector<cv::Mat> rvecs, tvecs;
-  double error = cv::calibrateCamera(object_points, image_points, cv::Size(sensor_width, sensor_height), cameraMatrix,
-                                     distCoeffs, rvecs, tvecs);
+  double reproj_error = cv::calibrateCamera(object_points, image_points, cv::Size(sensor_width, sensor_height),
+                                            cameraMatrix, distCoeffs, rvecs, tvecs, CV_CALIB_FIX_K3);
 
-  ROS_ERROR("error: %f", error);
+  sensor_msgs::CameraInfo msg;
+  msg.height = sensor_height;
+  msg.width = sensor_width;
+  msg.distortion_model = "plumb_bob";
+
+  for (int i = 0; i < 4; i++)
+    msg.D.push_back(distCoeffs.at<double>(i));
+  for (int i = 0; i < 9; i++)
+    msg.K[i] = cameraMatrix.at<double>(i);
+
+  cameraInfoPublisher.publish(msg);
+
+  std_msgs::Float64 msg2;
+  msg2.data = reproj_error;
+  reprojectionErrorPublisher.publish(msg2);
 }
 
 void DvsCalibration::publishVisualizationImage(std::vector<cv::Point2f> pattern)

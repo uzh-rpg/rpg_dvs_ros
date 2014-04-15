@@ -8,6 +8,8 @@ from python_qt_binding.QtGui import QWidget
 from python_qt_binding.QtCore import QTimer, Slot
 from python_qt_binding.QtCore import pyqtSlot
 from std_msgs.msg import Int32
+from std_msgs.msg import Float64
+from sensor_msgs.msg import CameraInfo
 from std_srvs.srv import Empty
 import dynamic_reconfigure.client
 
@@ -15,10 +17,15 @@ import dynamic_reconfigure.client
 class CalibWidget(QWidget):
 
   _sub_pattern_detections = None
+  _sub_dvs_camera_info = None
+  _sub_calibration_reprojection_error = None
   _client = None
+
   _num_pattern_detections = 0
   _dots = 4
   _border_size = 20
+
+  _messages = []
 
   def __init__(self):
     print('constructor')
@@ -46,6 +53,8 @@ class CalibWidget(QWidget):
     self.borderSizeSpinBox.valueChanged.connect(self.on_border_size_changed)
         
     self._sub_pattern_detections = rospy.Subscriber('/pattern_detections', Int32, self.pattern_detections_cb)
+    self._sub_dvs_camera_info = rospy.Subscriber('/dvs_camera_info', CameraInfo, self.dvs_camera_info_cb)
+    self._sub_calibration_reprojection_error = rospy.Subscriber('/calibration_reprojection_error', Float64, self.calibration_reprojection_error_cb)
 
     self._client = dynamic_reconfigure.client.Client("dvs_calibration")
     config = self._client.get_configuration()
@@ -61,11 +70,25 @@ class CalibWidget(QWidget):
   
   def pattern_detections_cb(self, msg):
     self._num_pattern_detections = msg.data
+    if (msg.data == 100):
+      self._messages.append('Optimization is running (this might take a while...)')
+
+  def dvs_camera_info_cb(self, msg):
+    self._messages.append('Camera info:')
+    self.calibrationResultText.appendPlainText('K:' + str(msg.K))
+    self.calibrationResultText.appendPlainText('D: '+ str(msg.D))
+
+  def calibration_reprojection_error_cb(self, msg):
+    self._messages.append('Reprojection Error: ' + str(msg.data))
 
   def update_info(self):
     self.detectionsProgressBar.setValue(self._num_pattern_detections)
     self.dotsSpinBox.setValue(self._dots)
     self.borderSizeSpinBox.setValue(self._border_size)
+
+    while len(self._messages)>0:
+      self.calibrationResultText.appendPlainText(self._messages.pop())
+
 
   @Slot(bool)  
   def on_select_window_outline_pressed(self):
@@ -130,7 +153,7 @@ class CalibWidget(QWidget):
 
   @Slot(bool)
   def on_button_start_calibration_pressed(self):
-    self.calibrationResultText.appendPlainText('Starting calibration...')
+    self._messages.append('Starting calibration...')
     self.button_start.setEnabled( False )
 
     rospy.wait_for_service('start_calibration')
