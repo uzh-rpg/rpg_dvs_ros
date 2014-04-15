@@ -75,8 +75,8 @@ class CalibWidget(QWidget):
 
   def dvs_camera_info_cb(self, msg):
     self._messages.append('Camera info:')
-    self.calibrationResultText.appendPlainText('K:' + str(msg.K))
-    self.calibrationResultText.appendPlainText('D: '+ str(msg.D))
+    self._messages.append('K:' + str(msg.K))
+    self._messages.append('D: '+ str(msg.D))
 
   def calibration_reprojection_error_cb(self, msg):
     self._messages.append('Reprojection Error: ' + str(msg.data))

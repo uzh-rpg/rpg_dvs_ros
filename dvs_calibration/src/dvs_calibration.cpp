@@ -74,13 +74,6 @@ void DvsCalibration::eventsCallback(const dvs_msgs::EventArray::ConstPtr& msg)
 
       if (instrinsic_calibration_running_)
       {
-        orientation_id++;
-
-        // send status
-        std_msgs::Int32 msg;
-        msg.data = orientation_id * 100.0 / ((double)orientations.size());
-        detectionPublisher.publish(msg);
-
         if (orientation_id < orientations.size())
         {
           image_points.push_back(centers);
@@ -96,8 +89,16 @@ void DvsCalibration::eventsCallback(const dvs_msgs::EventArray::ConstPtr& msg)
 
           object_points.push_back(world_pattern);
           publishPatternImage(pattern.get_intrinsic_calibration_pattern(orientations[orientation_id]));
+
+          orientation_id++;
+
+          // send status
+          std_msgs::Int32 msg;
+          msg.data = orientation_id * 100.0 / ((double)orientations.size());
+          detectionPublisher.publish(msg);
         }
-        else
+
+        if (orientation_id == orientations.size())
         {
           ROS_ERROR("Got them all!");
           calibrate();
@@ -163,7 +164,7 @@ std::vector<cv::Point2f> DvsCalibration::findPattern()
         {
           float dist_x = i - centers[k].x;
           float dist_y = j - centers[k].y;
-          if (dist_x * dist_x + dist_y * dist_y < 10 * 10)
+          if (dist_x * dist_x + dist_y * dist_y < 5 * 5)
           {
             centers_tmp[k].x += transition_sum_map[i][j] * i;
             centers_tmp[k].y += transition_sum_map[i][j] * j;
@@ -213,7 +214,7 @@ void DvsCalibration::calibrate()
   msg.width = sensor_width;
   msg.distortion_model = "plumb_bob";
 
-  for (int i = 0; i < 4; i++)
+  for (int i = 0; i < distCoeffs.cols; i++)
     msg.D.push_back(distCoeffs.at<double>(i));
   for (int i = 0; i < 9; i++)
     msg.K[i] = cameraMatrix.at<double>(i);
