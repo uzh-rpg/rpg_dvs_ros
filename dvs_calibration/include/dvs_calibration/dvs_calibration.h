@@ -13,6 +13,8 @@
 #include <opencv2/calib3d/calib3d.hpp>
 #include <image_transport/image_transport.h>
 #include <cv_bridge/cv_bridge.h>
+#include <std_msgs/Int32.h>
+#include <std_srvs/Empty.h>
 
 class DvsCalibration
 {
@@ -44,6 +46,7 @@ private:
   int orientation_id;
 
   // calibration stuff
+  bool instrinsic_calibration_running_;
   void calibrate();
   void resetIntrinsicCalibration();
   std::vector<cv::Point3f> world_pattern;
@@ -53,12 +56,17 @@ private:
   // callbacks
   void eventsCallback(const dvs_msgs::EventArray::ConstPtr& msg);
   void dynamicReconfigureCallback(dvs_calibration::DvsCalibrationConfig &config, uint32_t level);
+  bool startCalibrationCallback(std_srvs::Empty::Request& request, std_srvs::Empty::Response& response);
+  bool resetCallback(std_srvs::Empty::Request& request, std_srvs::Empty::Response& response);
 
   // ROS interface
   ros::NodeHandle nh;
   ros::Subscriber eventSubscriber;
+  ros::Publisher detectionPublisher;
   image_transport::Publisher visualizationPublisher;
   image_transport::Publisher patternPublisher;
+  ros::ServiceServer startCalibrationService;
+  ros::ServiceServer resetService;
 
   dynamic_reconfigure::Server<dvs_calibration::DvsCalibrationConfig> srv;
   dynamic_reconfigure::Server<dvs_calibration::DvsCalibrationConfig>::CallbackType f;

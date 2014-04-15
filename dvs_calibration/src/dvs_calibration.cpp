@@ -26,7 +26,13 @@ DvsCalibration::DvsCalibration()
     }
   }
 
+  instrinsic_calibration_running_ = false;
+
+  startCalibrationService = nh.advertiseService("/start_calibration", &DvsCalibration::startCalibrationCallback, this);
+  resetService = nh.advertiseService("/reset_calibration", &DvsCalibration::resetCallback, this);
+
   eventSubscriber = nh.subscribe("/dvs_events", 10, &DvsCalibration::eventsCallback, this);
+  detectionPublisher = nh.advertise<std_msgs::Int32>("/pattern_detections", 1);
 
   image_transport::ImageTransport it(nh);
   patternPublisher = it.advertise("dvs_calib/pattern", 1);
@@ -71,21 +77,31 @@ void DvsCalibration::eventsCallback(const dvs_msgs::EventArray::ConstPtr& msg)
     if (centers.size() == dots * dots)
     {
       publishVisualizationImage(centers);
-      orientation_id++;
-      if (orientation_id < orientations.size())
+
+      if (instrinsic_calibration_running_)
       {
-        image_points.push_back(centers);
-        object_points.push_back(world_pattern);
-        publishPatternImage(pattern.get_intrinsic_calibration_pattern(orientations[orientation_id]));
-      }
-      else
-      {
-        ROS_ERROR("Got them all!");
-        calibrate();
+        orientation_id++;
+
+        // send status
+        std_msgs::Int32 msg;
+        msg.data = orientation_id * 100.0 / ((double)orientations.size());
+        detectionPublisher.publish(msg);
+
+        if (orientation_id < orientations.size())
+        {
+          image_points.push_back(centers);
+          object_points.push_back(world_pattern);
+          publishPatternImage(pattern.get_intrinsic_calibration_pattern(orientations[orientation_id]));
+        }
+        else
+        {
+          ROS_ERROR("Got them all!");
+          calibrate();
+        }
       }
     }
-    reset_maps();
 
+    reset_maps();
   }
 }
 
@@ -120,7 +136,7 @@ void DvsCalibration::dynamicReconfigureCallback(dvs_calibration::DvsCalibrationC
       break;
     case 2:
       mode = INTRINSIC_CALIBRATION;
-      publishPatternImage(pattern.get_intrinsic_calibration_pattern(orientations[orientation_id]));
+      publishPatternImage(pattern.get_intrinsic_calibration_pattern());
       break;
   }
 }
@@ -220,6 +236,20 @@ void DvsCalibration::publishPatternImage(cv::Mat image)
 void DvsCalibration::resetIntrinsicCalibration()
 {
   orientation_id = 0;
+  publishPatternImage(pattern.get_intrinsic_calibration_pattern());
   object_points.clear();
   image_points.clear();
+}
+
+bool DvsCalibration::startCalibrationCallback(std_srvs::Empty::Request& request, std_srvs::Empty::Response& response)
+{
+  instrinsic_calibration_running_ = true;
+  return true;
+}
+
+bool DvsCalibration::resetCallback(std_srvs::Empty::Request& request, std_srvs::Empty::Response& response)
+{
+  instrinsic_calibration_running_ = false;
+  resetIntrinsicCalibration();
+  return true;
 }

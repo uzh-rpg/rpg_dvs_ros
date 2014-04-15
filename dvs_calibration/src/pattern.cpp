@@ -54,32 +54,25 @@ cv::Mat Pattern::get_intrinsic_calibration_pattern(Eigen::Matrix3d orientation)
   for (int i = 0; i < pattern_points_.size(); i++)
   {
     Eigen::Vector3d p = orientation * pattern_points_[i];
-    image_points.push_back(Eigen::Vector2d(p.x() / p.z(), p.y() / p.z()));
+    image_points.push_back(Eigen::Vector2d(p.x() / (p.z()+pattern_distance_), p.y() / (p.z()+pattern_distance_)));
   }
 
-  // find minimum and maximum to scale appropriately
-  Eigen::Vector2d min = image_points[0];
-  Eigen::Vector2d max = image_points[0];
-  for (int i = 1; i < image_points.size(); i++)
-  {
-    min.x() = std::min(min.x(), image_points[i].x());
-    min.y() = std::min(min.y(), image_points[i].y());
-    max.x() = std::max(max.x(), image_points[i].x());
-    max.y() = std::max(max.y(), image_points[i].y());
-  }
-
-  double width = max.x() - min.x();
-  double height = max.y() - min.y();
-
+  // calculate drawing area
   double border = 0.5 * border_size/100.0*pattern_size;
-  double factor = (pattern_size - 2 * dot_radius_ - 2 * border) / std::max(width, height);
+  double drawing_field = pattern_size - 2 * dot_radius_ - 2 * border;
+
+  // pattern is from -1 to 1
+  // max_dist is maximum projection size
+  double x = sqrt(2.0)/pattern_distance_;
+  double max_dist =  x / sqrt(1 - x*x);
+  double factor = 0.5 * drawing_field / max_dist;
 
   for (int i = 0; i < image_points.size(); i++)
   {
     cv::circle(
         pattern,
-        cv::Point(border + dot_radius_ + (image_points[i].x() - min.x()) * factor,
-              border + dot_radius_ + (image_points[i].y() - min.y()) * factor),
+        cv::Point(pattern_size/2.0 + image_points[i].x() * factor,
+              pattern_size/2.0 + image_points[i].y() * factor),
               dot_radius_, cv::Scalar(255), -1);
   }
 
@@ -101,7 +94,7 @@ void Pattern::init_pattern_points()
     {
       double x = (i - (dots_ - 1) / 2.0) / (0.5 * (dots_ - 1));
       double y = (j - (dots_ - 1) / 2.0) / (0.5 * (dots_ - 1));
-      pattern_points_.push_back(Eigen::Vector3d(x, y, 10.0));
+      pattern_points_.push_back(Eigen::Vector3d(x, y, 0.0));
     }
   }
 }

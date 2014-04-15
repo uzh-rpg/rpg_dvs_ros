@@ -4,6 +4,7 @@
 #include <opencv2/core/core.hpp>
 #include <Eigen/Geometry>
 #include <vector>
+#include <math.h>
 
 class Pattern
 {
@@ -15,12 +16,13 @@ public:
 
   cv::Mat get_window_outline_pattern();
   cv::Mat get_focus_adjustment_pattern();
-  cv::Mat get_intrinsic_calibration_pattern(Eigen::Matrix3d orientation);
+  cv::Mat get_intrinsic_calibration_pattern(Eigen::Matrix3d orientation = Eigen::Matrix3d::Identity());
 
   void set_dots(int dots);
 
 private:
   static const int dot_radius_ = 10;
+  static const double pattern_distance_ = 10.0;
 
   std::vector<Eigen::Vector3d> pattern_points_;
   int dots_;
