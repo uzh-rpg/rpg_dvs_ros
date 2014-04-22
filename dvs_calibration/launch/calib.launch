@@ -7,11 +7,6 @@
     <param name="display_method" value="grayscale"/>
   </node>
   
-  <!-- image view for pattern -->
-  <node name="image_view_pattern" pkg="image_view" type="image_view">
-    <remap from="image" to="dvs_calib/pattern"/>
-  </node>
-
   <!-- calib node -->
   <node name="dvs_calibration" pkg="dvs_calibration" type="calibration" />
   
