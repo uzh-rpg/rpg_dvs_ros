@@ -3,7 +3,6 @@
 DvsCalibration::DvsCalibration()
 {
   calibration_running = false;
-  dots = 5;
   num_detections = 0;
 
   startCalibrationService = nh.advertiseService("/start_calibration", &DvsCalibration::startCalibrationCallback, this);
@@ -64,7 +63,7 @@ void DvsCalibration::eventsCallback(const dvs_msgs::EventArray::ConstPtr& msg)
       {
         for (int j = 0; j < dots; j++)
         {
-          world_pattern.push_back(cv::Point3f(i * 0.05, j * 0.05, 0.0));
+          world_pattern.push_back(cv::Point3f(i * dot_distance , j * dot_distance , 0.0));
         }
       }
 
@@ -149,7 +148,10 @@ std::vector<cv::Point2f> DvsCalibration::findPattern()
       }
     }
 
-    if (current_cluster.size() >= 3)
+    int cluster_mass = 0;
+    for (cluster_it = current_cluster.begin(); cluster_it != current_cluster.end(); ++cluster_it)
+      cluster_mass += transition_sum_map[cluster_it->x][cluster_it->y];
+    if (cluster_mass >= minimum_led_mass)
       clusters.push_back(current_cluster);
   }
 
@@ -160,14 +162,16 @@ std::vector<cv::Point2f> DvsCalibration::findPattern()
     for (int i = 0; i < clusters.size(); ++i)
     {
       cv::Point2f center(0, 0);
+      int mass = 0;
       std::list<cv::Point>::iterator cluster_it;
       for (cluster_it = clusters[i].begin(); cluster_it != clusters[i].end(); ++cluster_it)
       {
-        center.x += cluster_it->x;
-        center.y += cluster_it->y;
+        center.x += cluster_it->x * transition_sum_map[cluster_it->x][cluster_it->y];
+        center.y += cluster_it->y * transition_sum_map[cluster_it->x][cluster_it->y];
+        mass += transition_sum_map[cluster_it->x][cluster_it->y];
       }
-      center.x /= (double)clusters[i].size();
-      center.y /= (double)clusters[i].size();
+      center.x /= (double)mass;
+      center.y /= (double)mass;
       centers.push_back(center);
     }
 

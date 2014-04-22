@@ -32,6 +32,10 @@ private:
   static const int blinking_time_tolerance = 500;
   static const int enough_transitions_threshold = 200;
   static const int minimum_transitions_threshold = 10;
+  static const int minimum_led_mass = 50;
+  static const int dots = 5;
+  static const double dot_distance = 0.05;
+
 
   // event maps
   void reset_maps();
@@ -39,11 +43,10 @@ private:
   int last_on_map[sensor_width][sensor_height];
   int transition_sum_map[sensor_width][sensor_height];
 
-  //
+  // status
   bool calibration_running;
 
   // pattern
-  int dots;
   Pattern pattern;
   std::vector<cv::Point2f> findPattern();
   void publishVisualizationImage(std::vector<cv::Point2f> pattern);
