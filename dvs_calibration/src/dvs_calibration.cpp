@@ -49,7 +49,8 @@ void DvsCalibration::eventsCallback(const dvs_msgs::EventArray::ConstPtr& msg)
     }
     else
     {
-      if (msg->events[i].time - last_off_map[msg->events[i].x][msg->events[i].y] < max_transition_time_us)
+      int delta_t = msg->events[i].time - last_off_map[msg->events[i].x][msg->events[i].y];
+      if (delta_t < blinking_time_us + blinking_time_tolerance && delta_t > blinking_time_us - blinking_time_tolerance)
         transition_sum_map[msg->events[i].x][msg->events[i].y]++;
     }
   }
@@ -68,6 +69,7 @@ void DvsCalibration::eventsCallback(const dvs_msgs::EventArray::ConstPtr& msg)
   if (enough_transitions)
   {
     std::vector<cv::Point2f> centers = findPattern();
+    ROS_ERROR("enough transitions: %i out of %i", centers.size(), dots * dots);
     if (centers.size() == dots * dots)
     {
       publishVisualizationImage(centers);
@@ -108,6 +110,11 @@ void DvsCalibration::eventsCallback(const dvs_msgs::EventArray::ConstPtr& msg)
 
     reset_maps();
   }
+  else
+  {
+    std::vector<cv::Point2f> centers;
+    publishVisualizationImage(centers);
+  }
 }
 
 void DvsCalibration::reset_maps()
@@ -116,6 +123,7 @@ void DvsCalibration::reset_maps()
   {
     for (int j = 0; j < sensor_height; j++)
     {
+      last_on_map[i][j] = 0;
       last_off_map[i][j] = 0;
       transition_sum_map[i][j] = 0;
     }
@@ -153,48 +161,79 @@ std::vector<cv::Point2f> DvsCalibration::findPattern()
   std::vector<cv::Point2f> centers_tmp; //this will be filled by the detected centers
   std::vector<int> center_count;
 
-  for (int i = 0; i < 128; i++)
+  std::list<cv::Point> points;
+  std::vector< std::list<cv::Point> > clusters;
+
+  for (int i = 0; i < sensor_width; i++)
   {
-    for (int j = 0; j < 128; j++)
+    for (int j = 0; j < sensor_height; j++)
     {
-      if (transition_sum_map[i][j] > 10)
+      if (transition_sum_map[i][j] > minimum_transitions_threshold)
       {
-        bool found_center = false;
-        for (int k = 0; k < centers.size(); k++)
-        {
-          float dist_x = i - centers[k].x;
-          float dist_y = j - centers[k].y;
-          if (dist_x * dist_x + dist_y * dist_y < 5 * 5)
-          {
-            centers_tmp[k].x += transition_sum_map[i][j] * i;
-            centers_tmp[k].y += transition_sum_map[i][j] * j;
-            center_count[k] += transition_sum_map[i][j];
-            found_center = true;
-          }
-        }
-        if (!found_center)
-        {
-          centers.push_back(cv::Point2f(i, j));
-          centers_tmp.push_back(cv::Point2f(transition_sum_map[i][j] * i, transition_sum_map[i][j] * j));
-          center_count.push_back(transition_sum_map[i][j]);
-        }
+        points.push_back(cv::Point(i, j));
       }
     }
   }
 
-  std::vector<cv::Point2f> centers_good;
-  if (centers.size() == dots * dots)
+  ROS_ERROR("got points: %i", points.size());
+
+  std::list<cv::Point>::iterator point_it, cluster_it;
+  while (!points.empty())
   {
-    // find center of mass
-    for (int i = 0; i < centers.size(); i++)
+//    ROS_ERROR("start while");
+    std::list<cv::Point> current_cluster;
+    point_it = points.begin();
+    current_cluster.push_back(*point_it);
+    point_it = points.erase(point_it);
+
+    bool found_a_neighbor = true;
+    while (found_a_neighbor)
     {
-      centers[i].x = centers_tmp[i].x / center_count[i];
-      centers[i].y = centers_tmp[i].y / center_count[i];
+      found_a_neighbor = false;
+      for (point_it=points.begin(); point_it!=points.end(); ++point_it)
+      {
+//        ROS_ERROR(" point iteration");
+        for (cluster_it=current_cluster.begin(); cluster_it!=current_cluster.end(); ++cluster_it)
+        {
+//          ROS_ERROR("  cluster iteration");
+          cv::Point dist = *point_it - *cluster_it;
+          if (dist.x >= -1 && dist.x <= 1 && dist.y >= -1 && dist.y <= 1)
+          {
+            current_cluster.push_back(cv::Point(*point_it));
+            point_it = points.erase(point_it);
+            found_a_neighbor = true;
+//            ROS_ERROR("   --> found_a_neighbor");
+            break;
+          }
+        }
+      }
     }
 
-    // find correct order
-    CirclesGridClusterFinder grid(false);
+    if (current_cluster.size() >= 3)
+    clusters.push_back(current_cluster);
+  }
 
+  ROS_ERROR("got clusters: %i", clusters.size());
+
+  std::vector<cv::Point2f> centers_good;
+  if (clusters.size() == dots*dots)
+  {
+    std::vector<cv::Point2f> centers;
+    for (int i=0; i<clusters.size(); ++i)
+    {
+      cv::Point2f center(0, 0);
+      std::list<cv::Point>::iterator cluster_it;
+      for (cluster_it=clusters[i].begin(); cluster_it!=clusters[i].end(); ++cluster_it)
+      {
+        center.x += cluster_it->x;
+        center.y += cluster_it->y;
+      }
+      center.x /= (double) clusters[i].size();
+      center.y /= (double) clusters[i].size();
+      centers.push_back(center);
+    }
+
+    CirclesGridClusterFinder grid(false);
     grid.findGrid(centers, patternsize, centers_good);
   }
 
@@ -241,7 +280,8 @@ void DvsCalibration::publishVisualizationImage(std::vector<cv::Point2f> pattern)
     }
   }
 
-  cv::drawChessboardCorners(cv_image.image, cv::Size(dots, dots), cv::Mat(pattern), true);
+  if (pattern.size() == dots*dots)
+    cv::drawChessboardCorners(cv_image.image, cv::Size(dots, dots), cv::Mat(pattern), true);
 
   visualizationPublisher.publish(cv_image.toImageMsg());
 }
