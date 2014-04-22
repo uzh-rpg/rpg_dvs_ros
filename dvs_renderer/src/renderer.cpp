@@ -26,18 +26,15 @@ cv::Mat cameraMatrix, distCoeffs;
 void cameraInfoCallback(const sensor_msgs::CameraInfo::ConstPtr& msg)
 {
   got_camera_info = true;
-  ROS_ERROR("got camera info");
+
   cameraMatrix = cv::Mat(3, 3, CV_64F);
   for (int i = 0; i < 3; i++)
     for (int j = 0; j < 3; j++)
       cameraMatrix.at<double>(j, i) = msg->K[i+j*3];
-  ROS_ERROR("got cameraMatrix info");
 
   distCoeffs = cv::Mat(msg->D.size(), 1, CV_64F);
   for (int i = 0; i < msg->D.size(); i++)
     distCoeffs.at<double>(i) = msg->D[i];
-
-  ROS_ERROR("got distCoeffs info");
 }
 
 void eventsCallback(const dvs_msgs::EventArray::ConstPtr& msg)
@@ -94,7 +91,7 @@ void eventsCallback(const dvs_msgs::EventArray::ConstPtr& msg)
 
     image_pub_.publish(cv_image.toImageMsg());
 
-    if (got_camera_info)
+    if (got_camera_info && undistorted_image_pub_.getNumSubscribers() > 0)
     {
       cv_bridge::CvImage cv_image2;
       cv_image2.encoding = cv_image.encoding;
