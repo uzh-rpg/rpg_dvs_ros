@@ -4,13 +4,8 @@ project(dvs_calibration)
 # search for everything we need to build the package
 find_package(catkin REQUIRED COMPONENTS
   roscpp
-  dynamic_reconfigure
   image_transport
   cv_bridge
-)
-
-generate_dynamic_reconfigure_options(
-  cfg/DvsCalibration.cfg
 )
 
 # since we need eigen and boost search them as well
@@ -21,7 +16,7 @@ find_package(Eigen REQUIRED)
 # export the dependencis of this package for who ever depends on us
 catkin_package(
   INCLUDE_DIRS include
-  CATKIN_DEPENDS roscpp dynamic_reconfigure image_transport cv_bridge
+  CATKIN_DEPENDS roscpp image_transport cv_bridge
   DEPENDS eigen OpenCV
 )
 

@@ -8,8 +8,6 @@
 #include <dvs_msgs/EventArray.h>
 #include "dvs_calibration/pattern.h"
 #include "dvs_calibration/circlesgrid.hpp"
-#include <dynamic_reconfigure/server.h>
-#include <dvs_calibration/DvsCalibrationConfig.h>
 #include <opencv2/calib3d/calib3d.hpp>
 #include <image_transport/image_transport.h>
 #include <cv_bridge/cv_bridge.h>
@@ -35,14 +33,14 @@ private:
   static const int enough_transitions_threshold = 200;
   static const int minimum_transitions_threshold = 10;
 
-  // mode
-  enum {WINDOW_OUTLINE, FOCUS_ADJUSTMENT, INTRINSIC_CALIBRATION} mode;
-
   // event maps
   void reset_maps();
   int last_off_map[sensor_width][sensor_height];
   int last_on_map[sensor_width][sensor_height];
   int transition_sum_map[sensor_width][sensor_height];
+
+  //
+  bool calibration_running;
 
   // pattern
   int dots;
@@ -50,11 +48,9 @@ private:
   std::vector<cv::Point2f> findPattern();
   void publishVisualizationImage(std::vector<cv::Point2f> pattern);
   void publishPatternImage(cv::Mat image);
-  std::vector<Eigen::Matrix3d> orientations;
-  int orientation_id;
+  int num_detections;
 
   // calibration stuff
-  bool instrinsic_calibration_running_;
   void calibrate();
   void resetIntrinsicCalibration();
   std::vector< std::vector<cv::Point3f> > object_points;
@@ -62,7 +58,6 @@ private:
 
   // callbacks
   void eventsCallback(const dvs_msgs::EventArray::ConstPtr& msg);
-  void dynamicReconfigureCallback(dvs_calibration::DvsCalibrationConfig &config, uint32_t level);
   bool startCalibrationCallback(std_srvs::Empty::Request& request, std_srvs::Empty::Response& response);
   bool resetCallback(std_srvs::Empty::Request& request, std_srvs::Empty::Response& response);
 
@@ -77,8 +72,6 @@ private:
   ros::ServiceServer startCalibrationService;
   ros::ServiceServer resetService;
 
-  dynamic_reconfigure::Server<dvs_calibration::DvsCalibrationConfig> srv;
-  dynamic_reconfigure::Server<dvs_calibration::DvsCalibrationConfig>::CallbackType f;
 };
 
 #endif // DVS_CALIBRATION_H
