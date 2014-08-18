@@ -49,8 +49,27 @@ bool DVS_Driver::open_device() {
   if (device_handle == NULL)
     return false;
 
-// libusb_set_auto_detach_kernel_driver(device_handle, 1);
+  // libusb_set_auto_detach_kernel_driver(device_handle, 1);
   libusb_claim_interface(device_handle, 0);
+
+  // get device name
+  struct libusb_device_descriptor desc;
+  int r = libusb_get_device_descriptor(libusb_get_device(device_handle), &desc);
+  if (r < 0) {
+    printf("libusb: failed to get device descriptor\n");
+  }
+  char str1[256], str2[256];
+  int e = libusb_get_string_descriptor_ascii(device_handle, desc.iProduct, (unsigned char*) str1, sizeof(str1));
+  if (e < 0) {
+    std::cout << "libusb: get descriptor error code: " << e << std::endl;
+    libusb_close(device_handle);
+  }
+  e = libusb_get_string_descriptor_ascii(device_handle, desc.iSerialNumber, (unsigned char*) str2, sizeof(str2));
+  if (e < 0) {
+    std::cout << "libusb: get descriptor error code: " << e << std::endl;
+    libusb_close(device_handle);
+  }
+  camera_id = std::string(reinterpret_cast<char*>(str1)) + "-" + std::string(reinterpret_cast<char*>(str2));
 
   transfer = libusb_alloc_transfer(0);
 
@@ -66,7 +85,7 @@ bool DVS_Driver::open_device() {
   transfer->timeout = 0;
   transfer->flags = LIBUSB_TRANSFER_FREE_BUFFER;
 
-//  libusb_submit_transfer(transfer);
+  //  libusb_submit_transfer(transfer);
   int status = libusb_submit_transfer(transfer);
   if (status != LIBUSB_SUCCESS) {
     std::cout << "Unable to submit libusb transfer: " << status << std::endl;
@@ -184,7 +203,7 @@ void DVS_Driver::event_translator(uint8_t *buffer, size_t bytesSent) {
         uint16_t y = (uint16_t) (127 - ((uint16_t) ((addressUSB >> DVS128_Y_ADDR_SHIFT) & DVS128_Y_ADDR_MASK)));
         bool polarity = (((addressUSB >> DVS128_POLARITY_SHIFT) & DVS128_POLARITY_MASK) == 0) ? (1) : (0);
 
-//        std::cout << "Event: <x, y, t, p> = <" << x << ", " << y << ", " << timestamp << ", " << polarity << ">" << std::endl;
+        //        std::cout << "Event: <x, y, t, p> = <" << x << ", " << y << ", " << timestamp << ", " << polarity << ">" << std::endl;
         Event e;
         e.x = x;
         e.y = y;

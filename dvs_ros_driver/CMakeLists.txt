@@ -7,6 +7,7 @@ find_package(catkin REQUIRED COMPONENTS
   dvs_driver
   dvs_msgs
   dynamic_reconfigure
+  camera_info_manager
 )
 
 generate_dynamic_reconfigure_options(
@@ -20,7 +21,12 @@ find_package(Boost REQUIRED COMPONENTS system thread)
 # export the dependencis of this package for who ever depends on us
 catkin_package(
 #  INCLUDE_DIRS include
-  CATKIN_DEPENDS roscpp dvs_driver dvs_msgs dynamic_reconfigure
+  CATKIN_DEPENDS 
+  	roscpp 
+  	dvs_driver 
+  	dvs_msgs 
+  	dynamic_reconfigure
+  	camera_info_manager
 #  DEPENDS boost
 )
 

@@ -15,6 +15,7 @@
 #include <std_msgs/Float64.h>
 #include <std_srvs/Empty.h>
 #include <sensor_msgs/CameraInfo.h>
+#include <sensor_msgs/SetCameraInfo.h>
 #include <opencv2/imgproc/imgproc.hpp>
 
 #include <list>
@@ -62,7 +63,12 @@ private:
   // callbacks
   void eventsCallback(const dvs_msgs::EventArray::ConstPtr& msg);
   bool startCalibrationCallback(std_srvs::Empty::Request& request, std_srvs::Empty::Response& response);
+  bool saveCalibrationCallback(std_srvs::Empty::Request& request, std_srvs::Empty::Response& response);
   bool resetCallback(std_srvs::Empty::Request& request, std_srvs::Empty::Response& response);
+
+  // services
+  sensor_msgs::CameraInfo cameraInfo;
+  bool setCameraInfo();
 
   // ROS interface
   ros::NodeHandle nh;
@@ -73,7 +79,9 @@ private:
   image_transport::Publisher visualizationPublisher;
   image_transport::Publisher patternPublisher;
   ros::ServiceServer startCalibrationService;
+  ros::ServiceServer saveCalibrationService;
   ros::ServiceServer resetService;
+  ros::ServiceClient setCameraInfoClient;
 
 };
 

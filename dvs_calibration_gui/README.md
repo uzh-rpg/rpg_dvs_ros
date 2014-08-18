@@ -1,10 +1,2 @@
-run with:
-
-    rosrun dvs_calib_gui dvs_calib_gui
-
-or start `rqt` and display the widget.
-
-If it does not work, try this:
-
-    rm ~/.config/ros.org/rqt_gui.ini
-    rqt
+to install the gui you have to clear your rqt cache
+rm ~/.config/ros.org/rqt_gui.ini

@@ -117,8 +117,8 @@ int main(int argc, char* argv[])
     display_method = RED_BLUE;
 
   // setup subscribers and publishers
-  ros::Subscriber sub = nh.subscribe("dvs_events", 1, eventsCallback);
-  ros::Subscriber sub2 = nh.subscribe("dvs_camera_info", 1, cameraInfoCallback);
+  ros::Subscriber sub = nh.subscribe("dvs/events", 1, eventsCallback);
+  ros::Subscriber sub2 = nh.subscribe("dvs/camera_info", 1, cameraInfoCallback);
 
   image_transport::ImageTransport it_(nh);
   image_pub_ = it_.advertise("dvs_rendering", 1);

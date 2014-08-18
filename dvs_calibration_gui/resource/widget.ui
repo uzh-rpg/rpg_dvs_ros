@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>286</width>
+    <width>280</width>
     <height>368</height>
    </rect>
   </property>
@@ -17,20 +17,20 @@
    <property name="geometry">
     <rect>
      <x>10</x>
-     <y>10</y>
+     <y>11</y>
      <width>258</width>
      <height>341</height>
     </rect>
    </property>
-   <layout class="QVBoxLayout" name="verticalLayout">
-    <item>
+   <layout class="QGridLayout" name="gridLayout">
+    <item row="0" column="0">
      <widget class="QPushButton" name="button_reset">
       <property name="text">
        <string>Reset</string>
       </property>
      </widget>
     </item>
-    <item>
+    <item row="1" column="0">
      <layout class="QHBoxLayout" name="horizontalLayout">
       <item>
        <widget class="QLabel" name="label_3">
@@ -51,27 +51,34 @@
       </item>
      </layout>
     </item>
-    <item>
+    <item row="2" column="0">
      <widget class="QPushButton" name="button_start">
       <property name="text">
        <string>Start Calibration</string>
       </property>
      </widget>
     </item>
-    <item>
+    <item row="3" column="0">
      <widget class="QLabel" name="label_4">
       <property name="text">
        <string>Calibration Result:</string>
       </property>
      </widget>
     </item>
-    <item>
+    <item row="4" column="0">
      <widget class="QPlainTextEdit" name="calibrationResultText">
       <property name="undoRedoEnabled">
        <bool>false</bool>
       </property>
       <property name="textInteractionFlags">
        <set>Qt::TextSelectableByKeyboard|Qt::TextSelectableByMouse</set>
+      </property>
+     </widget>
+    </item>
+    <item row="5" column="0">
+     <widget class="QPushButton" name="button_save">
+      <property name="text">
+       <string>Save Calibration</string>
       </property>
      </widget>
     </item>

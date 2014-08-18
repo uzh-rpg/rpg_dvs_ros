@@ -28,7 +28,7 @@ class Calib(Plugin):
     # plugin at once, these lines add number to make it easy to 
     # tell from pane to pane.
     if context.serial_number() > 1:
-        self._widget.setWindowTitle(self._widget.windowTitle() + (' (%d)' % context.serial_number()))
+      self._widget.setWindowTitle(self._widget.windowTitle() + (' (%d)' % context.serial_number()))
     
     # Add widget to the user interface
     context.add_widget(self._widget)
@@ -38,8 +38,8 @@ class Calib(Plugin):
     pass    
     
   def _parse_args(self, argv):
-    parser = argparse.ArgumentParser(prog='dvs_calib_gui', add_help=False)
-    group = parser.add_argument_group('Options for dvs_calib_gui plugin')
+    parser = argparse.ArgumentParser(prog='dvs_calibration_gui', add_help=False)
+    group = parser.add_argument_group('Options for dvs_calibration_gui plugin')
     group.add_argument('topic', type=argparse.FileType('r'), nargs='*', default=[], help='Calib Info Topic to display')
     return parser.parse_args(argv)
 

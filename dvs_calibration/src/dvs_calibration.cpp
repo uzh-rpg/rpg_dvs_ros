@@ -5,17 +5,20 @@ DvsCalibration::DvsCalibration()
   calibration_running = false;
   num_detections = 0;
 
-  startCalibrationService = nh.advertiseService("/start_calibration", &DvsCalibration::startCalibrationCallback, this);
-  resetService = nh.advertiseService("/reset_calibration", &DvsCalibration::resetCallback, this);
+  startCalibrationService = nh.advertiseService("dvs_calibration/start", &DvsCalibration::startCalibrationCallback, this);
+  saveCalibrationService = nh.advertiseService("dvs_calibration/save", &DvsCalibration::saveCalibrationCallback, this);
+  resetService = nh.advertiseService("dvs_calibration/reset", &DvsCalibration::resetCallback, this);
 
-  eventSubscriber = nh.subscribe("/dvs_events", 10, &DvsCalibration::eventsCallback, this);
-  detectionPublisher = nh.advertise<std_msgs::Int32>("/pattern_detections", 1);
-  cameraInfoPublisher = nh.advertise<sensor_msgs::CameraInfo>("/dvs_camera_info", 1);
-  reprojectionErrorPublisher = nh.advertise<std_msgs::Float64>("/calibration_reprojection_error", 1);
+  setCameraInfoClient = nh.serviceClient<sensor_msgs::SetCameraInfo>("/set_camera_info");
+
+  eventSubscriber = nh.subscribe("dvs/events", 10, &DvsCalibration::eventsCallback, this);
+  detectionPublisher = nh.advertise<std_msgs::Int32>("dvs_calibration/pattern_detections", 1);
+  cameraInfoPublisher = nh.advertise<sensor_msgs::CameraInfo>("dvs_calibration/camera_info", 1);
+  reprojectionErrorPublisher = nh.advertise<std_msgs::Float64>("dvs_calibration/calibration_reprojection_error", 1);
 
   image_transport::ImageTransport it(nh);
-  patternPublisher = it.advertise("dvs_calib/pattern", 1);
-  visualizationPublisher = it.advertise("dvs_calib/visualization", 1);
+  patternPublisher = it.advertise("dvs_calibration/pattern", 1);
+  visualizationPublisher = it.advertise("dvs_calibration/visualization", 1);
 }
 
 void DvsCalibration::eventsCallback(const dvs_msgs::EventArray::ConstPtr& msg)
@@ -49,7 +52,7 @@ void DvsCalibration::eventsCallback(const dvs_msgs::EventArray::ConstPtr& msg)
     }
   }
 
-  if (enough_transitions)
+  if (enough_transitions) // TODO: or timeout
   {
     std::vector<cv::Point2f> centers = findPattern();
     if (centers.size() == dots * dots)
@@ -190,16 +193,18 @@ void DvsCalibration::calibrate()
                                             cameraMatrix, distCoeffs, rvecs, tvecs, CV_CALIB_FIX_K3);
 
   sensor_msgs::CameraInfo msg;
+
   msg.height = sensor_height;
   msg.width = sensor_width;
   msg.distortion_model = "plumb_bob";
 
-  for (int i = 0; i < distCoeffs.cols; i++)
+  for (int i = 0; i < 5; i++)
     msg.D.push_back(distCoeffs.at<double>(i));
   for (int i = 0; i < 9; i++)
     msg.K[i] = cameraMatrix.at<double>(i);
 
   cameraInfoPublisher.publish(msg);
+  cameraInfo = msg;
 
   std_msgs::Float64 msg2;
   msg2.data = reproj_error;
@@ -255,4 +260,16 @@ bool DvsCalibration::resetCallback(std_srvs::Empty::Request& request, std_srvs::
   calibration_running = false;
   resetIntrinsicCalibration();
   return true;
+}
+
+bool DvsCalibration::saveCalibrationCallback(std_srvs::Empty::Request& request, std_srvs::Empty::Response& response)
+{
+  return setCameraInfo();
+}
+
+bool DvsCalibration::setCameraInfo()
+{
+  sensor_msgs::SetCameraInfo srv;
+  srv.request.camera_info = cameraInfo;
+  return setCameraInfoClient.call(srv);
 }

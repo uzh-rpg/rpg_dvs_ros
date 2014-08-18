@@ -55,6 +55,10 @@ public:
 
   void callback(struct libusb_transfer *transfer);
 
+  inline std::string get_camera_id() {
+    return camera_id;
+  }
+
 private:
   bool change_parameter(std::string parameter, uint32_t value);
   bool send_parameters();
@@ -109,6 +113,9 @@ private:
 
   // parameters
   std::map<std::string, Parameter> parameters;
+
+  // camera name
+  std::string camera_id;
 };
 
 } // namespace

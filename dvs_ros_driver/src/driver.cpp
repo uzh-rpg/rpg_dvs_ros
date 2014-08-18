@@ -16,12 +16,17 @@
 #include <dynamic_reconfigure/server.h>
 #include <dvs_ros_driver/DVS_ROS_DriverConfig.h>
 
+// camera info manager
+#include <sensor_msgs/CameraInfo.h>
+#include <camera_info_manager/camera_info_manager.h>
 
 boost::posix_time::time_duration delta;
 ros::Publisher* event_array_pub;
+ros::Publisher* camera_info_pub;
 dvs::DVS_Driver* driver;
 
 dvs_ros_driver::DVS_ROS_DriverConfig current_config;
+camera_info_manager::CameraInfoManager* cameraInfoManager;
 
 bool parameter_update_required = false;
 
@@ -97,6 +102,9 @@ void readout() {
 
       if (boost::posix_time::microsec_clock::local_time() > next_send_time)
       {
+//        if (cameraInfoManager->isCalibrated()) {
+          camera_info_pub->publish(cameraInfoManager->getCameraInfo());
+//        }
         event_array_pub->publish(msg);
         ros::spinOnce();
         events.clear();
@@ -118,24 +126,31 @@ int main(int argc, char* argv[]) {
 
   ros::NodeHandle nh;
 
+  // Load driver
+  driver = new dvs::DVS_Driver();
+
+  // camera info handling
+  cameraInfoManager = new camera_info_manager::CameraInfoManager(nh, driver->get_camera_id());
+
   current_config.streaming_rate = 30;
   delta = boost::posix_time::microseconds(1e6/current_config.streaming_rate);
 
-  ros::Publisher event_array_pub_instance = nh.advertise<dvs_msgs::EventArray>("dvs_events", 1);
+  ros::Publisher event_array_pub_instance = nh.advertise<dvs_msgs::EventArray>("dvs/events", 1);
   event_array_pub = &event_array_pub_instance;
+
+  ros::Publisher camera_info_pub_instance = nh.advertise<sensor_msgs::CameraInfo>("dvs/camera_info", 1);
+  camera_info_pub = &camera_info_pub_instance;
+
+  // start threads
+  boost::thread parameter_thread(&change_dvs_parameters);
+  boost::thread readout_thread(&readout);
+
 
   // Dynamic reconfigure
   dynamic_reconfigure::Server<dvs_ros_driver::DVS_ROS_DriverConfig> server;
   dynamic_reconfigure::Server<dvs_ros_driver::DVS_ROS_DriverConfig>::CallbackType f;
   f = boost::bind(&callback, _1, _2);
   server.setCallback(f);
-
-  // Load driver
-  driver = new dvs::DVS_Driver();
-
-  // start threads
-  boost::thread parameter_thread(&change_dvs_parameters);
-  boost::thread readout_thread(&readout);
 
   // spin ros
   ros::spin();

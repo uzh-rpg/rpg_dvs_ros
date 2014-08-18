@@ -29,7 +29,7 @@ class CalibWidget(QWidget):
     self.setObjectName('CalibWidget')
 
     # load UI
-    ui_file = os.path.join(rospkg.RosPack().get_path('dvs_calib_gui'), 'resource', 'widget.ui')
+    ui_file = os.path.join(rospkg.RosPack().get_path('dvs_calibration_gui'), 'resource', 'widget.ui')
     loadUi(ui_file, self)
      
     # init and start update timer for data, the timer calls the function update_info all 40ms    
@@ -39,12 +39,17 @@ class CalibWidget(QWidget):
     
     self.button_reset.pressed.connect(self.on_button_reset_pressed)
     self.button_start.pressed.connect(self.on_button_start_calibration_pressed)
+    self.button_save.pressed.connect(self.on_button_save_calibration_pressed)
         
-    self._sub_pattern_detections = rospy.Subscriber('/pattern_detections', Int32, self.pattern_detections_cb)
-    self._sub_dvs_camera_info = rospy.Subscriber('/dvs_camera_info', CameraInfo, self.dvs_camera_info_cb)
-    self._sub_calibration_reprojection_error = rospy.Subscriber('/calibration_reprojection_error', Float64, self.calibration_reprojection_error_cb)
+    self._sub_pattern_detections = rospy.Subscriber('dvs_calibration/pattern_detections', Int32, self.pattern_detections_cb)
+    self._sub_dvs_camera_info = rospy.Subscriber('dvs_calibration/camera_info', CameraInfo, self.dvs_camera_info_cb)
+    self._sub_calibration_reprojection_error = rospy.Subscriber('dvs_calibration/calibration_reprojection_error', Float64, self.calibration_reprojection_error_cb)
+
+    print('reset')
 
     self.on_button_reset_pressed()
+    
+    print('reset done')
 
   def unregister(self):
     print('Nothing to do')
@@ -75,10 +80,10 @@ class CalibWidget(QWidget):
 
     self.button_start.setEnabled( False )
 
-    rospy.wait_for_service('reset_calibration')
+    rospy.wait_for_service('dvs_calibration/reset')
     try:
-      reset_service = rospy.ServiceProxy('reset_calibration', Empty)
-      resp1 = reset_service()
+      reset_service = rospy.ServiceProxy('dvs_calibration/reset', Empty)
+      resp = reset_service()
     except rospy.ServiceException, e:
       print "Service call failed: %s"%e
 
@@ -87,9 +92,22 @@ class CalibWidget(QWidget):
     self._messages.append('Starting calibration...')
     self.button_start.setEnabled( False )
 
-    rospy.wait_for_service('start_calibration')
+    rospy.wait_for_service('dvs_calibration/start')
     try:
-      start_calibration_service = rospy.ServiceProxy('start_calibration', Empty)
-      resp1 = start_calibration_service()
+      start_calibration_service = rospy.ServiceProxy('dvs_calibration/start', Empty)
+      resp = start_calibration_service()
     except rospy.ServiceException, e:
       print "Service call failed: %s"%e
+      
+
+  @Slot(bool)
+  def on_button_save_calibration_pressed(self):
+    self._messages.append('Saving calibration...')
+
+    rospy.wait_for_service('dvs_calibration/save')
+    try:
+      save_calibration_service = rospy.ServiceProxy('dvs_calibration/save', Empty)
+      resp = save_calibration_service()
+    except rospy.ServiceException, e:
+      print "Service call failed: %s"%e
+
