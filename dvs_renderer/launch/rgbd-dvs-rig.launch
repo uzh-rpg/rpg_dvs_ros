@@ -1,0 +1,26 @@
+<launch>  
+  <!-- camera driver -->
+  <node name="dvs_ros_driver" pkg="dvs_ros_driver" type="dvs_ros_driver" />
+
+  <!-- visualization -->
+  <node name="dvs_renderer" pkg="dvs_renderer" type="dvs_renderer">
+    <!-- <param name="display_method" value="grayscale"/> -->
+    <param name="display_method" value="red-blue"/>
+  </node>
+
+  <include file="$(find openni_launch)/launch/openni.launch"/>
+  
+  <!-- display DVS -->
+  <node name="image_view_dvs" pkg="image_view" type="image_view">
+  	<remap from="image" to="dvs_rendering"/>
+  </node>
+
+  <!-- display RGB-D -->
+  <node name="image_view_rgbd" pkg="image_view" type="image_view">
+  	<remap from="image" to="/camera/rgb/image_raw"/>
+  </node>
+
+  <!-- configure -->
+  <node name="rqt_reconfigure" pkg="rqt_reconfigure" type="rqt_reconfigure" />
+  
+</launch>
