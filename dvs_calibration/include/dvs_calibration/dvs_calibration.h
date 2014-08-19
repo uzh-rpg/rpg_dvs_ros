@@ -37,6 +37,8 @@ private:
   static const int dots = 5;
   static const double dot_distance = 0.05;
 
+  static const double pattern_search_timeout = 2.0;
+  ros::Time last_pattern_found;
 
   // event maps
   void reset_maps();

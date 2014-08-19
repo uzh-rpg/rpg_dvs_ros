@@ -78,6 +78,9 @@ void DvsCalibration::eventsCallback(const dvs_msgs::EventArray::ConstPtr& msg)
       std_msgs::Int32 msg;
       msg.data = num_detections;
       detectionPublisher.publish(msg);
+
+      // update last detection time
+      last_pattern_found = ros::Time::now();
     }
 
     reset_maps();
@@ -86,6 +89,11 @@ void DvsCalibration::eventsCallback(const dvs_msgs::EventArray::ConstPtr& msg)
   {
     std::vector<cv::Point2f> centers;
     publishVisualizationImage(centers);
+  }
+
+  if (ros::Time::now() - last_pattern_found > ros::Duration(pattern_search_timeout)) {
+    reset_maps();
+    last_pattern_found = ros::Time::now();
   }
 }
 
