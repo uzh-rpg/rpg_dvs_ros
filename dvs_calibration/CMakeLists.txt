@@ -7,6 +7,8 @@ find_package(catkin REQUIRED COMPONENTS
   image_transport
   cv_bridge
   dvs_msgs
+  geometry_msgs
+  sensor_msgs
 )
 
 # since we need eigen and boost search them as well
@@ -22,6 +24,8 @@ catkin_package(
     image_transport 
     cv_bridge 
     dvs_msgs
+    geometry_msgs
+    sensor_msgs
   DEPENDS eigen OpenCV
 )
 

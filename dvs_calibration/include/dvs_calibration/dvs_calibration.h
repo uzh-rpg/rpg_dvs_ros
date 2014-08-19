@@ -17,6 +17,7 @@
 #include <sensor_msgs/CameraInfo.h>
 #include <sensor_msgs/SetCameraInfo.h>
 #include <opencv2/imgproc/imgproc.hpp>
+#include <geometry_msgs/PoseStamped.h>
 
 #include <list>
 
@@ -48,6 +49,7 @@ private:
 
   // status
   bool calibration_running;
+  bool gotCameraInfo;
 
   // pattern
   Pattern pattern;
@@ -64,6 +66,7 @@ private:
 
   // callbacks
   void eventsCallback(const dvs_msgs::EventArray::ConstPtr& msg);
+  void cameraInfoCallback(const sensor_msgs::CameraInfo::ConstPtr& msg);
   bool startCalibrationCallback(std_srvs::Empty::Request& request, std_srvs::Empty::Response& response);
   bool saveCalibrationCallback(std_srvs::Empty::Request& request, std_srvs::Empty::Response& response);
   bool resetCallback(std_srvs::Empty::Request& request, std_srvs::Empty::Response& response);
@@ -75,9 +78,11 @@ private:
   // ROS interface
   ros::NodeHandle nh;
   ros::Subscriber eventSubscriber;
+  ros::Subscriber cameraInfoSubscriber;
   ros::Publisher detectionPublisher;
   ros::Publisher cameraInfoPublisher;
   ros::Publisher reprojectionErrorPublisher;
+  ros::Publisher cameraPosePublisher;
   image_transport::Publisher visualizationPublisher;
   image_transport::Publisher patternPublisher;
   ros::ServiceServer startCalibrationService;

@@ -10,11 +10,13 @@ DvsCalibration::DvsCalibration()
   resetService = nh.advertiseService("dvs_calibration/reset", &DvsCalibration::resetCallback, this);
 
   setCameraInfoClient = nh.serviceClient<sensor_msgs::SetCameraInfo>("/set_camera_info");
+  cameraInfoSubscriber = nh.subscribe("dvs/camera_info", 1, &DvsCalibration::cameraInfoCallback, this);
 
   eventSubscriber = nh.subscribe("dvs/events", 10, &DvsCalibration::eventsCallback, this);
   detectionPublisher = nh.advertise<std_msgs::Int32>("dvs_calibration/pattern_detections", 1);
   cameraInfoPublisher = nh.advertise<sensor_msgs::CameraInfo>("dvs_calibration/camera_info", 1);
   reprojectionErrorPublisher = nh.advertise<std_msgs::Float64>("dvs_calibration/calibration_reprojection_error", 1);
+  cameraPosePublisher = nh.advertise<geometry_msgs::PoseStamped>("dvs_calibration/pose", 1);
 
   image_transport::ImageTransport it(nh);
   patternPublisher = it.advertise("dvs_calibration/pattern", 1);
@@ -52,7 +54,7 @@ void DvsCalibration::eventsCallback(const dvs_msgs::EventArray::ConstPtr& msg)
     }
   }
 
-  if (enough_transitions) // TODO: or timeout
+  if (enough_transitions)
   {
     std::vector<cv::Point2f> centers = findPattern();
     if (centers.size() == dots * dots)
@@ -73,6 +75,38 @@ void DvsCalibration::eventsCallback(const dvs_msgs::EventArray::ConstPtr& msg)
       object_points.push_back(world_pattern);
 
       num_detections++;
+
+      // if we have camera info, also publish pose
+      if (gotCameraInfo)
+      {
+        cv::Mat rvec, tvec;
+        cv::Mat cameraMatrix(3, 3, CV_64F);
+        cv::Mat distCoeffs(1, 5, CV_64F);
+
+        // convert to OpenCV
+        for (int i = 0; i < 5; i++)
+          distCoeffs.at<double>(i) = cameraInfo.D[i];
+        for (int i = 0; i < 9; i++)
+          cameraMatrix.at<double>(i) = cameraInfo.K[i];
+
+        cv::solvePnP(world_pattern, centers, cameraMatrix, distCoeffs, rvec, tvec);
+
+        geometry_msgs::PoseStamped pose_msg;
+        pose_msg.header.stamp = ros::Time::now();
+        pose_msg.header.frame_id = "dvs";
+        pose_msg.pose.position.x = tvec.at<double>(0);
+        pose_msg.pose.position.y = tvec.at<double>(1);
+        pose_msg.pose.position.y = tvec.at<double>(2);
+
+        double angle = cv::norm(rvec);
+        cv::normalize(rvec, rvec);
+        pose_msg.pose.orientation.x = rvec.at<double>(0) * sin(angle/2.0);
+        pose_msg.pose.orientation.y = rvec.at<double>(1) * sin(angle/2.0);
+        pose_msg.pose.orientation.z = rvec.at<double>(2) * sin(angle/2.0);
+        pose_msg.pose.orientation.w = cos(angle/2.0);
+
+        cameraPosePublisher.publish(pose_msg);
+      }
 
       // send status
       std_msgs::Int32 msg;
@@ -280,4 +314,10 @@ bool DvsCalibration::setCameraInfo()
   sensor_msgs::SetCameraInfo srv;
   srv.request.camera_info = cameraInfo;
   return setCameraInfoClient.call(srv);
+}
+
+void DvsCalibration::cameraInfoCallback(const sensor_msgs::CameraInfo::ConstPtr& msg)
+{
+  gotCameraInfo = true;
+  cameraInfo = *msg;
 }
