@@ -1,0 +1,21 @@
+<?xml version="1.0"?>
+<package>
+  <name>dvs_camera_rig_calibration</name>
+  <version>0.0.0</version>
+  <description>The dvs_camera_rig_calibration package</description>
+  <maintainer email="mueggler@ifi.uzh.ch">Elias Mueggler</maintainer>
+  <license>GNU GPL</license>
+
+  <buildtool_depend>catkin</buildtool_depend>
+
+  <build_depend>roscpp</build_depend>
+  <build_depend>visp_hand2eye_calibration</build_depend>
+  <build_depend>geometry_msgs</build_depend>
+  
+  <run_depend>roscpp</run_depend>
+  <run_depend>visp_hand2eye_calibration</run_depend>
+  <run_depend>geometry_msgs</run_depend>
+
+  <export>
+  </export>
+</package>
