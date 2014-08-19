@@ -6,6 +6,7 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp
   image_transport
   cv_bridge
+  dvs_msgs
 )
 
 # since we need eigen and boost search them as well
@@ -16,7 +17,11 @@ find_package(Eigen REQUIRED)
 # export the dependencis of this package for who ever depends on us
 catkin_package(
   INCLUDE_DIRS include
-  CATKIN_DEPENDS roscpp image_transport cv_bridge
+  CATKIN_DEPENDS 
+    roscpp 
+    image_transport 
+    cv_bridge 
+    dvs_msgs
   DEPENDS eigen OpenCV
 )
 
