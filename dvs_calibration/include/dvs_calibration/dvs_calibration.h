@@ -8,6 +8,7 @@
 #include <dvs_msgs/EventArray.h>
 #include "dvs_calibration/pattern.h"
 #include "dvs_calibration/circlesgrid.hpp"
+#include "dvs_calibration/board_detection.h"
 #include <opencv2/calib3d/calib3d.hpp>
 #include <image_transport/image_transport.h>
 #include <cv_bridge/cv_bridge.h>

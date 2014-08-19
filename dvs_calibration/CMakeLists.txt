@@ -43,14 +43,32 @@ add_executable(calibration
   src/dvs_calibration.cpp
   src/pattern.cpp
   src/circlesgrid.cpp
+  src/board_detection.cpp
 )
 
 # to build the executable we depend on other packets, 
 # they need to be build beforehand, especially the messages
-add_dependencies(calibration ${catkin_EXPORTED_TARGETS} ${PROJECT_NAME}_gencfg)
+add_dependencies(calibration ${catkin_EXPORTED_TARGETS})
 
 # link the executable to the necesarry libs
 target_link_libraries(calibration
+   ${catkin_LIBRARIES}
+   ${OpenCV_LIBRARIES}
+)
+
+
+add_executable(camera_pose
+  src/camera_pose.cpp
+  src/circlesgrid.cpp
+  src/board_detection.cpp
+)
+
+# to build the executable we depend on other packets, 
+# they need to be build beforehand, especially the messages
+add_dependencies(camera_pose ${catkin_EXPORTED_TARGETS})
+
+# link the executable to the necesarry libs
+target_link_libraries(camera_pose
    ${catkin_LIBRARIES}
    ${OpenCV_LIBRARIES}
 )

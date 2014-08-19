@@ -146,13 +146,15 @@ void DvsCalibration::reset_maps()
 
 std::vector<cv::Point2f> DvsCalibration::findPattern()
 {
-  cv::Size patternsize(dots, dots); //number of centers
-  std::vector<cv::Point2f> centers; //this will be filled by the detected centers
-  std::vector<cv::Point2f> centers_tmp; //this will be filled by the detected centers
-  std::vector<int> center_count;
+//  cv::Size patternsize(dots, dots); //number of centers
+//  std::vector<cv::Point2f> centers; //this will be filled by the detected centers
+//  std::vector<cv::Point2f> centers_tmp; //this will be filled by the detected centers
+//  std::vector<int> center_count;
 
-  std::list<cv::Point> points;
-  std::vector<std::list<cv::Point> > clusters;
+//  std::list<cv::Point> points;
+//  std::vector<std::list<cv::Point> > clusters;
+
+  std::list<PointWithWeight> points;
 
   for (int i = 0; i < sensor_width; i++)
   {
@@ -160,71 +162,76 @@ std::vector<cv::Point2f> DvsCalibration::findPattern()
     {
       if (transition_sum_map[i][j] > minimum_transitions_threshold)
       {
-        points.push_back(cv::Point(i, j));
+        PointWithWeight p;
+        p.point = cv::Point(i, j);
+        p.weight = (double) transition_sum_map[i][j];
+        points.push_back(p);
       }
     }
   }
 
-  std::list<cv::Point>::iterator point_it, cluster_it;
-  while (!points.empty())
-  {
-    std::list<cv::Point> current_cluster;
-    point_it = points.begin();
-    current_cluster.push_back(*point_it);
-    point_it = points.erase(point_it);
+  return BoardDetection::findPattern(points);
 
-    bool found_a_neighbor = true;
-    while (found_a_neighbor)
-    {
-      found_a_neighbor = false;
-      for (point_it = points.begin(); point_it != points.end(); ++point_it)
-      {
-        for (cluster_it = current_cluster.begin(); cluster_it != current_cluster.end(); ++cluster_it)
-        {
-          cv::Point dist = *point_it - *cluster_it;
-          if (dist.x >= -1 && dist.x <= 1 && dist.y >= -1 && dist.y <= 1)
-          {
-            current_cluster.push_back(cv::Point(*point_it));
-            point_it = points.erase(point_it);
-            found_a_neighbor = true;
-            break;
-          }
-        }
-      }
-    }
-
-    int cluster_mass = 0;
-    for (cluster_it = current_cluster.begin(); cluster_it != current_cluster.end(); ++cluster_it)
-      cluster_mass += transition_sum_map[cluster_it->x][cluster_it->y];
-    if (cluster_mass >= minimum_led_mass)
-      clusters.push_back(current_cluster);
-  }
-
-  std::vector<cv::Point2f> centers_good;
-  if (clusters.size() == dots * dots)
-  {
-    std::vector<cv::Point2f> centers;
-    for (int i = 0; i < clusters.size(); ++i)
-    {
-      cv::Point2f center(0, 0);
-      int mass = 0;
-      std::list<cv::Point>::iterator cluster_it;
-      for (cluster_it = clusters[i].begin(); cluster_it != clusters[i].end(); ++cluster_it)
-      {
-        center.x += cluster_it->x * transition_sum_map[cluster_it->x][cluster_it->y];
-        center.y += cluster_it->y * transition_sum_map[cluster_it->x][cluster_it->y];
-        mass += transition_sum_map[cluster_it->x][cluster_it->y];
-      }
-      center.x /= (double)mass;
-      center.y /= (double)mass;
-      centers.push_back(center);
-    }
-
-    CirclesGridClusterFinder grid(false);
-    grid.findGrid(centers, patternsize, centers_good);
-  }
-
-  return centers_good;
+//  std::list<cv::Point>::iterator point_it, cluster_it;
+//  while (!points.empty())
+//  {
+//    std::list<cv::Point> current_cluster;
+//    point_it = points.begin();
+//    current_cluster.push_back(*point_it);
+//    point_it = points.erase(point_it);
+//
+//    bool found_a_neighbor = true;
+//    while (found_a_neighbor)
+//    {
+//      found_a_neighbor = false;
+//      for (point_it = points.begin(); point_it != points.end(); ++point_it)
+//      {
+//        for (cluster_it = current_cluster.begin(); cluster_it != current_cluster.end(); ++cluster_it)
+//        {
+//          cv::Point dist = *point_it - *cluster_it;
+//          if (dist.x >= -1 && dist.x <= 1 && dist.y >= -1 && dist.y <= 1)
+//          {
+//            current_cluster.push_back(cv::Point(*point_it));
+//            point_it = points.erase(point_it);
+//            found_a_neighbor = true;
+//            break;
+//          }
+//        }
+//      }
+//    }
+//
+//    int cluster_mass = 0;
+//    for (cluster_it = current_cluster.begin(); cluster_it != current_cluster.end(); ++cluster_it)
+//      cluster_mass += transition_sum_map[cluster_it->x][cluster_it->y];
+//    if (cluster_mass >= minimum_led_mass)
+//      clusters.push_back(current_cluster);
+//  }
+//
+//  std::vector<cv::Point2f> centers_good;
+//  if (clusters.size() == dots * dots)
+//  {
+//    std::vector<cv::Point2f> centers;
+//    for (int i = 0; i < clusters.size(); ++i)
+//    {
+//      cv::Point2f center(0, 0);
+//      int mass = 0;
+//      std::list<cv::Point>::iterator cluster_it;
+//      for (cluster_it = clusters[i].begin(); cluster_it != clusters[i].end(); ++cluster_it)
+//      {
+//        center.x += cluster_it->x * transition_sum_map[cluster_it->x][cluster_it->y];
+//        center.y += cluster_it->y * transition_sum_map[cluster_it->x][cluster_it->y];
+//        mass += transition_sum_map[cluster_it->x][cluster_it->y];
+//      }
+//      center.x /= (double)mass;
+//      center.y /= (double)mass;
+//      centers.push_back(center);
+//    }
+//
+//    CirclesGridClusterFinder grid(false);
+//    grid.findGrid(centers, patternsize, centers_good);
+//  }
+//
+//  return centers_good;
 }
 
 void DvsCalibration::calibrate()
