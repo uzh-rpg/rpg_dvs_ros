@@ -6,9 +6,12 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp
   visp_hand2eye_calibration
   geometry_msgs
+  eigen_conversions
+  cmake_modules
 )
 # since we need eigen and boost search them as well
 # find_package makes the ${..._INCLUDE_DIRS} ${..._LIBRARIES} variables we use later
+find_package(Eigen REQUIRED)
 
 # export the dependencis of this package for who ever depends on us
 catkin_package(
@@ -17,6 +20,7 @@ catkin_package(
   	roscpp
 	visp_hand2eye_calibration
 	geometry_msgs
+	eigen_conversions
   DEPENDS OpenCV
 )
 
@@ -24,6 +28,7 @@ catkin_package(
 include_directories(
 #  include
   ${catkin_INCLUDE_DIRS}
+  ${EIGEN_INCLUDE_DIRS}
 )
 
 # make the executable

@@ -4,7 +4,13 @@
 #include <geometry_msgs/PoseStamped.h>
 #include <geometry_msgs/Transform.h>
 
+#include <Eigen/Dense>
+
+#include <eigen_conversions/eigen_msg.h>
+
 ros::ServiceClient callHandEyeCalibrationSrv;
+
+ros::Publisher poseDifferencePub;
 
 visp_hand2eye_calibration::compute_effector_camera_quick calibSrv;
 
@@ -37,6 +43,19 @@ void eyeCallback(const geometry_msgs::PoseStamped::ConstPtr& eyePose)
   {
     calibSrv.request.world_effector.transforms.push_back(poseToTrafo(lastHandPose.pose));
     calibSrv.request.camera_object.transforms.push_back(poseToTrafo(eyePose->pose));
+
+    // compute relative pose between hand and eye
+    Eigen::Affine3d handPoseEigen, eyePoseEigen;
+    tf::poseMsgToEigen(lastHandPose.pose, handPoseEigen);
+    tf::poseMsgToEigen(eyePose->pose, eyePoseEigen);
+
+    Eigen::Affine3d relativePoseEigen = handPoseEigen * eyePoseEigen.inverse();
+
+    geometry_msgs::PoseStamped relative_pose;
+    tf::poseEigenToMsg(relativePoseEigen, relative_pose.pose);
+
+    poseDifferencePub.publish(relative_pose);
+
 
     ROS_INFO("Added another measurement.");
 
@@ -73,6 +92,8 @@ int main(int argc, char* argv[])
   // setup subscribers and publishers
   ros::Subscriber handSub = nh.subscribe("hand_pose", 1, handCallback);
   ros::Subscriber eyeSub = nh.subscribe("eye_pose", 1, eyeCallback);
+
+  poseDifferencePub = nh.advertise<geometry_msgs::PoseStamped>("relative_pose", 1);
 
   callHandEyeCalibrationSrv = nh.serviceClient<visp_hand2eye_calibration::compute_effector_camera_quick>("compute_effector_camera_quick");
 
