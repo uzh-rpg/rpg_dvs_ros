@@ -9,6 +9,7 @@ find_package(catkin REQUIRED COMPONENTS
   dvs_msgs
   geometry_msgs
   sensor_msgs
+  cmake_modules
 )
 
 # since we need eigen and boost search them as well
