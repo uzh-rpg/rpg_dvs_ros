@@ -6,6 +6,6 @@
   </node>
   
   <!-- calibration -->
-  <node name="visp_hand2eye_calibration" pkg="visp_hand2eye_calibration" type="visp_hand2eye_calibration_calibrator" />
+  <!-- <node name="visp_hand2eye_calibration" pkg="visp_hand2eye_calibration" type="visp_hand2eye_calibration_calibrator" /> -->
   
 </launch>

@@ -4,7 +4,7 @@ project(dvs_camera_rig_calibration)
 # search for everything we need to build the package
 find_package(catkin REQUIRED COMPONENTS
   roscpp
-  visp_hand2eye_calibration
+#  visp_hand2eye_calibration
   geometry_msgs
   eigen_conversions
   cmake_modules
@@ -18,7 +18,7 @@ catkin_package(
 #  INCLUDE_DIRS include
   CATKIN_DEPENDS 
   	roscpp
-	visp_hand2eye_calibration
+#	visp_hand2eye_calibration
 	geometry_msgs
 	eigen_conversions
   DEPENDS OpenCV
