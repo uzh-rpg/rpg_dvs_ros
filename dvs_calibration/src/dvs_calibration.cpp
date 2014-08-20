@@ -96,7 +96,7 @@ void DvsCalibration::eventsCallback(const dvs_msgs::EventArray::ConstPtr& msg)
         pose_msg.header.frame_id = "dvs";
         pose_msg.pose.position.x = tvec.at<double>(0);
         pose_msg.pose.position.y = tvec.at<double>(1);
-        pose_msg.pose.position.y = tvec.at<double>(2);
+        pose_msg.pose.position.z = tvec.at<double>(2);
 
         double angle = cv::norm(rvec);
         cv::normalize(rvec, rvec);
