@@ -14,8 +14,8 @@ geometry_msgs::Transform poseToTrafo(geometry_msgs::Pose p)
 {
   geometry_msgs::Transform t;
   t.translation.x = p.position.x;
-  t.translation.x = p.position.x;
-  t.translation.x = p.position.x;
+  t.translation.y = p.position.y;
+  t.translation.z = p.position.z;
 
   t.rotation.x = p.orientation.x;
   t.rotation.y = p.orientation.y;
