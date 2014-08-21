@@ -80,34 +80,45 @@ class CalibWidget(QWidget):
 
     self.button_start.setEnabled( False )
 
-    rospy.wait_for_service('dvs_calibration/reset')
     try:
-      reset_service = rospy.ServiceProxy('dvs_calibration/reset', Empty)
-      resp = reset_service()
-    except rospy.ServiceException, e:
-      print "Service call failed: %s"%e
+      rospy.wait_for_service('dvs_calibration/reset', 1)
+      try:
+        reset_service = rospy.ServiceProxy('dvs_calibration/reset', Empty)
+        resp = reset_service()
+      except rospy.ServiceException, e:
+        print "Service call failed: %s"%e
+    except:
+      print "service not available..."
+      pass
 
   @Slot(bool)
   def on_button_start_calibration_pressed(self):
     self._messages.append('Starting calibration...')
     self.button_start.setEnabled( False )
 
-    rospy.wait_for_service('dvs_calibration/start')
     try:
-      start_calibration_service = rospy.ServiceProxy('dvs_calibration/start', Empty)
-      resp = start_calibration_service()
-    except rospy.ServiceException, e:
-      print "Service call failed: %s"%e
-      
+      rospy.wait_for_service('dvs_calibration/start', 1)
+      try:
+        start_calibration_service = rospy.ServiceProxy('dvs_calibration/start', Empty)
+        resp = start_calibration_service()
+      except rospy.ServiceException, e:
+        print "Service call failed: %s"%e
+    except:
+      print "service not available..."
+      pass
 
   @Slot(bool)
   def on_button_save_calibration_pressed(self):
     self._messages.append('Saving calibration...')
 
-    rospy.wait_for_service('dvs_calibration/save')
     try:
-      save_calibration_service = rospy.ServiceProxy('dvs_calibration/save', Empty)
-      resp = save_calibration_service()
-    except rospy.ServiceException, e:
-      print "Service call failed: %s"%e
+      rospy.wait_for_service('dvs_calibration/save', 1)
+      try:
+        save_calibration_service = rospy.ServiceProxy('dvs_calibration/save', Empty)
+        resp = save_calibration_service()
+      except rospy.ServiceException, e:
+        print "Service call failed: %s"%e
+    except:
+      print "service not available..."
+      pass
 
