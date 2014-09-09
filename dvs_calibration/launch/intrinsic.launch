@@ -9,5 +9,7 @@
   
   <!-- calib node -->
   <node name="dvs_calibration" pkg="dvs_calibration" type="calibration" />
+
+  <node name="rqt_gui" pkg="rqt_gui" type="rqt_gui" args="--perspective-file $(find dvs_calibration_gui)/rqt/IntrinsicCalibration.perspective" />
   
 </launch>
