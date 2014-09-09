@@ -35,9 +35,12 @@ int main(int argc, char* argv[])
 
   ros::NodeHandle nh;
 
-  myfile.open (std::string("events-" + currentDateTime() + ".txt").c_str());
+  std::string file_name = std::string("events-" + currentDateTime() + ".txt");
 
-  ros::Subscriber sub = nh.subscribe("dvs_events", 1000, eventsCallback);
+  myfile.open(file_name.c_str());
+
+  ROS_INFO("Writing events to %s.", file_name.c_str());
+  ros::Subscriber sub = nh.subscribe("dvs/events", 1000, eventsCallback);
 
   ros::spin();
 
