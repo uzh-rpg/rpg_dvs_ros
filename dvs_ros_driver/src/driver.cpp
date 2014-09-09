@@ -1,46 +1,48 @@
-#include "ros/ros.h"
+#include "dvs_ros_driver/driver.h"
 
-// boost
-#include <boost/thread.hpp>
-#include <boost/thread/thread_time.hpp>
-#include <boost/date_time/posix_time/posix_time.hpp>
+namespace dvs_ros_driver {
 
-// messages
-#include <dvs_msgs/Event.h>
-#include <dvs_msgs/EventArray.h>
+DvsRosDriver::DvsRosDriver()
+{
+  parameter_update_required = false;
 
-// DVS driver
-#include <dvs_driver/dvs_driver.h>
+  // camera info handling
+  cameraInfoManager = new camera_info_manager::CameraInfoManager(nh, driver.get_camera_id());
 
-// dynamic reconfigure
-#include <dynamic_reconfigure/server.h>
-#include <dvs_ros_driver/DVS_ROS_DriverConfig.h>
+  current_config.streaming_rate = 30;
+  delta = boost::posix_time::microseconds(1e6/current_config.streaming_rate);
 
-// camera info manager
-#include <sensor_msgs/CameraInfo.h>
-#include <camera_info_manager/camera_info_manager.h>
+  event_array_pub = nh.advertise<dvs_msgs::EventArray>("dvs/events", 1);
+  camera_info_pub = nh.advertise<sensor_msgs::CameraInfo>("dvs/camera_info", 1);
 
-boost::posix_time::time_duration delta;
-ros::Publisher* event_array_pub;
-ros::Publisher* camera_info_pub;
-dvs::DVS_Driver* driver;
+  // create threads
+  parameter_thread = new boost::thread(boost::bind(&DvsRosDriver::change_dvs_parameters, this));
+  readout_thread = new boost::thread(boost::bind(&DvsRosDriver::readout, this));
 
-dvs_ros_driver::DVS_ROS_DriverConfig current_config;
-camera_info_manager::CameraInfoManager* cameraInfoManager;
+  // Dynamic reconfigure
+  dynamic_reconfigure::Server<dvs_ros_driver::DVS_ROS_DriverConfig> server;
+  dynamic_reconfigure::Server<dvs_ros_driver::DVS_ROS_DriverConfig>::CallbackType f;
+  f = boost::bind(&DvsRosDriver::callback, this, _1, _2);
+  server.setCallback(f);
+}
 
-bool parameter_update_required = false;
+DvsRosDriver::~DvsRosDriver()
+{
+  parameter_thread->interrupt();
+  readout_thread->interrupt();
+}
 
-void change_dvs_parameters() {
+void DvsRosDriver::change_dvs_parameters() {
   while(true) {
     try {
       if (parameter_update_required) {
         parameter_update_required = false;
-        driver->change_parameters(current_config.cas, current_config.injGnd, current_config.reqPd, current_config.puX,
+        driver.change_parameters(current_config.cas, current_config.injGnd, current_config.reqPd, current_config.puX,
                                   current_config.diffOff, current_config.req, current_config.refr, current_config.puY,
                                   current_config.diffOn, current_config.diff, current_config.foll, current_config.pr);
       }
 
-      boost::this_thread::sleep(boost::posix_time::milliseconds(10));
+      boost::this_thread::sleep(boost::posix_time::milliseconds(100));
     } 
     catch(boost::thread_interrupted&) {
       return;
@@ -48,7 +50,7 @@ void change_dvs_parameters() {
   }
 }
 
-void callback(dvs_ros_driver::DVS_ROS_DriverConfig &config, uint32_t level) {
+void DvsRosDriver::callback(dvs_ros_driver::DVS_ROS_DriverConfig &config, uint32_t level) {
   // did any DVS bias setting change?
    if (current_config.cas != config.cas || current_config.injGnd != config.injGnd ||
        current_config.reqPd != config.reqPd || current_config.puX != config.puX ||
@@ -80,7 +82,7 @@ void callback(dvs_ros_driver::DVS_ROS_DriverConfig &config, uint32_t level) {
    }
 }
 
-void readout() {
+void DvsRosDriver::readout() {
   std::vector<dvs::Event> events;
   dvs_msgs::EventArray msg;
 
@@ -88,7 +90,7 @@ void readout() {
 
   while(true) {
     try {
-      events = driver->get_events();
+      events = driver.get_events();
 
       for (int i=0; i<events.size(); ++i) {
         dvs_msgs::Event e;
@@ -103,9 +105,9 @@ void readout() {
       if (boost::posix_time::microsec_clock::local_time() > next_send_time)
       {
 //        if (cameraInfoManager->isCalibrated()) {
-          camera_info_pub->publish(cameraInfoManager->getCameraInfo());
+          camera_info_pub.publish(cameraInfoManager->getCameraInfo());
 //        }
-        event_array_pub->publish(msg);
+        event_array_pub.publish(msg);
         ros::spinOnce();
         events.clear();
         msg.events.clear();
@@ -121,46 +123,4 @@ void readout() {
   }
 }
 
-int main(int argc, char* argv[]) {
-  ros::init(argc, argv, "dvs_ros_driver");
-
-  ros::NodeHandle nh;
-
-  // Load driver
-  driver = new dvs::DVS_Driver();
-
-  // camera info handling
-  cameraInfoManager = new camera_info_manager::CameraInfoManager(nh, driver->get_camera_id());
-
-  current_config.streaming_rate = 30;
-  delta = boost::posix_time::microseconds(1e6/current_config.streaming_rate);
-
-  ros::Publisher event_array_pub_instance = nh.advertise<dvs_msgs::EventArray>("dvs/events", 1);
-  event_array_pub = &event_array_pub_instance;
-
-  ros::Publisher camera_info_pub_instance = nh.advertise<sensor_msgs::CameraInfo>("dvs/camera_info", 1);
-  camera_info_pub = &camera_info_pub_instance;
-
-  // start threads
-  boost::thread parameter_thread(&change_dvs_parameters);
-  boost::thread readout_thread(&readout);
-
-
-  // Dynamic reconfigure
-  dynamic_reconfigure::Server<dvs_ros_driver::DVS_ROS_DriverConfig> server;
-  dynamic_reconfigure::Server<dvs_ros_driver::DVS_ROS_DriverConfig>::CallbackType f;
-  f = boost::bind(&callback, _1, _2);
-  server.setCallback(f);
-
-  // spin ros
-  ros::spin();
-
-  // end threads
-  parameter_thread.interrupt();
-  readout_thread.interrupt();
-
-  parameter_thread.join();
-  readout_thread.join();
-
-  return 0;
-}
+} // namespace

@@ -185,11 +185,11 @@ void DVS_Driver::event_translator(uint8_t *buffer, size_t bytesSent) {
       uint16_t timestampUSB = le16toh(*((uint16_t * ) (&buffer[i + 2])));
 
       // Expand to 32 bits. (Tick is 1µs already.)
-      uint32_t timestamp = timestampUSB + wrapAdd;
+      uint64_t timestamp = timestampUSB + wrapAdd;
 
       // Check monotonicity of timestamps.
       if (timestamp < lastTimestamp) {
-        // std::cout << "DVS128: non-monotonic time-stamp detected: lastTimestamp=" << lastTimestamp << ", timestamp=" << timestamp << "." << std::endl;
+         std::cout << "DVS128: non-monotonic time-stamp detected: lastTimestamp=" << lastTimestamp << ", timestamp=" << timestamp << "." << std::endl;
       }
 
       lastTimestamp = timestamp;

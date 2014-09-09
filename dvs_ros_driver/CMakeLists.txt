@@ -20,26 +20,26 @@ find_package(Boost REQUIRED COMPONENTS system thread)
 
 # export the dependencis of this package for who ever depends on us
 catkin_package(
-#  INCLUDE_DIRS include
+  INCLUDE_DIRS include
   CATKIN_DEPENDS 
   	roscpp 
   	dvs_driver 
   	dvs_msgs 
   	dynamic_reconfigure
   	camera_info_manager
-#  DEPENDS boost
+  DEPENDS boost
 )
 
 # tell catkin where to find the headers for this project
 include_directories(
-#  include
+  include
   ${catkin_INCLUDE_DIRS}
-#  ${Boost_INCLUDE_DIRS}
+  ${Boost_INCLUDE_DIRS}
 )
 
 # make the executable
 add_executable(dvs_ros_driver
-  src/driver.cpp
+  src/driver_node.cpp src/driver.cpp
 )
 
 # to build the executable we depend on other packets, 
@@ -49,5 +49,5 @@ add_dependencies(dvs_ros_driver ${catkin_EXPORTED_TARGETS} ${PROJECT_NAME}_gencf
 # link the executable to the necesarry libs
 target_link_libraries(dvs_ros_driver
   ${catkin_LIBRARIES}
-#  ${Boost_LIBRARIES}
+  ${Boost_LIBRARIES}
 )

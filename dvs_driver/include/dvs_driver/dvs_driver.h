@@ -35,7 +35,7 @@ namespace dvs {
 struct Event {
   uint16_t x, y;
   bool polarity;
-  uint32_t timestamp;
+  uint64_t timestamp;
 };
 
 class DVS_Driver {
@@ -43,11 +43,7 @@ public:
   DVS_Driver();
   ~DVS_Driver();
 
-  bool connect();
-  void disconnect();
-
   std::vector<Event> get_events();
-
 
   bool change_parameters(uint32_t cas, uint32_t injGnd, uint32_t reqPd, uint32_t puX,
                          uint32_t diffOff, uint32_t req, uint32_t refr, uint32_t puY,
@@ -85,8 +81,8 @@ private:
   static const uint32_t bufferNumber = 8;
   static const uint32_t bufferSize = 4096;
 
-  uint32_t wrapAdd;
-  uint32_t lastTimestamp;
+  uint64_t wrapAdd;
+  uint64_t lastTimestamp;
 
   class Parameter {
   public:
