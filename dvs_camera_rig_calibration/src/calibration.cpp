@@ -16,7 +16,8 @@ ros::Publisher poseDifferencePub;
 
 double max_time_difference = 0.1;
 
-Eigen::Vector3d relative_sum = Eigen::Vector3d::Zero();
+Eigen::Vector3d relative_translation_sum = Eigen::Vector3d::Zero();
+Eigen::Vector4d relative_rotation_sum = Eigen::Vector4d::Zero();
 int num_measurements = 0;
 
 geometry_msgs::PoseStamped lastHandPose;
@@ -49,13 +50,36 @@ void eyeCallback(const geometry_msgs::PoseStamped::ConstPtr& eyePose)
     poseDifferencePub.publish(relative_pose);
 //    ROS_INFO("%f %f %f %f", relative_pose.pose.position.x, relative_pose.pose.position.y, relative_pose.pose.position.z, relative_pose.pose.orientation.w);
 
+    Eigen::Vector3d eulerAnlges2 = relativePoseEigen.rotation().eulerAngles(2, 1, 0) / M_PI * 180.0;
+    std::cout << "Euler angles (deg): " << eulerAnlges2.x() << ", " << eulerAnlges2.y() << ", " << eulerAnlges2.z() << std::endl;
+
     // running average
-    relative_sum += relativePoseEigen.translation();
+    relative_translation_sum += relativePoseEigen.translation();
+
+    Eigen::Quaterniond relative_quaternion = Eigen::Quaterniond(relativePoseEigen.rotation());
+    relative_rotation_sum.x() += relative_quaternion.x();
+    relative_rotation_sum.y() += relative_quaternion.y();
+    relative_rotation_sum.z() += relative_quaternion.z();
+    relative_rotation_sum.w() += relative_quaternion.w();
+
     num_measurements++;
 
-    ROS_INFO("Running average (n=%d): %2.6f %2.6f %2.6f [m]", num_measurements,
-             relative_sum.x()/num_measurements, relative_sum.y()/num_measurements,
-             relative_sum.z()/num_measurements);
+    Eigen::Vector4d relative_rotation_avg = (relative_rotation_sum / num_measurements).normalized();
+
+    Eigen::Quaterniond relative_rot_quat = Eigen::Quaterniond(relative_rotation_avg.w(),
+                                                             relative_rotation_avg.x(),
+                                                             relative_rotation_avg.y(),
+                                                             relative_rotation_avg.z());
+
+    Eigen::Vector3d eulerAnlges = relative_rot_quat.toRotationMatrix().eulerAngles(2, 1, 0) / M_PI * 180.0;
+    std::cout << "Euler angles (deg): " << eulerAnlges.x() << ", " << eulerAnlges.y() << ", " << eulerAnlges.z() << std::endl;
+
+    std::cout << relative_rot_quat.toRotationMatrix() << std::endl;
+
+    ROS_INFO("Running average (n=%d): %2.6f %2.6f %2.6f [m] %1.6f %1.6f %1.6f %1.6f", num_measurements,
+             relative_translation_sum.x()/num_measurements, relative_translation_sum.y()/num_measurements,
+             relative_translation_sum.z()/num_measurements, relative_rotation_avg.x(),
+             relative_rotation_avg.y(), relative_rotation_avg.z(), relative_rotation_avg.w());
 
 //    ROS_INFO("Added another measurement.");
 //
