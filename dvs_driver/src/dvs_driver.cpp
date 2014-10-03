@@ -46,7 +46,15 @@ DVS_Driver::DVS_Driver(std::string dvs_serial_number, bool master) {
 
   // put into slave mode?
   if (!master) {
-    // tbi
+    std::cout << "Setting camera (" << camera_id << ") as slave!" << std::endl;
+    device_mutex.lock();
+
+    unsigned char enabled[1];
+    enabled[0] = 0;
+
+    libusb_control_transfer(device_handle, LIBUSB_ENDPOINT_OUT | LIBUSB_REQUEST_TYPE_VENDOR | LIBUSB_RECIPIENT_DEVICE,
+                            VENDOR_REQUEST_SET_SYNC_ENABLED, 0, 0, enabled, sizeof(enabled), 0);
+    device_mutex.unlock();
   }
 
   thread = new boost::thread(boost::bind(&DVS_Driver::run, this));
@@ -238,8 +246,9 @@ void DVS_Driver::event_translator(uint8_t *buffer, size_t bytesSent) {
 
       lastTimestamp = timestamp;
 
+      // Special Trigger Event (MSB is set)
       if ((addressUSB & DVS128_SYNC_EVENT_MASK) != 0) {
-        // Special Trigger Event (MSB is set)
+        std::cout << "got sync event on camera " << camera_id << "at " << timestamp << std::endl;
       }
       else {
         // Invert x values (flip along the x axis).

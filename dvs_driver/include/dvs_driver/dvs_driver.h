@@ -31,6 +31,7 @@ namespace dvs {
 #define VENDOR_REQUEST_START_TRANSFER 0xB3
 #define VENDOR_REQUEST_STOP_TRANSFER 0xB4
 #define VENDOR_REQUEST_SEND_BIASES 0xB8
+#define VENDOR_REQUEST_SET_SYNC_ENABLED 0xBE
 
 struct Event {
   uint16_t x, y;

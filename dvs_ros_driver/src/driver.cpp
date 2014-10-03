@@ -22,8 +22,8 @@ DvsRosDriver::DvsRosDriver()
   current_config.streaming_rate = 30;
   delta = boost::posix_time::microseconds(1e6/current_config.streaming_rate);
 
+  // set namespace
   std::string ns = ros::this_node::getNamespace();
-  std::cout << ns << std::endl;
   if (ns == "/")
     ns = "/dvs";
   event_array_pub = nh.advertise<dvs_msgs::EventArray>(ns + "/events", 1);
