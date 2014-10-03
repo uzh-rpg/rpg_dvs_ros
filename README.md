@@ -13,7 +13,7 @@ Only a udev rule is needed to run the DVS driver. An install script is provided 
 3. `$ ./install.sh` (needs root privileges)
 
 You can test the installation by running a provided launch file. It starts the driver, the renderer, an image viewer, and the dynamic reconfigure GUI.  
-4. `$ roslaunch dvs_renderer dvs.launch`  
+4. `$ roslaunch dvs_renderer mono.launch`  
 
 # Recording datasets with RGB-D data
 To record datasets, run the following ROS launch files (from different terminals):

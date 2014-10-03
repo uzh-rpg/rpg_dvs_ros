@@ -40,7 +40,7 @@ struct Event {
 
 class DVS_Driver {
 public:
-  DVS_Driver();
+  DVS_Driver(std::string dvs_serial_number = "", bool master = true);
   ~DVS_Driver();
 
   std::vector<Event> get_events();
@@ -59,7 +59,7 @@ private:
   bool change_parameter(std::string parameter, uint32_t value);
   bool send_parameters();
 
-  bool open_device();
+  bool open_device(std::string dvs_serial_number = "");
   void close_device();
 
   boost::mutex event_buffer_mutex;

@@ -1,0 +1,12 @@
+<launch>  
+  <!-- camera driver -->
+  <node ns="dvs_left" name="dvs_ros_driver" pkg="dvs_ros_driver" type="dvs_ros_driver" output="screen">
+  	 <param name="serial_number" type="str" value="0273" />
+  	 <param name="master" type="bool" value="true" />
+  </node>
+  
+  <node ns="dvs_right" name="dvs_ros_driver" pkg="dvs_ros_driver" type="dvs_ros_driver" output="screen">
+  	 <param name="serial_number" type="str" value="0272" />
+  	 <param name="master" type="bool" value="false" />
+  </node>
+</launch>

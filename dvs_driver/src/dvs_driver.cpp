@@ -13,7 +13,7 @@ static void callback_wrapper(struct libusb_transfer *transfer)
 
 } // extern "C"
 
-DVS_Driver::DVS_Driver() {
+DVS_Driver::DVS_Driver(std::string dvs_serial_number, bool master) {
   // initialize parameters (min, max, value)
   parameters.insert(std::pair<std::string, Parameter>("cas", Parameter(1992, 1992, 1992)));
   parameters.insert(std::pair<std::string, Parameter>("injGnd", Parameter(1108364, 1108364, 1108364)));
@@ -31,8 +31,23 @@ DVS_Driver::DVS_Driver() {
   libusb_init(NULL);
 
   device_mutex.lock();
-  open_device();
+  if (open_device(dvs_serial_number)) {
+    std::cout << "Opened DVS with the following identification: " << camera_id << std::endl;
+  }
+  else {
+    if (dvs_serial_number.empty()) {
+      std::cout << "Could not find any DVS..." << std::endl;
+    }
+    else {
+      std::cout << "Could not find DVS with serial number " << dvs_serial_number << "..." << std::endl;
+    }
+  }
   device_mutex.unlock();
+
+  // put into slave mode?
+  if (!master) {
+    // tbi
+  }
 
   thread = new boost::thread(boost::bind(&DVS_Driver::run, this));
 }
@@ -43,61 +58,90 @@ DVS_Driver::~DVS_Driver() {
   device_mutex.unlock();
 }
 
-bool DVS_Driver::open_device() {
-  // try to open device
-  device_handle = libusb_open_device_with_vid_pid(NULL, DVS128_VID, DVS128_PID);
-  if (device_handle == NULL)
-    return false;
+bool DVS_Driver::open_device(std::string dvs_serial_number) {
 
-  // libusb_set_auto_detach_kernel_driver(device_handle, 1);
-  libusb_claim_interface(device_handle, 0);
+  // get device list
+  libusb_device **list = NULL;
+  ssize_t count = libusb_get_device_list(NULL, &list);
 
-  // get device name
-  struct libusb_device_descriptor desc;
-  int r = libusb_get_device_descriptor(libusb_get_device(device_handle), &desc);
-  if (r < 0) {
-    printf("libusb: failed to get device descriptor\n");
+  // iterate over all USB devices
+  for (size_t idx = 0; idx < count; ++idx) {
+      libusb_device *device = list[idx];
+      libusb_device_descriptor desc = {0};
+
+      int rc = libusb_get_device_descriptor(device, &desc);
+      assert(rc == 0);
+
+//      printf("Vendor:Device = %04x:%04x\n", desc.idVendor, desc.idProduct);
+
+      if (DVS128_VID == desc.idVendor && DVS128_PID == desc.idProduct) {
+
+        // Open device to see its serial number
+        int e = libusb_open(device, &device_handle);
+        if (e) {
+          printf("Error opening device... Error code: %d", e);
+          continue;
+        }
+
+        unsigned char sSerial[256];
+
+        e = libusb_get_string_descriptor_ascii(device_handle, desc.iSerialNumber, sSerial, sizeof(sSerial));
+        if (e < 0) {
+          std::cout << "libusb: get error code: " << e << std::endl;
+          libusb_close(device_handle);
+        }
+
+        if (std::string(reinterpret_cast<char*>(sSerial)) == dvs_serial_number || dvs_serial_number.empty()) {
+
+          // claim interface
+          libusb_claim_interface(device_handle, 0);
+
+          // figure out precise product
+          unsigned char sProduct[256];
+          e = libusb_get_string_descriptor_ascii(device_handle, desc.iProduct, sProduct, sizeof(sProduct));
+          if (e < 0) {
+            std::cout << "libusb: get error code: " << e << std::endl;
+            libusb_close(device_handle);
+          }
+
+          camera_id = std::string(reinterpret_cast<char*>(sProduct)) + "-" + std::string(reinterpret_cast<char*>(sSerial));
+
+          // alloc transfer and setup
+          transfer = libusb_alloc_transfer(0);
+
+          transfer->length = (int) bufferSize;
+          buffer = new unsigned char[bufferSize];
+          transfer->buffer = buffer;
+
+          transfer->dev_handle = device_handle;
+          transfer->endpoint = USB_IO_ENDPOINT;
+          transfer->type = LIBUSB_TRANSFER_TYPE_BULK;
+          transfer->callback = callback_wrapper;
+          transfer->user_data = this;
+          transfer->timeout = 0;
+          transfer->flags = LIBUSB_TRANSFER_FREE_BUFFER;
+
+          //  libusb_submit_transfer(transfer);
+          int status = libusb_submit_transfer(transfer);
+          if (status != LIBUSB_SUCCESS) {
+            std::cout << "Unable to submit libusb transfer: " << status << std::endl;
+
+            // The transfer buffer is freed automatically here thanks to
+            // the LIBUSB_TRANSFER_FREE_BUFFER flag set above.
+            libusb_free_transfer(transfer);
+          }
+
+          libusb_control_transfer(device_handle,
+                                  LIBUSB_ENDPOINT_OUT | LIBUSB_REQUEST_TYPE_VENDOR | LIBUSB_RECIPIENT_DEVICE,
+                                  VENDOR_REQUEST_START_TRANSFER, 0, 0, NULL, 0, 0);
+
+          return true;
+        }
+
+        libusb_close(device_handle);
+      }
   }
-  char str1[256], str2[256];
-  int e = libusb_get_string_descriptor_ascii(device_handle, desc.iProduct, (unsigned char*) str1, sizeof(str1));
-  if (e < 0) {
-    std::cout << "libusb: get descriptor error code: " << e << std::endl;
-    libusb_close(device_handle);
-  }
-  e = libusb_get_string_descriptor_ascii(device_handle, desc.iSerialNumber, (unsigned char*) str2, sizeof(str2));
-  if (e < 0) {
-    std::cout << "libusb: get descriptor error code: " << e << std::endl;
-    libusb_close(device_handle);
-  }
-  camera_id = std::string(reinterpret_cast<char*>(str1)) + "-" + std::string(reinterpret_cast<char*>(str2));
-
-  transfer = libusb_alloc_transfer(0);
-
-  transfer->length = (int) bufferSize;
-  buffer = new unsigned char[bufferSize];
-  transfer->buffer = buffer;
-
-  transfer->dev_handle = device_handle;
-  transfer->endpoint = USB_IO_ENDPOINT;
-  transfer->type = LIBUSB_TRANSFER_TYPE_BULK;
-  transfer->callback = callback_wrapper;
-  transfer->user_data = this;
-  transfer->timeout = 0;
-  transfer->flags = LIBUSB_TRANSFER_FREE_BUFFER;
-
-  //  libusb_submit_transfer(transfer);
-  int status = libusb_submit_transfer(transfer);
-  if (status != LIBUSB_SUCCESS) {
-    std::cout << "Unable to submit libusb transfer: " << status << std::endl;
-
-    // The transfer buffer is freed automatically here thanks to
-    // the LIBUSB_TRANSFER_FREE_BUFFER flag set above.
-    libusb_free_transfer(transfer);
-  }
-
-  libusb_control_transfer(device_handle,
-                          LIBUSB_ENDPOINT_OUT | LIBUSB_REQUEST_TYPE_VENDOR | LIBUSB_RECIPIENT_DEVICE,
-                          VENDOR_REQUEST_START_TRANSFER, 0, 0, NULL, 0, 0);
+  return false;
 }
 
 void DVS_Driver::close_device() {

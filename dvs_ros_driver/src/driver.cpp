@@ -6,14 +6,28 @@ DvsRosDriver::DvsRosDriver()
 {
   parameter_update_required = false;
 
+  // load parameters
+  ros::NodeHandle nh_private("~");
+  std::string dvs_serial_number;
+  nh_private.param<std::string>("serial_number", dvs_serial_number, "");
+  bool master;
+  nh_private.param<bool>("master", master, true);
+
+  // start driver
+  driver = new dvs::DVS_Driver(dvs_serial_number, master);
+
   // camera info handling
-  cameraInfoManager = new camera_info_manager::CameraInfoManager(nh, driver.get_camera_id());
+  cameraInfoManager = new camera_info_manager::CameraInfoManager(nh, driver->get_camera_id());
 
   current_config.streaming_rate = 30;
   delta = boost::posix_time::microseconds(1e6/current_config.streaming_rate);
 
-  event_array_pub = nh.advertise<dvs_msgs::EventArray>("dvs/events", 1);
-  camera_info_pub = nh.advertise<sensor_msgs::CameraInfo>("dvs/camera_info", 1);
+  std::string ns = ros::this_node::getNamespace();
+  std::cout << ns << std::endl;
+  if (ns == "/")
+    ns = "/dvs";
+  event_array_pub = nh.advertise<dvs_msgs::EventArray>(ns + "/events", 1);
+  camera_info_pub = nh.advertise<sensor_msgs::CameraInfo>(ns + "/camera_info", 1);
 
   // create threads
   parameter_thread = new boost::thread(boost::bind(&DvsRosDriver::change_dvs_parameters, this));
@@ -37,7 +51,7 @@ void DvsRosDriver::change_dvs_parameters() {
     try {
       if (parameter_update_required) {
         parameter_update_required = false;
-        driver.change_parameters(current_config.cas, current_config.injGnd, current_config.reqPd, current_config.puX,
+        driver->change_parameters(current_config.cas, current_config.injGnd, current_config.reqPd, current_config.puX,
                                   current_config.diffOff, current_config.req, current_config.refr, current_config.puY,
                                   current_config.diffOn, current_config.diff, current_config.foll, current_config.pr);
       }
@@ -90,7 +104,7 @@ void DvsRosDriver::readout() {
 
   while(true) {
     try {
-      events = driver.get_events();
+      events = driver->get_events();
 
       for (int i=0; i<events.size(); ++i) {
         dvs_msgs::Event e;

@@ -35,7 +35,7 @@ private:
   ros::NodeHandle nh;
   ros::Publisher event_array_pub;
   ros::Publisher camera_info_pub;
-  dvs::DVS_Driver driver;
+  dvs::DVS_Driver *driver;
 
   boost::thread* parameter_thread;
   boost::thread* readout_thread;
