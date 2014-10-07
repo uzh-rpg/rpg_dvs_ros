@@ -2,7 +2,6 @@
   <!-- DVS drivers -->
   <include file="$(find dvs_ros_driver)/launch/stereo.launch" />
 
-
   <!-- visualization -->
   <node name="dvs_renderer_left" pkg="dvs_renderer" type="dvs_renderer">
     <param name="display_method" value="red-blue"/>

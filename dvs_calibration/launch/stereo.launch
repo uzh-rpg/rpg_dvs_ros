@@ -1,0 +1,28 @@
+<launch>  
+  <!-- DVS drivers -->
+  <include file="$(find dvs_ros_driver)/launch/stereo.launch" />
+
+  <!-- visualization -->
+  <node name="dvs_renderer_left" pkg="dvs_renderer" type="dvs_renderer">
+    <param name="display_method" value="grayscale"/>
+    <remap from="events" to="/dvs_left/events" />
+    <remap from="dvs_rendering" to="dvs_rendering_left" />
+  </node>
+  
+  <node name="dvs_renderer_right" pkg="dvs_renderer" type="dvs_renderer">
+    <param name="display_method" value="grayscale"/>
+    <remap from="events" to="/dvs_right/events" />
+    <remap from="dvs_rendering" to="dvs_rendering_right" />
+  </node>
+  
+  <!-- calib node -->
+  <node name="dvs_calibration" pkg="dvs_calibration" type="stereo_calibration" output="screen">
+  	<remap from="camera_info_left" to="/dvs_left/camera_info" />
+  	<remap from="events_left" to="/dvs_left/events" />
+  	<remap from="camera_info_right" to="/dvs_right/camera_info" />
+  	<remap from="events_right" to="/dvs_right/events" />
+  </node>
+
+  <!-- <node name="rqt_gui" pkg="rqt_gui" type="rqt_gui" args="--perspective-file $(find dvs_calibration_gui)/rqt/StereoCalibration.perspective" /> -->
+  
+</launch>

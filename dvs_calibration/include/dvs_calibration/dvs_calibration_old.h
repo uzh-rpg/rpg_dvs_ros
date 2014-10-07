@@ -9,8 +9,6 @@
 #include "dvs_calibration/pattern.h"
 #include "dvs_calibration/circlesgrid.hpp"
 #include "dvs_calibration/board_detection.h"
-#include "dvs_calibration/transition_map.h"
-
 #include <opencv2/calib3d/calib3d.hpp>
 #include <image_transport/image_transport.h>
 #include <cv_bridge/cv_bridge.h>
@@ -28,9 +26,8 @@ class DvsCalibration
 {
 public:
   DvsCalibration();
-  virtual ~DvsCalibration() {};
 
-protected:
+private:
   // parameters
   static const int sensor_width = 128;
   static const int sensor_height = 128;
@@ -46,29 +43,44 @@ protected:
   ros::Time last_pattern_found;
 
   // event maps
-  std::map<int, TransitionMap> transition_maps;
+  void reset_maps();
+  int last_off_map[sensor_width][sensor_height];
+  int last_on_map[sensor_width][sensor_height];
+  int transition_sum_map[sensor_width][sensor_height];
 
   // status
   bool calibration_running;
+  bool gotCameraInfo;
+
+  // pattern
+  Pattern pattern;
+  std::vector<cv::Point2f> findPattern();
+  void publishVisualizationImage(std::vector<cv::Point2f> pattern);
+  void publishPatternImage(cv::Mat image);
+  int num_detections;
+
+  // calibration stuff
+  void calibrate();
+  void resetIntrinsicCalibration();
+  std::vector< std::vector<cv::Point3f> > object_points;
+  std::vector< std::vector<cv::Point2f> > image_points;
 
   // callbacks
-  void eventsCallback(const dvs_msgs::EventArray::ConstPtr& msg, int camera_id);
-
-  // services
-  bool resetCalibrationCallback(std_srvs::Empty::Request& request, std_srvs::Empty::Response& response);
+  void eventsCallback(const dvs_msgs::EventArray::ConstPtr& msg);
+  void cameraInfoCallback(const sensor_msgs::CameraInfo::ConstPtr& msg);
   bool startCalibrationCallback(std_srvs::Empty::Request& request, std_srvs::Empty::Response& response);
   bool saveCalibrationCallback(std_srvs::Empty::Request& request, std_srvs::Empty::Response& response);
+  bool resetCallback(std_srvs::Empty::Request& request, std_srvs::Empty::Response& response);
 
-  // virtual functions for these services
-  virtual void resetCalibration() = 0;
-  virtual void startCalibration() = 0;
-  virtual void saveCalibration() = 0;
+  // services
+  sensor_msgs::CameraInfo cameraInfo;
+  bool setCameraInfo();
 
   // ROS interface
   ros::NodeHandle nh;
   ros::ServiceServer startCalibrationService;
   ros::ServiceServer saveCalibrationService;
-  ros::ServiceServer resetCalibrationService;
+  ros::ServiceServer resetService;
 };
 
 #endif // DVS_CALIBRATION_H
