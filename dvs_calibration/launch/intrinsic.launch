@@ -11,7 +11,7 @@
   </node>
   
   <!-- calib node -->
-  <node name="dvs_calibration" pkg="dvs_calibration" type="calibration" output="screen">
+  <node name="dvs_calibration" pkg="dvs_calibration" type="mono" output="screen">
   	<remap from="camera_info" to="/dvs/camera_info" />
   	<remap from="events" to="/dvs/events" />
   </node>

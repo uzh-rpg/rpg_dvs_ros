@@ -12,7 +12,10 @@ public:
   TransitionMap();
   int max();
   void update(const dvs_msgs::EventArray::ConstPtr& msg);
-  bool has_pattern();
+  bool has_pattern() {
+    return _has_pattern;
+  }
+  void find_pattern();
 
   std::vector<cv::Point2f> pattern;
 
@@ -20,9 +23,11 @@ public:
 
   cv::Mat get_visualization_image();
 
-private:
-  void find_pattern();
+  ros::Time get_last_reset_time() {
+    return last_reset_time;
+  }
 
+private:
   static const int sensor_width = 128;
   static const int sensor_height = 128;
   static const int blinking_time_us = 1000;
@@ -37,8 +42,9 @@ private:
   int last_on_map[sensor_width][sensor_height];
   int transition_sum_map[sensor_width][sensor_height];
 
-  bool checked_pattern_since_last_update;
   bool _has_pattern;
+
+  ros::Time last_reset_time;
 };
 
 #endif // TRANSITION_MAP_H

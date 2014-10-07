@@ -2,8 +2,9 @@
 
 TransitionMap::TransitionMap()
 {
-  checked_pattern_since_last_update = false;
   _has_pattern = false;
+
+  last_reset_time = ros::Time::now();
 }
 
 int TransitionMap::max()
@@ -36,26 +37,18 @@ void TransitionMap::update(const dvs_msgs::EventArray::ConstPtr& msg)
     }
   }
 
-  checked_pattern_since_last_update = false;
-}
-
-bool TransitionMap::has_pattern()
-{
-  if (!checked_pattern_since_last_update) {
-    find_pattern();
-  }
-  return _has_pattern;
 }
 
 cv::Mat TransitionMap::get_visualization_image()
 {
   cv::Mat image = cv::Mat(sensor_height, sensor_width, CV_8UC3);
   image = cv::Scalar(255, 255, 255);
+  int max_value = max();
   for (int i = 0; i < sensor_width; i++)
   {
     for (int j = 0; j < sensor_height; j++)
     {
-      int value = 255.0 - ((double)transition_sum_map[i][j]) / ((double)enough_transitions_threshold) * 255.0;
+      int value = 255.0 - ((double)transition_sum_map[i][j]) / ((double)max_value) * 255.0;
       image.at<cv::Vec3b>(j, i) = cv::Vec3b(value, value, value);
     }
   }
@@ -86,11 +79,15 @@ void TransitionMap::find_pattern()
   }
 
   pattern = BoardDetection::findPattern(points);
-  _has_pattern = (pattern.size() == dots * dots);
+
+  if (pattern.size() == dots * dots) {
+    _has_pattern = true;
+  }
 }
 
 void TransitionMap::reset_maps()
 {
+  last_reset_time = ros::Time::now();
   for (int i = 0; i < sensor_width; i++)
   {
     for (int j = 0; j < sensor_height; j++)
@@ -100,4 +97,7 @@ void TransitionMap::reset_maps()
       transition_sum_map[i][j] = 0;
     }
   }
+  _has_pattern = false;
+
+  std::cout << "map reset" << std::endl;
 }

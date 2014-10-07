@@ -38,13 +38,15 @@ private:
   void startCalibration();
   void saveCalibration();
 
+  void add_pattern(int id);
+  void update_visualization(int id);
+
   // services
   sensor_msgs::CameraInfo cameraInfo;
   bool setCameraInfo();
 
   void calibrate();
-  void publishVisualizationImage(std::vector<cv::Point2f> pattern);
-  void publishPatternImage(cv::Mat image);
+  void publishVisualizationImage(cv::Mat image);
 
   // calibration
   std::vector< std::vector<cv::Point3f> > object_points;
@@ -53,7 +55,6 @@ private:
   // ROS interface
   ros::Subscriber eventSubscriber;
   ros::Subscriber cameraInfoSubscriber;
-  ros::Publisher detectionPublisher;
   ros::Publisher cameraInfoPublisher;
   ros::Publisher reprojectionErrorPublisher;
   ros::Publisher cameraPosePublisher;
@@ -63,8 +64,6 @@ private:
 
   // for pose publishing
   bool gotCameraInfo;
-  int num_detections;
-
 };
 
 #endif // MONO_DVS_CALIBRATION_H

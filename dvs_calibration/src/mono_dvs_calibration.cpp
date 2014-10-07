@@ -5,16 +5,17 @@ MonoDvsCalibration::MonoDvsCalibration()
   gotCameraInfo = false;
 
   calibration_running = false;
-  num_detections = 0;
 
   setCameraInfoClient = nh.serviceClient<sensor_msgs::SetCameraInfo>("set_camera_info");
   cameraInfoSubscriber = nh.subscribe("camera_info", 1, &MonoDvsCalibration::cameraInfoCallback, this);
 
+  // add transition map
+  const int camera_id = 1;
+  transition_maps.insert(std::pair<int, TransitionMap>(camera_id, TransitionMap()));
+  eventSubscriber = nh.subscribe<dvs_msgs::EventArray>("events", 1,
+                                                       boost::bind(&MonoDvsCalibration::eventsCallback, this, _1, camera_id));
 
-  eventSubscriber = nh.subscribe<dvs_msgs::EventArray>("/dvs_right/events", 1,
-                                                       boost::bind(&MonoDvsCalibration::eventsCallback, this, _1, 1));
 
-  detectionPublisher = nh.advertise<std_msgs::Int32>("dvs_calibration/pattern_detections", 1);
   cameraInfoPublisher = nh.advertise<sensor_msgs::CameraInfo>("dvs_calibration/camera_info", 1);
   reprojectionErrorPublisher = nh.advertise<std_msgs::Float64>("dvs_calibration/calibration_reprojection_error", 1);
   cameraPosePublisher = nh.advertise<geometry_msgs::PoseStamped>("dvs_calibration/pose", 1);
@@ -50,57 +51,22 @@ void MonoDvsCalibration::calibrate()
   reprojectionErrorPublisher.publish(msg2);
 }
 
-void MonoDvsCalibration::publishVisualizationImage(std::vector<cv::Point2f> pattern)
-{
-//  cv_bridge::CvImage cv_image;
-//  cv_image.encoding = "bgr8";
-//  cv_image.image = cv::Mat(sensor_height, sensor_width, CV_8UC3);
-//  cv_image.image = cv::Scalar(255, 255, 255);
-//  for (int i = 0; i < sensor_width; i++)
-//  {
-//    for (int j = 0; j < sensor_height; j++)
-//    {
-//      int value = 255.0 - ((double)transition_sum_map[i][j]) / ((double)enough_transitions_threshold) * 255.0;
-//      cv_image.image.at<cv::Vec3b>(j, i) = cv::Vec3b(value, value, value);
-//    }
-//  }
-//
-//  if (pattern.size() == dots * dots)
-//    cv::drawChessboardCorners(cv_image.image, cv::Size(dots, dots), cv::Mat(pattern), true);
-
-//  visualizationPublisher.publish(cv_image.toImageMsg());
-}
-
-void MonoDvsCalibration::publishPatternImage(cv::Mat image)
+void MonoDvsCalibration::publishVisualizationImage(cv::Mat image)
 {
   cv_bridge::CvImage cv_image;
-  cv_image.encoding = "mono8";
+  cv_image.encoding = "bgr8";
   cv_image.image = image.clone();
-  patternPublisher.publish(cv_image.toImageMsg());
+
+  visualizationPublisher.publish(cv_image.toImageMsg());
 }
 //
-//void MonoDvsCalibration::resetIntrinsicCalibration()
+//void MonoDvsCalibration::publishPatternImage(cv::Mat image)
 //{
-//  publishPatternImage(pattern.get_intrinsic_calibration_pattern());
-//  object_points.clear();
-//  image_points.clear();
-//  num_detections = 0;
+//  cv_bridge::CvImage cv_image;
+//  cv_image.encoding = "mono8";
+//  cv_image.image = image.clone();
+//  patternPublisher.publish(cv_image.toImageMsg());
 //}
-//
-//bool MonoDvsCalibration::startCalibrationCallback(std_srvs::Empty::Request& request, std_srvs::Empty::Response& response)
-//{
-//  calibration_running = true;
-//  calibrate();
-//  return true;
-//}
-//
-//bool MonoDvsCalibration::resetCallback(std_srvs::Empty::Request& request, std_srvs::Empty::Response& response)
-//{
-//  calibration_running = false;
-//  resetIntrinsicCalibration();
-//  return true;
-//}
-
 
 bool MonoDvsCalibration::setCameraInfo()
 {
@@ -117,13 +83,40 @@ void MonoDvsCalibration::cameraInfoCallback(const sensor_msgs::CameraInfo::Const
 
 void MonoDvsCalibration::resetCalibration()
 {
+  const int camera_id = 1;
+  transition_maps[camera_id].reset_maps();
+  calibration_running = false;
+  object_points.clear();
+  image_points.clear();
+  num_detections = 0;
 }
 
 void MonoDvsCalibration::startCalibration()
 {
+  calibration_running = true;
+  if (num_detections > 0)
+  {
+    calibrate();
+  }
 }
 
 void MonoDvsCalibration::saveCalibration()
 {
   setCameraInfo();
+}
+
+void MonoDvsCalibration::add_pattern(int id)
+{
+  // add detection
+  image_points.push_back(transition_maps[id].pattern);
+  object_points.push_back(world_pattern);
+  num_detections++;
+
+  // compute and publish camera pose if camera is calibrated
+  // TODO
+}
+
+void MonoDvsCalibration::update_visualization(int id)
+{
+  publishVisualizationImage(transition_maps[id].get_visualization_image());
 }

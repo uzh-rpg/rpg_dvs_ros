@@ -50,6 +50,7 @@ protected:
 
   // status
   bool calibration_running;
+  int num_detections;
 
   // callbacks
   void eventsCallback(const dvs_msgs::EventArray::ConstPtr& msg, int camera_id);
@@ -64,11 +65,17 @@ protected:
   virtual void startCalibration() = 0;
   virtual void saveCalibration() = 0;
 
+
+  std::vector<cv::Point3f> world_pattern;
+  virtual void add_pattern(int id) = 0;
+  virtual void update_visualization(int id) = 0;
+
   // ROS interface
   ros::NodeHandle nh;
   ros::ServiceServer startCalibrationService;
   ros::ServiceServer saveCalibrationService;
   ros::ServiceServer resetCalibrationService;
+  ros::Publisher numDetectionsPublisher;
 };
 
 #endif // DVS_CALIBRATION_H
