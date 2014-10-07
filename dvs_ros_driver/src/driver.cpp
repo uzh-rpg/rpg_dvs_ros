@@ -12,11 +12,8 @@ DvsRosDriver::DvsRosDriver()
   nh_private.param<std::string>("serial_number", dvs_serial_number, "");
   bool master;
   nh_private.param<bool>("master", master, true);
-
-  if (dvs_serial_number == "0272") {
-    ROS_INFO("Sleeping for 3 seconds");
-    ros::Duration(3.0).sleep();
-  }
+  double reset_timestamps_delay;
+  nh_private.param<double>("reset_timestamps_delay", reset_timestamps_delay, -1.0);
 
   // start driver
   driver = new dvs::DVS_Driver(dvs_serial_number, master);
@@ -45,6 +42,13 @@ DvsRosDriver::DvsRosDriver()
   dynamic_reconfigure::Server<dvs_ros_driver::DVS_ROS_DriverConfig>::CallbackType f;
   f = boost::bind(&DvsRosDriver::callback, this, _1, _2);
   server.setCallback(f);
+
+  // reset timestamps for synchronization
+  if (reset_timestamps_delay > 0.0) {
+    ros::Duration(reset_timestamps_delay).sleep();
+    driver->resetTimestamps();
+    ROS_INFO("Reset timestamps on master DVS for synchronization (delay=%3.2fs).", reset_timestamps_delay);
+  }
 }
 
 DvsRosDriver::~DvsRosDriver()
