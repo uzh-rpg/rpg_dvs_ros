@@ -13,6 +13,11 @@ DvsRosDriver::DvsRosDriver()
   bool master;
   nh_private.param<bool>("master", master, true);
 
+  if (dvs_serial_number == "0272") {
+    ROS_INFO("Sleeping for 3 seconds");
+    ros::Duration(3.0).sleep();
+  }
+
   // start driver
   driver = new dvs::DVS_Driver(dvs_serial_number, master);
 
@@ -33,6 +38,8 @@ DvsRosDriver::DvsRosDriver()
   parameter_thread = new boost::thread(boost::bind(&DvsRosDriver::change_dvs_parameters, this));
   readout_thread = new boost::thread(boost::bind(&DvsRosDriver::readout, this));
 
+  reset_sub = nh.subscribe((ns + "/reset_timestamps").c_str(), 1, &DvsRosDriver::reset_timestamps, this);
+
   // Dynamic reconfigure
   dynamic_reconfigure::Server<dvs_ros_driver::DVS_ROS_DriverConfig> server;
   dynamic_reconfigure::Server<dvs_ros_driver::DVS_ROS_DriverConfig>::CallbackType f;
@@ -44,6 +51,11 @@ DvsRosDriver::~DvsRosDriver()
 {
   parameter_thread->interrupt();
   readout_thread->interrupt();
+}
+
+void DvsRosDriver::reset_timestamps(std_msgs::Empty msg) {
+  ROS_INFO("Reset timestamps on %s", driver->get_camera_id().c_str());
+  driver->resetTimestamps();
 }
 
 void DvsRosDriver::change_dvs_parameters() {

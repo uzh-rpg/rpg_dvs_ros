@@ -28,6 +28,9 @@ DVS_Driver::DVS_Driver(std::string dvs_serial_number, bool master) {
   parameters.insert(std::pair<std::string, Parameter>("foll", Parameter(271, 271, 271)));
   parameters.insert(std::pair<std::string, Parameter>("pr", Parameter(217, 217, 217)));
 
+  wrapAdd = 0;
+  lastTimestamp = 0;
+
   libusb_init(NULL);
 
   device_mutex.lock();
@@ -274,6 +277,13 @@ std::vector<Event> DVS_Driver::get_events() {
   event_buffer.clear();
   event_buffer_mutex.unlock();
   return buffer_copy;
+}
+
+void DVS_Driver::resetTimestamps() {
+  device_mutex.lock();
+  libusb_control_transfer(device_handle, LIBUSB_ENDPOINT_OUT | LIBUSB_REQUEST_TYPE_VENDOR | LIBUSB_RECIPIENT_DEVICE,
+                          VENDOR_REQUEST_RESET_TIMESTAMPS, 0, 0, NULL, 0, 0);
+  device_mutex.unlock();
 }
 
 bool DVS_Driver::change_parameter(std::string parameter, uint32_t value) {

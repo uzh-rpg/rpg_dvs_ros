@@ -6,6 +6,7 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp
   dvs_driver
   dvs_msgs
+  std_msgs
   dynamic_reconfigure
   camera_info_manager
 )
@@ -25,6 +26,7 @@ catkin_package(
   	roscpp 
   	dvs_driver 
   	dvs_msgs 
+  	std_msgs
   	dynamic_reconfigure
   	camera_info_manager
   DEPENDS boost

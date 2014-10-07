@@ -32,6 +32,7 @@ namespace dvs {
 #define VENDOR_REQUEST_STOP_TRANSFER 0xB4
 #define VENDOR_REQUEST_SEND_BIASES 0xB8
 #define VENDOR_REQUEST_SET_SYNC_ENABLED 0xBE
+#define VENDOR_REQUEST_RESET_TIMESTAMPS 0xBB
 
 struct Event {
   uint16_t x, y;
@@ -51,6 +52,8 @@ public:
                          uint32_t diffOn, uint32_t diff, uint32_t foll, uint32_t pr);
 
   void callback(struct libusb_transfer *transfer);
+
+  void resetTimestamps();
 
   inline std::string get_camera_id() {
     return camera_id;

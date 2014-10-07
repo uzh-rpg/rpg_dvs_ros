@@ -8,6 +8,7 @@
 // messages
 #include <dvs_msgs/Event.h>
 #include <dvs_msgs/EventArray.h>
+#include <std_msgs/Empty.h>
 
 // DVS driver
 #include <dvs_driver/dvs_driver.h>
@@ -36,6 +37,9 @@ private:
   ros::Publisher event_array_pub;
   ros::Publisher camera_info_pub;
   dvs::DVS_Driver *driver;
+
+  ros::Subscriber reset_sub;
+  void reset_timestamps(std_msgs::Empty msg);
 
   boost::thread* parameter_thread;
   boost::thread* readout_thread;
