@@ -2,6 +2,8 @@
 
 DvsCalibration::DvsCalibration()
 {
+  gotCameraInfo = false;
+
   calibration_running = false;
   num_detections = 0;
 
@@ -9,10 +11,10 @@ DvsCalibration::DvsCalibration()
   saveCalibrationService = nh.advertiseService("dvs_calibration/save", &DvsCalibration::saveCalibrationCallback, this);
   resetService = nh.advertiseService("dvs_calibration/reset", &DvsCalibration::resetCallback, this);
 
-  setCameraInfoClient = nh.serviceClient<sensor_msgs::SetCameraInfo>("/set_camera_info");
-  cameraInfoSubscriber = nh.subscribe("dvs/camera_info", 1, &DvsCalibration::cameraInfoCallback, this);
+  setCameraInfoClient = nh.serviceClient<sensor_msgs::SetCameraInfo>("set_camera_info");
+  cameraInfoSubscriber = nh.subscribe("camera_info", 1, &DvsCalibration::cameraInfoCallback, this);
 
-  eventSubscriber = nh.subscribe("dvs/events", 10, &DvsCalibration::eventsCallback, this);
+  eventSubscriber = nh.subscribe("events", 10, &DvsCalibration::eventsCallback, this);
   detectionPublisher = nh.advertise<std_msgs::Int32>("dvs_calibration/pattern_detections", 1);
   cameraInfoPublisher = nh.advertise<sensor_msgs::CameraInfo>("dvs_calibration/camera_info", 1);
   reprojectionErrorPublisher = nh.advertise<std_msgs::Float64>("dvs_calibration/calibration_reprojection_error", 1);
@@ -146,14 +148,6 @@ void DvsCalibration::reset_maps()
 
 std::vector<cv::Point2f> DvsCalibration::findPattern()
 {
-//  cv::Size patternsize(dots, dots); //number of centers
-//  std::vector<cv::Point2f> centers; //this will be filled by the detected centers
-//  std::vector<cv::Point2f> centers_tmp; //this will be filled by the detected centers
-//  std::vector<int> center_count;
-
-//  std::list<cv::Point> points;
-//  std::vector<std::list<cv::Point> > clusters;
-
   std::list<PointWithWeight> points;
 
   for (int i = 0; i < sensor_width; i++)
@@ -171,67 +165,6 @@ std::vector<cv::Point2f> DvsCalibration::findPattern()
   }
 
   return BoardDetection::findPattern(points);
-
-//  std::list<cv::Point>::iterator point_it, cluster_it;
-//  while (!points.empty())
-//  {
-//    std::list<cv::Point> current_cluster;
-//    point_it = points.begin();
-//    current_cluster.push_back(*point_it);
-//    point_it = points.erase(point_it);
-//
-//    bool found_a_neighbor = true;
-//    while (found_a_neighbor)
-//    {
-//      found_a_neighbor = false;
-//      for (point_it = points.begin(); point_it != points.end(); ++point_it)
-//      {
-//        for (cluster_it = current_cluster.begin(); cluster_it != current_cluster.end(); ++cluster_it)
-//        {
-//          cv::Point dist = *point_it - *cluster_it;
-//          if (dist.x >= -1 && dist.x <= 1 && dist.y >= -1 && dist.y <= 1)
-//          {
-//            current_cluster.push_back(cv::Point(*point_it));
-//            point_it = points.erase(point_it);
-//            found_a_neighbor = true;
-//            break;
-//          }
-//        }
-//      }
-//    }
-//
-//    int cluster_mass = 0;
-//    for (cluster_it = current_cluster.begin(); cluster_it != current_cluster.end(); ++cluster_it)
-//      cluster_mass += transition_sum_map[cluster_it->x][cluster_it->y];
-//    if (cluster_mass >= minimum_led_mass)
-//      clusters.push_back(current_cluster);
-//  }
-//
-//  std::vector<cv::Point2f> centers_good;
-//  if (clusters.size() == dots * dots)
-//  {
-//    std::vector<cv::Point2f> centers;
-//    for (int i = 0; i < clusters.size(); ++i)
-//    {
-//      cv::Point2f center(0, 0);
-//      int mass = 0;
-//      std::list<cv::Point>::iterator cluster_it;
-//      for (cluster_it = clusters[i].begin(); cluster_it != clusters[i].end(); ++cluster_it)
-//      {
-//        center.x += cluster_it->x * transition_sum_map[cluster_it->x][cluster_it->y];
-//        center.y += cluster_it->y * transition_sum_map[cluster_it->x][cluster_it->y];
-//        mass += transition_sum_map[cluster_it->x][cluster_it->y];
-//      }
-//      center.x /= (double)mass;
-//      center.y /= (double)mass;
-//      centers.push_back(center);
-//    }
-//
-//    CirclesGridClusterFinder grid(false);
-//    grid.findGrid(centers, patternsize, centers_good);
-//  }
-//
-//  return centers_good;
 }
 
 void DvsCalibration::calibrate()

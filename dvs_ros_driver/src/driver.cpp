@@ -134,9 +134,9 @@ void DvsRosDriver::readout() {
 
       if (boost::posix_time::microsec_clock::local_time() > next_send_time)
       {
-//        if (cameraInfoManager->isCalibrated()) {
+        if (cameraInfoManager->isCalibrated()) {
           camera_info_pub.publish(cameraInfoManager->getCameraInfo());
-//        }
+        }
         event_array_pub.publish(msg);
         ros::spinOnce();
         events.clear();
