@@ -38,6 +38,9 @@ private:
   ros::Publisher camera_info_pub;
   dvs::DVS_Driver *driver;
 
+  dynamic_reconfigure::Server<dvs_ros_driver::DVS_ROS_DriverConfig> server;
+  dynamic_reconfigure::Server<dvs_ros_driver::DVS_ROS_DriverConfig>::CallbackType f;
+
   ros::Subscriber reset_sub;
   void reset_timestamps(std_msgs::Empty msg);
 

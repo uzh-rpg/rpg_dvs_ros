@@ -38,8 +38,6 @@ DvsRosDriver::DvsRosDriver()
   reset_sub = nh.subscribe((ns + "/reset_timestamps").c_str(), 1, &DvsRosDriver::reset_timestamps, this);
 
   // Dynamic reconfigure
-  dynamic_reconfigure::Server<dvs_ros_driver::DVS_ROS_DriverConfig> server;
-  dynamic_reconfigure::Server<dvs_ros_driver::DVS_ROS_DriverConfig>::CallbackType f;
   f = boost::bind(&DvsRosDriver::callback, this, _1, _2);
   server.setCallback(f);
 
