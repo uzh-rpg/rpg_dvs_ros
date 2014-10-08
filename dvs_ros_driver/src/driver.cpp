@@ -67,7 +67,7 @@ void DvsRosDriver::change_dvs_parameters() {
         parameter_update_required = false;
         driver->change_parameters(current_config.cas, current_config.injGnd, current_config.reqPd, current_config.puX,
                                   current_config.diffOff, current_config.req, current_config.refr, current_config.puY,
-                                  current_config.diffOn, current_config.diff, current_config.foll, current_config.pr);
+                                  current_config.diffOn, current_config.diff, current_config.foll, current_config.Pr);
       }
 
       boost::this_thread::sleep(boost::posix_time::milliseconds(100));
@@ -85,7 +85,7 @@ void DvsRosDriver::callback(dvs_ros_driver::DVS_ROS_DriverConfig &config, uint32
        current_config.diffOff != config.diffOff || current_config.req != config.req ||
        current_config.refr != config.refr || current_config.puY != config.puY ||
        current_config.diffOn != config.diffOn || current_config.diff != config.diff ||
-       current_config.foll != config.foll || current_config.pr != config.pr) {
+       current_config.foll != config.foll || current_config.Pr != config.Pr) {
 
      current_config.cas = config.cas;
      current_config.injGnd = config.injGnd;
@@ -98,7 +98,7 @@ void DvsRosDriver::callback(dvs_ros_driver::DVS_ROS_DriverConfig &config, uint32
      current_config.diffOn = config.diffOn;
      current_config.diff = config.diff;
      current_config.foll = config.foll;
-     current_config.pr = config.pr;
+     current_config.Pr = config.Pr;
 
      parameter_update_required = true;
    }

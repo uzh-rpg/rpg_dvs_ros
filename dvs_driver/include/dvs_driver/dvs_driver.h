@@ -49,7 +49,7 @@ public:
 
   bool change_parameters(uint32_t cas, uint32_t injGnd, uint32_t reqPd, uint32_t puX,
                          uint32_t diffOff, uint32_t req, uint32_t refr, uint32_t puY,
-                         uint32_t diffOn, uint32_t diff, uint32_t foll, uint32_t pr);
+                         uint32_t diffOn, uint32_t diff, uint32_t foll, uint32_t Pr);
 
   void callback(struct libusb_transfer *transfer);
 

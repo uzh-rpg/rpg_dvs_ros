@@ -15,18 +15,18 @@ static void callback_wrapper(struct libusb_transfer *transfer)
 
 DVS_Driver::DVS_Driver(std::string dvs_serial_number, bool master) {
   // initialize parameters (min, max, value)
-  parameters.insert(std::pair<std::string, Parameter>("cas", Parameter(1992, 1992, 1992)));
-  parameters.insert(std::pair<std::string, Parameter>("injGnd", Parameter(1108364, 1108364, 1108364)));
-  parameters.insert(std::pair<std::string, Parameter>("reqPd", Parameter(16777215, 16777215, 16777215)));
-  parameters.insert(std::pair<std::string, Parameter>("puX", Parameter(8159221, 8159221, 8159221)));
-  parameters.insert(std::pair<std::string, Parameter>("diffOff", Parameter(20, 500, 132)));
-  parameters.insert(std::pair<std::string, Parameter>("req", Parameter(309590, 309590, 309590)));
-  parameters.insert(std::pair<std::string, Parameter>("refr", Parameter(969, 969, 969)));
-  parameters.insert(std::pair<std::string, Parameter>("puY", Parameter(16777215, 16777215, 16777215)));
-  parameters.insert(std::pair<std::string, Parameter>("diffOn", Parameter(120000, 700000, 209996)));
-  parameters.insert(std::pair<std::string, Parameter>("diff", Parameter(13125, 13125, 13125)));
-  parameters.insert(std::pair<std::string, Parameter>("foll", Parameter(271, 271, 271)));
-  parameters.insert(std::pair<std::string, Parameter>("pr", Parameter(217, 217, 217)));
+  parameters.insert(std::pair<std::string, Parameter>("cas", Parameter(0, 16777215, 1992)));
+  parameters.insert(std::pair<std::string, Parameter>("injGnd", Parameter(0, 16777215, 1108364)));
+  parameters.insert(std::pair<std::string, Parameter>("reqPd", Parameter(0, 16777215, 16777215)));
+  parameters.insert(std::pair<std::string, Parameter>("puX", Parameter(0, 16777215, 8159221)));
+  parameters.insert(std::pair<std::string, Parameter>("diffOff", Parameter(0, 16777215, 132)));
+  parameters.insert(std::pair<std::string, Parameter>("req", Parameter(0, 16777215, 309590)));
+  parameters.insert(std::pair<std::string, Parameter>("refr", Parameter(0, 16777215, 969)));
+  parameters.insert(std::pair<std::string, Parameter>("puY", Parameter(0, 16777215, 16777215)));
+  parameters.insert(std::pair<std::string, Parameter>("diffOn", Parameter(0, 16777215, 209996)));
+  parameters.insert(std::pair<std::string, Parameter>("diff", Parameter(0, 16777215, 13125)));
+  parameters.insert(std::pair<std::string, Parameter>("foll", Parameter(0, 16777215, 271)));
+  parameters.insert(std::pair<std::string, Parameter>("Pr", Parameter(0, 16777215, 217)));
 
   wrapAdd = 0;
   lastTimestamp = 0;
@@ -302,7 +302,7 @@ bool DVS_Driver::change_parameter(std::string parameter, uint32_t value) {
 
 bool DVS_Driver::change_parameters(uint32_t cas, uint32_t injGnd, uint32_t reqPd, uint32_t puX,
                                    uint32_t diffOff, uint32_t req, uint32_t refr, uint32_t puY,
-                                   uint32_t diffOn, uint32_t diff, uint32_t foll, uint32_t pr) {
+                                   uint32_t diffOn, uint32_t diff, uint32_t foll, uint32_t Pr) {
   change_parameter("cas", cas);
   change_parameter("injGnd", injGnd);
   change_parameter("reqPd", reqPd);
@@ -314,7 +314,7 @@ bool DVS_Driver::change_parameters(uint32_t cas, uint32_t injGnd, uint32_t reqPd
   change_parameter("diffOn", diffOn);
   change_parameter("diff", diff);
   change_parameter("foll", foll);
-  change_parameter("pr", pr);
+  change_parameter("Pr", Pr);
 
   return send_parameters();
 }
@@ -377,10 +377,10 @@ bool DVS_Driver::send_parameters() {
   biases[31] = (uint8_t) (foll >> 8);
   biases[32] = (uint8_t) (foll >> 0);
 
-  uint32_t pr = parameters["pr"].get_value();
-  biases[33] = (uint8_t) (pr >> 16);
-  biases[34] = (uint8_t) (pr >> 8);
-  biases[35] = (uint8_t) (pr >> 0);
+  uint32_t Pr = parameters["Pr"].get_value();
+  biases[33] = (uint8_t) (Pr >> 16);
+  biases[34] = (uint8_t) (Pr >> 8);
+  biases[35] = (uint8_t) (Pr >> 0);
 
   device_mutex.lock();
   libusb_control_transfer(device_handle, LIBUSB_ENDPOINT_OUT | LIBUSB_REQUEST_TYPE_VENDOR | LIBUSB_RECIPIENT_DEVICE,
