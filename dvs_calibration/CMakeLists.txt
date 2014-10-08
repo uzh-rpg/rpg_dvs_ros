@@ -43,7 +43,9 @@ include_directories(
   ${Boost_INCLUDE_DIRS}
 )
 
-# make the executable
+#########################
+
+# make the executable for MONO
 add_executable(mono
   src/mono_node.cpp
   src/mono_dvs_calibration.cpp
@@ -61,6 +63,29 @@ target_link_libraries(mono
    ${catkin_LIBRARIES}
    ${OpenCV_LIBRARIES}
 )
+
+#########################
+
+# make the executable for STEREO
+add_executable(stereo
+  src/stereo_node.cpp
+  src/stereo_dvs_calibration.cpp
+  src/dvs_calibration.cpp
+  src/board_detection.cpp
+  src/transition_map.cpp
+)
+
+# to build the executable we depend on other packets, 
+# they need to be build beforehand, especially the messages
+add_dependencies(stereo ${catkin_EXPORTED_TARGETS})
+
+# link the executable to the necesarry libs
+target_link_libraries(stereo
+   ${catkin_LIBRARIES}
+   ${OpenCV_LIBRARIES}
+)
+
+#########################
 
 add_executable(camera_pose
   src/camera_pose.cpp

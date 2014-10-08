@@ -16,13 +16,16 @@
   </node>
   
   <!-- calib node -->
-  <node name="dvs_calibration" pkg="dvs_calibration" type="stereo_calibration" output="screen">
+  <node name="dvs_calibration" pkg="dvs_calibration" type="stereo" output="screen">
   	<remap from="camera_info_left" to="/dvs_left/camera_info" />
   	<remap from="events_left" to="/dvs_left/events" />
   	<remap from="camera_info_right" to="/dvs_right/camera_info" />
   	<remap from="events_right" to="/dvs_right/events" />
+  	<remap from="set_camera_info_left" to="/dvs_left/set_camera_info" />
+  	<remap from="set_camera_info_right" to="/dvs_right/set_camera_info" />
+  	
   </node>
 
-  <!-- <node name="rqt_gui" pkg="rqt_gui" type="rqt_gui" args="--perspective-file $(find dvs_calibration_gui)/rqt/StereoCalibration.perspective" /> -->
+  <node name="rqt_gui" pkg="rqt_gui" type="rqt_gui" args="--perspective-file $(find dvs_calibration_gui)/rqt/StereoCalibration.perspective" />
   
 </launch>
