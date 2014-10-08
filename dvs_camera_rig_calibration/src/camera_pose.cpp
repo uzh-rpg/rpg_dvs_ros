@@ -5,11 +5,9 @@
 #include <opencv2/core/core.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/highgui/highgui.hpp>
-
 #include <image_transport/image_transport.h>
 
-#include "dvs_calibration/circlesgrid.hpp"
-#include "dvs_calibration/board_detection.h"
+#include <dvs_calibration/circlesgrid.hpp>
 
 #include <sensor_msgs/Image.h>
 #include <sensor_msgs/CameraInfo.h>

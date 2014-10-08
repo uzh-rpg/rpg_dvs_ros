@@ -6,7 +6,6 @@
 #include <Eigen/Geometry>
 #include <dvs_msgs/Event.h>
 #include <dvs_msgs/EventArray.h>
-#include "dvs_calibration/pattern.h"
 #include "dvs_calibration/circlesgrid.hpp"
 #include "dvs_calibration/board_detection.h"
 #include <opencv2/calib3d/calib3d.hpp>
