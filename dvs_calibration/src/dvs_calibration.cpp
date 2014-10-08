@@ -37,11 +37,14 @@ void DvsCalibration::eventsCallback(const dvs_msgs::EventArray::ConstPtr& msg, i
       msg.data = num_detections;
       numDetectionsPublisher.publish(msg);
 
-      transition_maps[camera_id].reset_maps();
+      update_visualization(camera_id);
     }
-  }
 
-  update_visualization(camera_id);
+    transition_maps[camera_id].reset_maps();
+  }
+  else {
+    update_visualization(camera_id);
+  }
 
   // reset if nothing is found after certain amount of time
   if (ros::Time::now() - transition_maps[camera_id].get_last_reset_time() > ros::Duration(pattern_search_timeout)) {

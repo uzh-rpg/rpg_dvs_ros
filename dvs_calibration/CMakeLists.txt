@@ -48,8 +48,6 @@ add_executable(mono
   src/mono_node.cpp
   src/mono_dvs_calibration.cpp
   src/dvs_calibration.cpp
-  src/pattern.cpp
-  src/circlesgrid.cpp
   src/board_detection.cpp
   src/transition_map.cpp
 )

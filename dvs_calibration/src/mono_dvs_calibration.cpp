@@ -59,14 +59,6 @@ void MonoDvsCalibration::publishVisualizationImage(cv::Mat image)
 
   visualizationPublisher.publish(cv_image.toImageMsg());
 }
-//
-//void MonoDvsCalibration::publishPatternImage(cv::Mat image)
-//{
-//  cv_bridge::CvImage cv_image;
-//  cv_image.encoding = "mono8";
-//  cv_image.image = image.clone();
-//  patternPublisher.publish(cv_image.toImageMsg());
-//}
 
 bool MonoDvsCalibration::setCameraInfo()
 {
@@ -113,7 +105,36 @@ void MonoDvsCalibration::add_pattern(int id)
   num_detections++;
 
   // compute and publish camera pose if camera is calibrated
-  // TODO
+  if (gotCameraInfo)
+  {
+    cv::Mat rvec, tvec;
+    cv::Mat cameraMatrix(3, 3, CV_64F);
+    cv::Mat distCoeffs(1, 5, CV_64F);
+
+    // convert to OpenCV
+    for (int i = 0; i < 5; i++)
+      distCoeffs.at<double>(i) = cameraInfo.D[i];
+    for (int i = 0; i < 9; i++)
+      cameraMatrix.at<double>(i) = cameraInfo.K[i];
+
+    cv::solvePnP(world_pattern, transition_maps[id].pattern, cameraMatrix, distCoeffs, rvec, tvec);
+
+    geometry_msgs::PoseStamped pose_msg;
+    pose_msg.header.stamp = ros::Time::now();
+    pose_msg.header.frame_id = "dvs";
+    pose_msg.pose.position.x = tvec.at<double>(0);
+    pose_msg.pose.position.y = tvec.at<double>(1);
+    pose_msg.pose.position.z = tvec.at<double>(2);
+
+    double angle = cv::norm(rvec);
+    cv::normalize(rvec, rvec);
+    pose_msg.pose.orientation.x = rvec.at<double>(0) * sin(angle/2.0);
+    pose_msg.pose.orientation.y = rvec.at<double>(1) * sin(angle/2.0);
+    pose_msg.pose.orientation.z = rvec.at<double>(2) * sin(angle/2.0);
+    pose_msg.pose.orientation.w = cos(angle/2.0);
+
+    cameraPosePublisher.publish(pose_msg);
+  }
 }
 
 void MonoDvsCalibration::update_visualization(int id)

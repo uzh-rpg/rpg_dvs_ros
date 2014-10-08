@@ -1,7 +1,7 @@
 <launch>  
   <!-- camera driver -->
   <node name="dvs_ros_driver" pkg="dvs_ros_driver" type="dvs_ros_driver" output="screen">
-  	<param name="serial_number" type="str" value="0272" />
+  	<!-- <param name="serial_number" type="str" value="0272" /> -->
   </node>
 
   <!-- visualization -->
