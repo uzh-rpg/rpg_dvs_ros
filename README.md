@@ -17,7 +17,7 @@ You can test the installation by running a provided launch file. It starts the d
 
 
 # DVS Calibration
-The calibration of a DVS is a two-stage procedure. First, the focus must be adjusted. Then, the intrinsic camera parameters are estimated.
+The calibration of a DVS is a two-stage procedure. First, the focus must be adjusted. Then, the intrinsic camera parameters are estimated.   
 
 ## Focus Adjustment
 Adjust the focus of the DVS. One way of achieving this is using a special pattern, e.g. the [Back Focus Pattern](https://github.com/uzh-rpg/rpg_dvs_ros/blob/master/dvs_calibration/pdf/backfocus.pdf).
@@ -28,6 +28,7 @@ The calibration procedure is then started using
 `$ roslaunch dvs_calibration intrinsic.launch`  
 You will see an RQT interface with all necessary information.
 Top left is the calibration GUI, which displays the amount of detected patterns.
+**Currently, pattern detection does not seem to work indoors. Try close to a window.**
 Collect at least 30 samples before starting the calibration.
 **This can take up to a few minutes** and freezes your RQT GUI.
 Once done, the calibration parameters are shown and can be saved.
