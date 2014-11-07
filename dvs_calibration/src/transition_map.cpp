@@ -4,6 +4,7 @@ TransitionMap::TransitionMap()
 {
   _has_pattern = false;
 
+  reset_maps();
   last_reset_time = ros::Time::now();
 }
 
