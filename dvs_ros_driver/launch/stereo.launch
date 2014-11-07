@@ -11,7 +11,7 @@
   	<param name="reset_timestamps_delay" type="double" value="2.0" />
 
     <!-- Load configuration file -->
-    <rosparam command="load" file="$(find dvs_ros_driver)/config/slow.yaml" />
+    <rosparam command="load" file="$(find dvs_ros_driver)/config/fast.yaml" />
   </node>
   
   <node ns="dvs_right" name="dvs_ros_driver" pkg="dvs_ros_driver" type="dvs_ros_driver" output="screen">
@@ -20,6 +20,6 @@
     <!-- Set as slave -->
   	<param name="master" type="bool" value="false" />
   	 
-    <rosparam command="load" file="$(find dvs_ros_driver)/config/slow.yaml" />
+    <rosparam command="load" file="$(find dvs_ros_driver)/config/fast.yaml" />
   </node>
 </launch>
