@@ -127,6 +127,7 @@ int main(int argc, char* argv[])
   ros::spin();
 
   image_pub_.shutdown();
+  undistorted_image_pub_.shutdown();
 
   return 0;
 }
