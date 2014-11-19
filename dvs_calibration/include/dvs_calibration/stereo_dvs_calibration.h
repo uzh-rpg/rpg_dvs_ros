@@ -1,27 +1,25 @@
 #ifndef STEREO_DVS_CALIBRATION_H
 #define STEREO_DVS_CALIBRATION_H
 
-#include "ros/ros.h"
+#include <list>
 
-#include <Eigen/Geometry>
-#include <dvs_msgs/Event.h>
-#include <dvs_msgs/EventArray.h>
-#include "dvs_calibration/circlesgrid.hpp"
-#include "dvs_calibration/board_detection.h"
-#include <opencv2/calib3d/calib3d.hpp>
+#include <ros/ros.h>
 #include <image_transport/image_transport.h>
 #include <cv_bridge/cv_bridge.h>
+
 #include <std_msgs/Int32.h>
-#include <std_msgs/Float64.h>
+#include <std_msgs/String.h>
 #include <std_srvs/Empty.h>
 #include <sensor_msgs/CameraInfo.h>
 #include <sensor_msgs/SetCameraInfo.h>
-#include <opencv2/imgproc/imgproc.hpp>
-#include <geometry_msgs/PoseStamped.h>
 
-#include <list>
+#include <opencv2/calib3d/calib3d.hpp>
+#include <opencv2/imgproc/imgproc.hpp>
 
 #include "dvs_calibration/dvs_calibration.h"
+
+
+namespace dvs_calibration {
 
 class StereoDvsCalibration : public DvsCalibration
 {
@@ -55,9 +53,6 @@ private:
   // ROS interface
   ros::Subscriber eventLeftSubscriber, eventRightSubscriber;
   ros::Subscriber cameraInfoLeftSubscriber, cameraInfoRightSubscriber;
-  ros::Publisher cameraInfoPublisher;
-  ros::Publisher reprojectionErrorPublisher;
-  ros::Publisher cameraPosePublisher;
   image_transport::Publisher visualizationLeftPublisher, visualizationRightPublisher;
   ros::ServiceClient setCameraInfoLeftClient, setCameraInfoRightClient;
 
@@ -70,5 +65,7 @@ private:
   // for pose publishing
   bool gotCameraInfoLeft, gotCameraInfoRight;
 };
+
+} // namespace
 
 #endif // STEREO_DVS_CALIBRATION_H

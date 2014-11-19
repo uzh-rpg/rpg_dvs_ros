@@ -1,5 +1,7 @@
 #include "dvs_calibration/stereo_dvs_calibration.h"
 
+namespace dvs_calibration {
+
 StereoDvsCalibration::StereoDvsCalibration()
 {
   gotCameraInfoLeft = false;
@@ -16,19 +18,12 @@ StereoDvsCalibration::StereoDvsCalibration()
   cameraInfoRightSubscriber = nh.subscribe("camera_info_right", 1, &StereoDvsCalibration::cameraInfoRightCallback, this);
 
   // add transition map
-  const int camera_left_id = 1;
-  const int camera_right_id = 2;
-  transition_maps.insert(std::pair<int, TransitionMap>(camera_left_id, TransitionMap()));
+  transition_maps.insert(std::pair<int, TransitionMap>(left_camera_id, TransitionMap(params)));
   eventLeftSubscriber = nh.subscribe<dvs_msgs::EventArray>("events_left", 1,
-                                                       boost::bind(&StereoDvsCalibration::eventsCallback, this, _1, camera_left_id));
-  transition_maps.insert(std::pair<int, TransitionMap>(camera_right_id, TransitionMap()));
+                                                       boost::bind(&StereoDvsCalibration::eventsCallback, this, _1, left_camera_id));
+  transition_maps.insert(std::pair<int, TransitionMap>(right_camera_id, TransitionMap(params)));
   eventRightSubscriber = nh.subscribe<dvs_msgs::EventArray>("events_right", 1,
-                                                       boost::bind(&StereoDvsCalibration::eventsCallback, this, _1, camera_right_id));
-
-
-  cameraInfoPublisher = nh.advertise<sensor_msgs::CameraInfo>("dvs_calibration/camera_info", 1);
-  reprojectionErrorPublisher = nh.advertise<std_msgs::Float64>("dvs_calibration/calibration_reprojection_error", 1);
-  cameraPosePublisher = nh.advertise<geometry_msgs::PoseStamped>("dvs_calibration/pose", 1);
+                                                       boost::bind(&StereoDvsCalibration::eventsCallback, this, _1, right_camera_id));
 
   image_transport::ImageTransport it(nh);
   visualizationLeftPublisher = it.advertise("dvs_calibration/visualization_left", 1);
@@ -52,6 +47,7 @@ void StereoDvsCalibration::calibrate()
     cameraMatrixRight.at<double>(i) = cameraInfoRight.K[i];
   }
 
+  // call stereo calibration
   cv::Mat R, T, E, F;
   double reproj_error = cv::stereoCalibrate(object_points, image_points_left, image_points_right,
                                             cameraMatrixLeft, distCoeffsLeft, cameraMatrixRight, distCoeffsRight,
@@ -72,12 +68,27 @@ void StereoDvsCalibration::calibrate()
     cameraInfoRight.P[i] = P2.at<double>(i);
   }
 
-  //  cameraInfoPublisher.publish(msg);
-//  cameraInfo = msg;
+  // send output
+  std::ostringstream output;
+  output << "Calibration result" << std::endl;
+  output << "Reprojection error: " << std::setprecision(5) << reproj_error << std::endl;
 
-  std_msgs::Float64 msg2;
-  msg2.data = reproj_error;
-  reprojectionErrorPublisher.publish(msg2);
+  output << "R:" << std::endl;
+  for (int i = 0; i < 9; i++)
+  {
+    output << std::setfill(' ') << std::setw(6) << std::setprecision(5) << R.at<double>(i) << "  ";
+    if (i%3 == 2)
+      output << std::endl;
+  }
+  output << "T:" << std::endl;
+  for (int i = 0; i < 3; i++)
+  {
+    output << std::setfill(' ') << std::setw(6) << std::setprecision(5) << T.at<double>(i) << "  ";
+  }
+
+  std_msgs::String output_msg;
+  output_msg.data = output.str();
+  calibrationOutputPublisher.publish(output_msg);
 }
 
 void StereoDvsCalibration::publishVisualizationImage(cv::Mat image, int id)
@@ -86,12 +97,10 @@ void StereoDvsCalibration::publishVisualizationImage(cv::Mat image, int id)
   cv_image.encoding = "bgr8";
   cv_image.image = image.clone();
 
-  const int camera_left_id = 1;
-  const int camera_right_id = 2;
-  if (id == camera_left_id) {
+  if (id == left_camera_id) {
     visualizationLeftPublisher.publish(cv_image.toImageMsg());
   }
-  else if (id == camera_right_id) {
+  else if (id == right_camera_id) {
     visualizationRightPublisher.publish(cv_image.toImageMsg());
   }
 }
@@ -129,10 +138,8 @@ void StereoDvsCalibration::cameraInfoRightCallback(const sensor_msgs::CameraInfo
 
 void StereoDvsCalibration::resetCalibration()
 {
-  const int camera_left_id = 1;
-  const int camera_right_id = 2;
-  transition_maps[camera_left_id].reset_maps();
-  transition_maps[camera_right_id].reset_maps();
+  transition_maps[left_camera_id].reset_maps();
+  transition_maps[right_camera_id].reset_maps();
   calibration_running = false;
   object_points.clear();
   image_points_left.clear();
@@ -158,16 +165,14 @@ void StereoDvsCalibration::saveCalibration()
 
 void StereoDvsCalibration::add_pattern(int id)
 {
-  const int camera_left_id = 1;
-  const int camera_right_id = 2;
   const ros::Duration stereo_max_buffer_time_difference(0.3);
 
   if (gotCameraInfoLeft && gotCameraInfoRight) {
-    if (id == camera_left_id) {
+    if (id == left_camera_id) {
       ROS_INFO("pattern from left camera");
       if (has_right_buffer) {
         if (ros::Time::now() - buffer_time < stereo_max_buffer_time_difference) {
-          add_stereo_pattern(transition_maps[camera_left_id].pattern, image_point_buffer);
+          add_stereo_pattern(transition_maps[left_camera_id].pattern, image_point_buffer);
           ROS_INFO("Added detection!");
         }
         else {
@@ -177,15 +182,15 @@ void StereoDvsCalibration::add_pattern(int id)
       else {
         // add to buffer
         buffer_time = ros::Time::now();
-        image_point_buffer = transition_maps[camera_left_id].pattern;
+        image_point_buffer = transition_maps[left_camera_id].pattern;
         has_left_buffer = true;
       }
     }
-    else if (id == camera_right_id) {
+    else if (id == right_camera_id) {
       ROS_INFO("pattern from right camera");
       if (has_left_buffer) {
         if (ros::Time::now() - buffer_time < stereo_max_buffer_time_difference) {
-          add_stereo_pattern(image_point_buffer, transition_maps[camera_right_id].pattern);
+          add_stereo_pattern(image_point_buffer, transition_maps[right_camera_id].pattern);
           ROS_INFO("Added detection!");
         }
         else {
@@ -195,7 +200,7 @@ void StereoDvsCalibration::add_pattern(int id)
       else {
         // add to buffer
         buffer_time = ros::Time::now();
-        image_point_buffer = transition_maps[camera_right_id].pattern;
+        image_point_buffer = transition_maps[right_camera_id].pattern;
         has_right_buffer = true;
       }
     }
@@ -218,3 +223,5 @@ void StereoDvsCalibration::update_visualization(int id)
 {
   publishVisualizationImage(transition_maps[id].get_visualization_image(), id);
 }
+
+} // namespace

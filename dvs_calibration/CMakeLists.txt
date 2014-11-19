@@ -12,10 +12,9 @@ find_package(catkin REQUIRED COMPONENTS
   cmake_modules
 )
 
-# since we need eigen and boost search them as well
+# since we need boost search it as well
 # find_package makes the ${..._INCLUDE_DIRS} ${..._LIBRARIES} variables we use later
 find_package(OpenCV REQUIRED)
-find_package(Eigen REQUIRED)
 find_package(Boost REQUIRED)
 
 # export the dependencis of this package for who ever depends on us
@@ -29,7 +28,6 @@ catkin_package(
     geometry_msgs
     sensor_msgs
   DEPENDS 
-  	eigen
   	OpenCV
   	boost
 )
@@ -38,14 +36,15 @@ catkin_package(
 include_directories(
   include
   ${catkin_INCLUDE_DIRS}
-  ${EIGEN_INCLUDE_DIRS}
   ${OpenCV_INCLUDE_DIRS}
   ${Boost_INCLUDE_DIRS}
 )
 
+
+#########################
+# make the executable for MONO
 #########################
 
-# make the executable for MONO
 add_executable(mono
   src/mono_node.cpp
   src/mono_dvs_calibration.cpp
@@ -64,9 +63,11 @@ target_link_libraries(mono
    ${OpenCV_LIBRARIES}
 )
 
+
+#########################
+# make the executable for STEREO
 #########################
 
-# make the executable for STEREO
 add_executable(stereo
   src/stereo_node.cpp
   src/stereo_dvs_calibration.cpp
@@ -84,5 +85,3 @@ target_link_libraries(stereo
    ${catkin_LIBRARIES}
    ${OpenCV_LIBRARIES}
 )
-
-

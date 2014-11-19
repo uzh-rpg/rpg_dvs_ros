@@ -1,27 +1,34 @@
 #ifndef DVS_CALIBRATION_H
 #define DVS_CALIBRATION_H
 
-#include "ros/ros.h"
+#include <list>
 
-#include <Eigen/Geometry>
-#include <dvs_msgs/Event.h>
-#include <dvs_msgs/EventArray.h>
-#include "dvs_calibration/circlesgrid.hpp"
-#include "dvs_calibration/board_detection.h"
-#include "dvs_calibration/transition_map.h"
-
-#include <opencv2/calib3d/calib3d.hpp>
+#include <ros/ros.h>
 #include <image_transport/image_transport.h>
 #include <cv_bridge/cv_bridge.h>
+
+#include <dvs_msgs/Event.h>
+#include <dvs_msgs/EventArray.h>
 #include <std_msgs/Int32.h>
-#include <std_msgs/Float64.h>
+#include <std_msgs/String.h>
 #include <std_srvs/Empty.h>
 #include <sensor_msgs/CameraInfo.h>
 #include <sensor_msgs/SetCameraInfo.h>
-#include <opencv2/imgproc/imgproc.hpp>
-#include <geometry_msgs/PoseStamped.h>
 
-#include <list>
+#include <opencv2/imgproc/imgproc.hpp>
+#include <opencv2/calib3d/calib3d.hpp>
+
+#include "dvs_calibration/circlesgrid.hpp"
+#include "dvs_calibration/board_detection.h"
+#include "dvs_calibration/transition_map.h"
+#include "dvs_calibration/calibration_parameters.h"
+
+
+namespace dvs_calibration {
+
+const int left_camera_id = 1;
+const int right_camera_id = 2;
+const int mono_camera_id = 3;
 
 class DvsCalibration
 {
@@ -33,15 +40,7 @@ protected:
   // parameters
   static const int sensor_width = 128;
   static const int sensor_height = 128;
-  static const int blinking_time_us = 1000;
-  static const int blinking_time_tolerance = 500;
-  static const int enough_transitions_threshold = 200;
-  static const int minimum_transitions_threshold = 10;
-  static const int minimum_led_mass = 50;
-  static const int dots = 5;
-  static const double dot_distance = 0.05;
-
-  static const double pattern_search_timeout = 2.0;
+  CalibrationParameters params;
   ros::Time last_pattern_found;
 
   // event maps
@@ -75,6 +74,12 @@ protected:
   ros::ServiceServer saveCalibrationService;
   ros::ServiceServer resetCalibrationService;
   ros::Publisher numDetectionsPublisher;
+  ros::Publisher calibrationOutputPublisher;
+
+
+  void loadCalibrationParameters();
 };
+
+} // namespace
 
 #endif // DVS_CALIBRATION_H

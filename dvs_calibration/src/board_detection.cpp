@@ -1,8 +1,10 @@
 #include "dvs_calibration/board_detection.h"
 
-std::vector<cv::Point2f> BoardDetection::findPattern(std::list<PointWithWeight> points, int dots, int minimum_mass)
+namespace dvs_calibration {
+
+std::vector<cv::Point2f> BoardDetection::findPattern(std::list<PointWithWeight> points, int dots_w, int dots_h, int minimum_mass)
 {
-  cv::Size patternsize(dots, dots); //number of centers
+  cv::Size patternsize(dots_w, dots_h); //number of centers
   std::vector<cv::Point2f> centers; //this will be filled by the detected centers
   std::vector<cv::Point2f> centers_tmp; //this will be filled by the detected centers
   std::vector<int> center_count;
@@ -45,7 +47,7 @@ std::vector<cv::Point2f> BoardDetection::findPattern(std::list<PointWithWeight> 
   }
 
   std::vector<cv::Point2f> centers_good;
-  if (clusters.size() == dots * dots)
+  if (clusters.size() == dots_w * dots_h)
   {
     std::vector<cv::Point2f> centers;
     for (int i = 0; i < clusters.size(); ++i)
@@ -70,3 +72,5 @@ std::vector<cv::Point2f> BoardDetection::findPattern(std::list<PointWithWeight> 
 
   return centers_good;
 }
+
+} // namespace

@@ -24,6 +24,9 @@
   	<remap from="set_camera_info_left" to="/dvs_left/set_camera_info" />
   	<remap from="set_camera_info_right" to="/dvs_right/set_camera_info" />
   	
+  	<param name="dots_w" value="5"/>
+  	<param name="dots_h" value="4"/>
+  	<param name="dot_distance" value="0.05"/>
   </node>
 
   <node name="rqt_gui" pkg="rqt_gui" type="rqt_gui" args="--perspective-file $(find dvs_calibration_gui)/rqt/StereoCalibration.perspective" />

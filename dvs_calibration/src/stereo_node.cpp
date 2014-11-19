@@ -6,7 +6,7 @@ int main(int argc, char** argv)
 {
   ros::init(argc, argv, "stereo_dvs_calibration");
 
-  StereoDvsCalibration stereo_dvs_calibration;
+  dvs_calibration::StereoDvsCalibration stereo_dvs_calibration;
 
   ros::spin();
 

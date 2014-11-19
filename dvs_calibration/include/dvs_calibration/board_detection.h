@@ -1,10 +1,13 @@
 #ifndef BOARD_DETECTION_H
 #define BOARD_DETECTION_H
 
-#include "dvs_calibration/circlesgrid.hpp"
+#include <list>
+
 #include <opencv2/calib3d/calib3d.hpp>
 
-#include <list>
+#include "dvs_calibration/circlesgrid.hpp"
+
+namespace dvs_calibration {
 
 struct PointWithWeight {
   cv::Point point;
@@ -14,7 +17,9 @@ struct PointWithWeight {
 class BoardDetection
 {
 public:
-  static std::vector<cv::Point2f> findPattern(std::list<PointWithWeight> points, int dots = 5, int minimum_points = 50);
+  static std::vector<cv::Point2f> findPattern(std::list<PointWithWeight> points, int dots_w, int dots_h, int minimum_points);
 };
+
+} // namespace
 
 #endif // BOARD_DETECTION_H

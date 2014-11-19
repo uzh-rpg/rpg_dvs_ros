@@ -1,6 +1,8 @@
 #include "dvs_calibration/transition_map.h"
 
-TransitionMap::TransitionMap()
+namespace dvs_calibration {
+
+TransitionMap::TransitionMap(const CalibrationParameters params) : params(params)
 {
   _has_pattern = false;
 
@@ -33,7 +35,7 @@ void TransitionMap::update(const dvs_msgs::EventArray::ConstPtr& msg)
     else
     {
       int delta_t = msg->events[i].time - last_off_map[msg->events[i].x][msg->events[i].y];
-      if (delta_t < blinking_time_us + blinking_time_tolerance && delta_t > blinking_time_us - blinking_time_tolerance)
+      if (delta_t < params.blinking_time_us + params.blinking_time_tolerance && delta_t > params.blinking_time_us - params.blinking_time_tolerance)
         transition_sum_map[msg->events[i].x][msg->events[i].y]++;
     }
   }
@@ -55,7 +57,7 @@ cv::Mat TransitionMap::get_visualization_image()
   }
 
   if (has_pattern()) {
-    cv::drawChessboardCorners(image, cv::Size(dots, dots), cv::Mat(pattern), true);
+    cv::drawChessboardCorners(image, cv::Size(params.dots_w, params.dots_h), cv::Mat(pattern), true);
   }
 
   return image;
@@ -69,7 +71,7 @@ void TransitionMap::find_pattern()
   {
     for (int j = 0; j < sensor_height; j++)
     {
-      if (transition_sum_map[i][j] > minimum_transitions_threshold)
+      if (transition_sum_map[i][j] > params.minimum_transitions_threshold)
       {
         PointWithWeight p;
         p.point = cv::Point(i, j);
@@ -79,9 +81,9 @@ void TransitionMap::find_pattern()
     }
   }
 
-  pattern = BoardDetection::findPattern(points);
+  pattern = BoardDetection::findPattern(points, params.dots_w, params.dots_h, params.minimum_led_mass);
 
-  if (pattern.size() == dots * dots) {
+  if (pattern.size() == params.dots_w * params.dots_h) {
     _has_pattern = true;
   }
 }
@@ -102,3 +104,5 @@ void TransitionMap::reset_maps()
 
   std::cout << "map reset" << std::endl;
 }
+
+} // namespace

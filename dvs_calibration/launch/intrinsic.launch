@@ -1,7 +1,7 @@
 <launch>  
   <!-- camera driver -->
   <node name="dvs_ros_driver" pkg="dvs_ros_driver" type="dvs_ros_driver" output="screen">
-  	<!-- <param name="serial_number" type="str" value="0272" /> -->
+  	<!-- <param name="serial_number" type="str" value="0273" /> -->
   </node>
 
   <!-- visualization -->
@@ -14,6 +14,10 @@
   <node name="dvs_calibration" pkg="dvs_calibration" type="mono" output="screen">
   	<remap from="camera_info" to="/dvs/camera_info" />
   	<remap from="events" to="/dvs/events" />
+  	
+  	<param name="dots_w" value="5"/>
+  	<param name="dots_h" value="5"/>
+  	<param name="dot_distance" value="0.05"/>
   </node>
 
   <node name="rqt_gui" pkg="rqt_gui" type="rqt_gui" args="--perspective-file $(find dvs_calibration_gui)/rqt/IntrinsicCalibration.perspective" />

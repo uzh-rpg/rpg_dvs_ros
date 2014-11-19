@@ -1,15 +1,20 @@
 #ifndef TRANSITION_MAP_H
 #define TRANSITION_MAP_H
 
-#include "dvs_calibration/board_detection.h"
+#include <vector>
+
 #include <opencv2/imgproc/imgproc.hpp>
 #include <dvs_msgs/EventArray.h>
-#include <vector>
+
+#include "dvs_calibration/board_detection.h"
+#include "dvs_calibration/calibration_parameters.h"
+
+namespace dvs_calibration {
 
 class TransitionMap
 {
 public:
-  TransitionMap();
+  TransitionMap(const CalibrationParameters params = CalibrationParameters());
   int max();
   void update(const dvs_msgs::EventArray::ConstPtr& msg);
   bool has_pattern() {
@@ -30,21 +35,18 @@ public:
 private:
   static const int sensor_width = 128;
   static const int sensor_height = 128;
-  static const int blinking_time_us = 1000;
-  static const int blinking_time_tolerance = 500;
-  static const int enough_transitions_threshold = 200;
-  static const int minimum_transitions_threshold = 10;
-  static const int minimum_led_mass = 50;
-  static const int dots = 5;
-  static const double dot_distance = 0.05;
 
   int last_off_map[sensor_width][sensor_height];
   int last_on_map[sensor_width][sensor_height];
   int transition_sum_map[sensor_width][sensor_height];
 
+  CalibrationParameters params;
+
   bool _has_pattern;
 
   ros::Time last_reset_time;
 };
+
+} // namespace
 
 #endif // TRANSITION_MAP_H
