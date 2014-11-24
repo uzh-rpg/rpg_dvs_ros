@@ -57,11 +57,26 @@ Hover, the timestamps within the messages are synchronized.
 3. Use the same checkerboard with blinking LEDs and make sure it is visible in both cameras. Collect at least 30 samples.
 4. Start the calibration and check the reprojection error. Then save it (this will extend your intrinsic camera info files with the stereo information).
 
+# Calibration Details and Parameters
+The calibration requires a board with a regular grid of blinking LEDs.
+In our case we have a 5x5 grid with a 0.05m distance between the LEDs. 
+One of the rows can be turned off (to make a 5x4 grid) to avoid confusion in the stereo case.
+The following parameters can be tuned using ROS parameters:
+* `dots_w`, `dots_h` (default: 5) is the number of rows and columns in the grid of LEDs
+* `dot_distance` (default: 0.05) is the distance in **meters** between the LEDs
+
+If you have your own LED board with different LEDs or blinking frequencies, you might want to tweak these parameters as well:
+* `blinking_time_us` (default: 1000) is the blinking time in **micro**-seconds
+* `blinking_time_tolerance` (default: 500) is the tolerance in **micro**-seconds to still count the transition
+* `enough_transitions_threshold` (default: 200) is the minimum number of transitions before searching the LEDs
+* `minimum_transitions_threshold` (default: 10) is the minimum number of transitions required to be considered in the LED search
+* `minimum_led_mass` (default: 50) is the minimum "mass" of an LED blob, i.e., the sum of transitions in this blop
+* `pattern_search_timeout` (default: 2.0) is the timeout in **seconds** when the transition map is reset (it is also reset when the LED grid was found)
 
 # Recording datasets with RGB-D data
 To record datasets, run the following ROS launch files (from different terminals):
 ```
-$ roslaunch dvs_renderer dvs.launch
+$ roslaunch dvs_renderer mono.launch
 $ roslaunch openni_launch openni.launch
 ```
 You can then record the data using  
