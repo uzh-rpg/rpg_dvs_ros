@@ -12,7 +12,7 @@ find_package(catkin REQUIRED COMPONENTS
 )
 
 generate_dynamic_reconfigure_options(
-  cfg/DVS_Driver.cfg
+  cfg/DVS_ROS_Driver.cfg
 )
 
 # since we need eigen and boost search them as well
