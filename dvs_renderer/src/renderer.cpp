@@ -30,7 +30,7 @@ void cameraInfoCallback(const sensor_msgs::CameraInfo::ConstPtr& msg)
   cameraMatrix = cv::Mat(3, 3, CV_64F);
   for (int i = 0; i < 3; i++)
     for (int j = 0; j < 3; j++)
-      cameraMatrix.at<double>(j, i) = msg->K[i+j*3];
+      cameraMatrix.at<double>(cv::Point(i, j)) = msg->K[i+j*3];
 
   distCoeffs = cv::Mat(msg->D.size(), 1, CV_64F);
   for (int i = 0; i < msg->D.size(); i++)
@@ -52,10 +52,10 @@ void eventsCallback(const dvs_msgs::EventArray::ConstPtr& msg)
 
       for (int i = 0; i < msg->events.size(); ++i)
       {
-        int x = msg->events[i].x;
-        int y = msg->events[i].y;
+        const int x = msg->events[i].x;
+        const int y = msg->events[i].y;
 
-        cv_image.image.at<cv::Vec3b>(y, x) = (
+        cv_image.image.at<cv::Vec3b>(cv::Point(x, y)) = (
             msg->events[i].polarity == true ? cv::Vec3b(255, 0, 0) : cv::Vec3b(0, 0, 255));
       }
     }
@@ -74,12 +74,14 @@ void eventsCallback(const dvs_msgs::EventArray::ConstPtr& msg)
       // count events per pixels with polarity
       for (int i = 0; i < msg->events.size(); ++i)
       {
-        int x = msg->events[i].x;
-        int y = msg->events[i].y;
+        const int x = msg->events[i].x;
+        const int y = msg->events[i].y;
 
         if (msg->events[i].polarity == 1)
-          on_events.at<uint8_t>(y, x)++;else
-          off_events.at<uint8_t>(y, x)++;}
+          on_events.at<uint8_t>(cv::Point(x, y))++;
+        else
+          off_events.at<uint8_t>(cv::Point(x, y))++;
+      }
 
         // scale image
       cv::normalize(on_events, on_events, 0, 128, cv::NORM_MINMAX, CV_8UC1);
