@@ -1,8 +1,35 @@
 rpg_dvs_ros
 ===========
 
-ROS packages for the Dynamic Vision Sensor (DVS).  
-Find out more on the website of the [Institute of Neuroinformatics](http://siliconretina.ini.uzh.ch/wiki/index.php).
+# Disclaimer and License
+
+The RPG ROS DVS package has been tested under ROS-Indigo and Ubuntu 14.04.
+
+This is research code, expect that it changes often and any fitness for a particular purpose is disclaimed.
+
+The source code is released under an GPL licence.
+
+# Package Overview
+
+The ROS DVS package provides a C++ driver for the Dynamic Vision Sensor (DVS).
+It also provides a calibration tool for both monocular and stereo setups.
+To find out more about the DVS, visit the website of the [Institute of Neuroinformatics](http://siliconretina.ini.uzh.ch/wiki/index.php).
+
+## Publications
+
+If you use this work in an academic context, please cite the following publications:
+
+* M. Faessler, E. Mueggler, K. Schwabe, D. Scaramuzza: A Monocular Pose Estimation System based on Infrared LEDs. IEEE International Conference on Robotics and Automation (ICRA), Hong Kong, 2014.
+* * M. Faessler, E. Mueggler, K. Schwabe, D. Scaramuzza: A Monocular Pose Estimation System based on Infrared LEDs. IEEE International Conference on Robotics and Automation (ICRA), Hong Kong, 2014.
+
+@inproceedings{Faessler2014ICRA,
+  author = {Faessler, Matthias and Mueggler, Elias and Schwabe, Karl and Scaramuzza, Davide},
+  title = {A Monocular Pose Estimation System based on Infrared {LED}s},
+  booktitle = {IEEE International Conference on Robotics and Automation (ICRA)},
+  year = {2014}
+}
+
+
 
 # Driver Installation
 Make sure, libusb is installed on your system:  
