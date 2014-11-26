@@ -72,13 +72,3 @@ If you have your own LED board with different LEDs or blinking frequencies, you 
 * `minimum_transitions_threshold` (default: 10) is the minimum number of transitions required to be considered in the LED search
 * `minimum_led_mass` (default: 50) is the minimum "mass" of an LED blob, i.e., the sum of transitions in this blop
 * `pattern_search_timeout` (default: 2.0) is the timeout in **seconds** when the transition map is reset (it is also reset when the LED grid was found)
-
-# Recording datasets with RGB-D data
-To record datasets, run the following ROS launch files (from different terminals):
-```
-$ roslaunch dvs_renderer mono.launch
-$ roslaunch openni_launch openni.launch
-```
-You can then record the data using  
-`$ rosbag record /camera/depth/camera_info /camera/depth/image_raw /camera/rgb/camera_info              /camera/rgb/image_raw /dvs/camera_info /dvs/events /optitrack/camera_rig`  
-If you do not use OptiTrack for ground truth, you can remove the last topic.
