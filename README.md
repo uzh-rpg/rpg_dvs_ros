@@ -19,16 +19,9 @@ To find out more about the DVS, visit the website of the [Institute of Neuroinfo
 
 If you use this work in an academic context, please cite the following publications:
 
-* M. Faessler, E. Mueggler, K. Schwabe, D. Scaramuzza: A Monocular Pose Estimation System based on Infrared LEDs. IEEE International Conference on Robotics and Automation (ICRA), Hong Kong, 2014.
-* * M. Faessler, E. Mueggler, K. Schwabe, D. Scaramuzza: A Monocular Pose Estimation System based on Infrared LEDs. IEEE International Conference on Robotics and Automation (ICRA), Hong Kong, 2014.
-
-@inproceedings{Faessler2014ICRA,
-  author = {Faessler, Matthias and Mueggler, Elias and Schwabe, Karl and Scaramuzza, Davide},
-  title = {A Monocular Pose Estimation System based on Infrared {LED}s},
-  booktitle = {IEEE International Conference on Robotics and Automation (ICRA)},
-  year = {2014}
-}
-
+* E. Mueggler, B. Huber, D. Scaramuzza: **Event-based, 6-DOF Pose Tracking for High-Speed Maneuvers**. IEEE/RSJ International Conference on Intelligent Robots and Systems (IROS), Chicago, 2014.
+* A. Censi, J. Strubel, C. Brandli, T. Delbruck, D. Scaramuzza: **Low-latency localization by Active LED Markers tracking using a Dynamic Vision Sensor**. IEEE/RSJ International Conference on Intelligent Robots and Systems (IROS), Tokyo, 2013.
+* P. Lichtsteiner, C. Posch, T. Delbruck: **A 128×128 120dB 15us Latency Asynchronous Temporal Contrast Vision Sensor**. IEEE Journal of Solid State Circuits, Feb. 2008, 43(2), 566-576.
 
 
 # Driver Installation
