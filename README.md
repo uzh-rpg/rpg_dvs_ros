@@ -3,25 +3,26 @@ rpg_dvs_ros
 
 # Disclaimer and License
 
-The RPG ROS DVS package has been tested under ROS-Indigo and Ubuntu 14.04.
+The RPG ROS DVS package has been tested under ROS Indigo and Ubuntu 14.04.
 
 This is research code, expect that it changes often and any fitness for a particular purpose is disclaimed.
 
-The source code is released under an GPL licence.
+The source code is released under an **GNU General Public License (GPL)**.
+
 
 # Package Overview
 
 The ROS DVS package provides a C++ driver for the Dynamic Vision Sensor (DVS).
-It also provides a calibration tool for both monocular and stereo setups.
+It also provides a calibration tool for both intrinsic and stereo calibration.
 To find out more about the DVS, visit the website of the [Institute of Neuroinformatics](http://siliconretina.ini.uzh.ch/wiki/index.php).
 
 ## Publications
 
 If you use this work in an academic context, please cite the following publications:
 
-* E. Mueggler, B. Huber, D. Scaramuzza: **Event-based, 6-DOF Pose Tracking for High-Speed Maneuvers**. IEEE/RSJ International Conference on Intelligent Robots and Systems (IROS), Chicago, 2014.
-* A. Censi, J. Strubel, C. Brandli, T. Delbruck, D. Scaramuzza: **Low-latency localization by Active LED Markers tracking using a Dynamic Vision Sensor**. IEEE/RSJ International Conference on Intelligent Robots and Systems (IROS), Tokyo, 2013.
-* P. Lichtsteiner, C. Posch, T. Delbruck: **A 128×128 120dB 15us Latency Asynchronous Temporal Contrast Vision Sensor**. IEEE Journal of Solid State Circuits, Feb. 2008, 43(2), 566-576.
+* E. Mueggler, B. Huber, D. Scaramuzza: **Event-based, 6-DOF Pose Tracking for High-Speed Maneuvers**. IEEE/RSJ International Conference on Intelligent Robots and Systems (IROS), Chicago, 2014. ([PDF](http://rpg.ifi.uzh.ch/docs/IROS14_Mueggler.pdf))
+* A. Censi, J. Strubel, C. Brandli, T. Delbruck, D. Scaramuzza: **Low-latency localization by Active LED Markers tracking using a Dynamic Vision Sensor**. IEEE/RSJ International Conference on Intelligent Robots and Systems (IROS), Tokyo, 2013. ([PDF](http://rpg.ifi.uzh.ch/docs/IROS13_Censi.pdf))
+* P. Lichtsteiner, C. Posch, T. Delbruck: **A 128×128 120dB 15us Latency Asynchronous Temporal Contrast Vision Sensor**. IEEE Journal of Solid State Circuits, Feb. 2008, 43(2), 566-576. ([PDF](https://www.ini.uzh.ch/~tobi/wiki/lib/exe/fetch.php?media=lichtsteiner_dvs_jssc08.pdf))
 
 
 # Driver Installation
@@ -76,6 +77,7 @@ Hover, the timestamps within the messages are synchronized.
 2. Use `$ roslaunch dvs_calibration stereo.launch`  
 3. Use the same checkerboard with blinking LEDs and make sure it is visible in both cameras. Collect at least 30 samples.
 4. Start the calibration and check the reprojection error. Then save it (this will extend your intrinsic camera info files with the stereo information).
+
 
 # Calibration Details and Parameters
 The calibration requires a board with a regular grid of blinking LEDs.
