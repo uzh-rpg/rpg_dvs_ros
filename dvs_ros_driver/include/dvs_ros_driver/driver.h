@@ -13,6 +13,9 @@
 // You should have received a copy of the GNU General Public License
 // along with DVS-ROS.  If not, see <http://www.gnu.org/licenses/>.
 
+#ifndef DVS_ROS_DRIVER_H_
+#define DVS_ROS_DRIVER_H_
+
 #include <ros/ros.h>
 
 // boost
@@ -72,3 +75,5 @@ private:
 };
 
 } // namespace
+
+#endif // DVS_ROS_DRIVER_H_
