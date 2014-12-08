@@ -16,6 +16,8 @@ The ROS DVS package provides a C++ driver for the Dynamic Vision Sensor (DVS).
 It also provides a calibration tool for both intrinsic and stereo calibration.
 To find out more about the DVS, visit the website of the [Institute of Neuroinformatics](http://siliconretina.ini.uzh.ch/wiki/index.php).
 
+Authors: Elias Mueggler, Basil Huber, Luca Longinotti, Tobi Delbruck
+
 ## Publications
 
 If you use this work in an academic context, please cite the following publications:
