@@ -5,7 +5,7 @@ project(dvs_driver)
 find_package(catkin)
 
 # since we need eigen and boost search them as well
-# find_package makes the ${..._INCLUDE_DIRS} ${..._LIBRARIES} variables we use later
+find_package(Boost REQUIRED COMPONENTS thread)
 
 include(FindPkgConfig)
 pkg_check_modules(LIBUSB1 REQUIRED libusb-1.0)
@@ -21,6 +21,7 @@ catkin_package(
 include_directories(
   include
   ${LIBUSB1_INCLUDE_DIRS}
+  ${Boost_INCLUDE_DIRS}
 )
 
 # make the library
@@ -30,6 +31,7 @@ add_library(dvs_driver
 
 target_link_libraries(dvs_driver
   ${LIBUSB1_LIBRARIES}
+  ${Boost_LIBRARIES}
 )
 
 install(TARGETS dvs_driver
