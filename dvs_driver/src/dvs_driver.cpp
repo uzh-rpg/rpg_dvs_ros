@@ -157,10 +157,6 @@ bool DVS_Driver::open_device(std::string dvs_serial_number) {
             libusb_free_transfer(transfer);
           }
 
-          libusb_control_transfer(device_handle,
-                                  LIBUSB_ENDPOINT_OUT | LIBUSB_REQUEST_TYPE_VENDOR | LIBUSB_RECIPIENT_DEVICE,
-                                  VENDOR_REQUEST_START_TRANSFER, 0, 0, NULL, 0, 0);
-
           return true;
         }
 
@@ -189,11 +185,15 @@ void DVS_Driver::run() {
   te.tv_sec = 0;
   te.tv_usec = 1000000;
 
+  libusb_control_transfer(device_handle,
+                          LIBUSB_ENDPOINT_OUT | LIBUSB_REQUEST_TYPE_VENDOR | LIBUSB_RECIPIENT_DEVICE,
+                          VENDOR_REQUEST_START_TRANSFER, 0, 0, NULL, 0, 0);
+
   try {
     int completed;
     while(true) {
       device_mutex.lock();
-      libusb_handle_events_timeout_completed(NULL, &te, &completed);
+      libusb_handle_events_timeout(NULL, &te);
       device_mutex.unlock();
     }
   }
@@ -201,6 +201,10 @@ void DVS_Driver::run() {
     //clean resources
     std::cout << "Worker thread interrupted!" << std::endl;
   }
+
+  libusb_control_transfer(device_handle,
+                          LIBUSB_ENDPOINT_OUT | LIBUSB_REQUEST_TYPE_VENDOR | LIBUSB_RECIPIENT_DEVICE,
+                          VENDOR_REQUEST_STOP_TRANSFER, 0, 0, NULL, 0, 0);
 }
 
 void DVS_Driver::callback(struct libusb_transfer *transfer) {
