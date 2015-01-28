@@ -97,8 +97,7 @@ private:
   std::vector<dvs::Event> event_buffer;
 
   // buffers
-  static const uint32_t bufferNumber = 8;
-  static const uint32_t bufferSize = 4096;
+  static const uint32_t bufferSize = 512;
 
   uint64_t wrapAdd;
   uint64_t lastTimestamp;

@@ -145,20 +145,18 @@ void DvsRosDriver::readout() {
         msg.events.push_back(e);
       }
 
-      if (boost::posix_time::microsec_clock::local_time() > next_send_time)
-      {
-        if (cameraInfoManager->isCalibrated()) {
-          camera_info_pub.publish(cameraInfoManager->getCameraInfo());
-        }
-        event_array_pub.publish(msg);
-        ros::spinOnce();
-        events.clear();
-        msg.events.clear();
-
-        next_send_time += delta;
+      if (cameraInfoManager->isCalibrated()) {
+        camera_info_pub.publish(cameraInfoManager->getCameraInfo());
       }
+      event_array_pub.publish(msg);
+      ros::spinOnce();
+      events.clear();
+      msg.events.clear();
 
-      boost::this_thread::sleep(delta/10.0);
+      next_send_time += delta;
+
+      while (boost::posix_time::microsec_clock::local_time() < next_send_time)
+        boost::this_thread::sleep(delta/10.0);
     }
     catch(boost::thread_interrupted&) {
       return;
