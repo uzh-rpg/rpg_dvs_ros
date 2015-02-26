@@ -46,6 +46,7 @@ void MonoDvsCalibration::calibrate()
   cameraInfo.width = sensor_width;
   cameraInfo.distortion_model = "plumb_bob";
 
+  cameraInfo.D.clear();
   for (int i = 0; i < 5; i++)
     cameraInfo.D.push_back(distCoeffs.at<double>(i));
   for (int i = 0; i < 9; i++)
