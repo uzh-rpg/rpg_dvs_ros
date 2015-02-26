@@ -58,6 +58,7 @@ void DvsCalibration::eventsCallback(const dvs_msgs::EventArray::ConstPtr& msg, i
       numDetectionsPublisher.publish(msg);
 
       update_visualization(camera_id);
+      ros::Duration(0.5).sleep();
     }
 
     transition_maps[camera_id].reset_maps();
