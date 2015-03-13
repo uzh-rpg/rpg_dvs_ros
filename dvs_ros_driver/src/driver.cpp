@@ -173,7 +173,8 @@ void DvsRosDriver::readout() {
 
       if (cameraInfoManager->isCalibrated())
       {
-        camera_info_pub.publish(cameraInfoManager->getCameraInfo());
+        sensor_msgs::CameraInfoPtr camera_info_msg(new sensor_msgs::CameraInfo(cameraInfoManager->getCameraInfo()));
+        camera_info_pub.publish(camera_info_msg);
       }
       event_array_pub.publish(msg);
 
