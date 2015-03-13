@@ -13,18 +13,23 @@
 // You should have received a copy of the GNU General Public License
 // along with DVS-ROS.  If not, see <http://www.gnu.org/licenses/>.
 
-#include <ros/ros.h>
+#ifndef DVS_ROS_DRIVER_NODELET_H_
+#define DVS_ROS_DRIVER_NODELET_H_
+
+#include <nodelet/nodelet.h>
+
 #include "dvs_ros_driver/driver.h"
 
-int main(int argc, char* argv[])
-{
-  ros::init(argc, argv, "dvs_ros_driver");
+namespace dvs_ros_driver {
 
-  ros::NodeHandle nh;
-  ros::NodeHandle nh_private("~");
+class DvsRosDriverNodelet : public nodelet::Nodelet {
+public:
+  virtual void onInit();
 
-  dvs_ros_driver::DvsRosDriver* driver = new dvs_ros_driver::DvsRosDriver(nh, nh_private);
+private:
+  dvs_ros_driver::DvsRosDriver* driver;
+};
 
-  ros::spin();
-  return 0;
 }
+
+#endif // DVS_ROS_DRIVER_NODELET_H_

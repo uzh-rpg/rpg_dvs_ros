@@ -9,6 +9,7 @@ find_package(catkin REQUIRED COMPONENTS
   std_msgs
   dynamic_reconfigure
   camera_info_manager
+  nodelet
 )
 
 generate_dynamic_reconfigure_options(
@@ -21,7 +22,8 @@ find_package(Boost REQUIRED COMPONENTS system thread)
 
 # export the dependencis of this package for who ever depends on us
 catkin_package(
-  INCLUDE_DIRS include
+  INCLUDE_DIRS 
+  	include
   CATKIN_DEPENDS 
   	roscpp 
   	dvs_driver 
@@ -29,7 +31,9 @@ catkin_package(
   	std_msgs
   	dynamic_reconfigure
   	camera_info_manager
-  DEPENDS boost
+  	nodelet
+  DEPENDS 
+  	boost
 )
 
 # tell catkin where to find the headers for this project
@@ -41,15 +45,48 @@ include_directories(
 
 # make the executable
 add_executable(dvs_ros_driver
-  src/driver_node.cpp src/driver.cpp
+  src/driver_node.cpp
+  src/driver.cpp
+)
+
+# make the nodelet into a library
+add_library(dvs_ros_driver_nodelet 
+  src/driver_nodelet.cpp
+  src/driver.cpp
 )
 
 # to build the executable we depend on other packets, 
 # they need to be build beforehand, especially the messages
-add_dependencies(dvs_ros_driver ${catkin_EXPORTED_TARGETS} ${PROJECT_NAME}_gencf)
+add_dependencies(dvs_ros_driver 
+  ${catkin_EXPORTED_TARGETS} 
+  ${PROJECT_NAME}_gencf
+)
+
+add_dependencies(dvs_ros_driver_nodelet 
+  ${catkin_EXPORTED_TARGETS} 
+  ${PROJECT_NAME}_gencf
+)
 
 # link the executable to the necesarry libs
 target_link_libraries(dvs_ros_driver
   ${catkin_LIBRARIES}
   ${Boost_LIBRARIES}
+)
+
+# link the executable to the necesarry libs
+target_link_libraries(dvs_ros_driver_nodelet
+  ${catkin_LIBRARIES}
+  ${Boost_LIBRARIES}
+)
+
+# Install the nodelet library
+install(TARGETS dvs_ros_driver_nodelet
+  ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+  LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+  RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
+
+# Install other support files for installation
+install(FILES dvs_ros_driver_nodelet.xml
+  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
 )

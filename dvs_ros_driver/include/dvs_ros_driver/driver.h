@@ -43,7 +43,7 @@ namespace dvs_ros_driver {
 
 class DvsRosDriver {
 public:
-  DvsRosDriver();
+  DvsRosDriver(ros::NodeHandle & nh, ros::NodeHandle nh_private);
   ~DvsRosDriver();
 
 private:
@@ -51,10 +51,12 @@ private:
   void callback(dvs_ros_driver::DVS_ROS_DriverConfig &config, uint32_t level);
   void readout();
 
-  ros::NodeHandle nh;
+  ros::NodeHandle nh_;
   ros::Publisher event_array_pub;
   ros::Publisher camera_info_pub;
   dvs::DVS_Driver *driver;
+
+  volatile bool running_;
 
   dynamic_reconfigure::Server<dvs_ros_driver::DVS_ROS_DriverConfig> server;
   dynamic_reconfigure::Server<dvs_ros_driver::DVS_ROS_DriverConfig>::CallbackType f;
@@ -62,13 +64,16 @@ private:
   ros::Subscriber reset_sub;
   void reset_timestamps(std_msgs::Empty msg);
 
-  boost::thread* parameter_thread;
-  boost::thread* readout_thread;
+  boost::shared_ptr<boost::thread> parameter_thread;
+  boost::shared_ptr<boost::thread> readout_thread;
 
   boost::posix_time::time_duration delta;
 
   dvs_ros_driver::DVS_ROS_DriverConfig current_config;
   camera_info_manager::CameraInfoManager* cameraInfoManager;
+
+  ros::Timer timestamp_reset_timer_;
+  void resetTimerCallback(const ros::TimerEvent& te);
 
   bool parameter_update_required;
 
