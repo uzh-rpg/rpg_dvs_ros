@@ -1,7 +1,7 @@
 <launch>  
   <!-- camera driver -->
   <node name="dvs_ros_driver" pkg="dvs_ros_driver" type="dvs_ros_driver">
-	<rosparam command="load" file="$(find dvs_ros_driver)/config/slow.yaml" />
+	<rosparam command="load" file="$(find dvs_ros_driver)/config/fast.yaml" />
   </node>	
   	
   <!-- visualization -->

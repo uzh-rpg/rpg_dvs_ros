@@ -13,53 +13,56 @@
 // You should have received a copy of the GNU General Public License
 // along with DVS-ROS.  If not, see <http://www.gnu.org/licenses/>.
 
-#include <ros/ros.h>
+#include "dvs_renderer/renderer.h"
 
-#include <image_transport/image_transport.h>
-#include <cv_bridge/cv_bridge.h>
-#include <sensor_msgs/CameraInfo.h>
-#include <sensor_msgs/Image.h>
-#include <sensor_msgs/image_encodings.h>
+namespace dvs_renderer {
 
-#include <opencv2/core/core.hpp>
-#include <opencv2/imgproc/imgproc.hpp>
-
-#include <dvs_msgs/Event.h>
-#include <dvs_msgs/EventArray.h>
-
-image_transport::Publisher image_pub_;
-image_transport::Publisher undistorted_image_pub_;
-
-enum DisplayMethod
+Renderer::Renderer(ros::NodeHandle & nh, ros::NodeHandle nh_private) : nh_(nh)
 {
-  GRAYSCALE, RED_BLUE
-} display_method;
+  got_camera_info_ = false;
 
-bool got_camera_info = false;
-cv::Mat cameraMatrix, distCoeffs;
+  // get parameters of display method
+  std::string display_method_str;
+  nh_private.param<std::string>("display_method", display_method_str, "");
+  display_method_ = (display_method_str == std::string("grayscale")) ? GRAYSCALE : RED_BLUE;
 
-void cameraInfoCallback(const sensor_msgs::CameraInfo::ConstPtr& msg)
-{
-  got_camera_info = true;
+  // setup subscribers and publishers
+  event_sub_ = nh_.subscribe("events", 1, &Renderer::eventsCallback, this);
+  camera_info_sub_ = nh_.subscribe("camera_info", 1, &Renderer::cameraInfoCallback, this);
 
-  cameraMatrix = cv::Mat(3, 3, CV_64F);
-  for (int i = 0; i < 3; i++)
-    for (int j = 0; j < 3; j++)
-      cameraMatrix.at<double>(cv::Point(i, j)) = msg->K[i+j*3];
-
-  distCoeffs = cv::Mat(msg->D.size(), 1, CV_64F);
-  for (int i = 0; i < msg->D.size(); i++)
-    distCoeffs.at<double>(i) = msg->D[i];
+  image_transport::ImageTransport it_(nh_);
+  image_pub_ = it_.advertise("dvs_rendering", 1);
+  undistorted_image_pub_ = it_.advertise("dvs_undistorted", 1);
 }
 
-void eventsCallback(const dvs_msgs::EventArray::ConstPtr& msg)
+Renderer::~Renderer()
+{
+  image_pub_.shutdown();
+  undistorted_image_pub_.shutdown();
+}
+
+void Renderer::cameraInfoCallback(const sensor_msgs::CameraInfo::ConstPtr& msg)
+{
+  got_camera_info_ = true;
+
+  camera_matrix_ = cv::Mat(3, 3, CV_64F);
+  for (int i = 0; i < 3; i++)
+    for (int j = 0; j < 3; j++)
+      camera_matrix_.at<double>(cv::Point(i, j)) = msg->K[i+j*3];
+
+  dist_coeffs_ = cv::Mat(msg->D.size(), 1, CV_64F);
+  for (int i = 0; i < msg->D.size(); i++)
+    dist_coeffs_.at<double>(i) = msg->D[i];
+}
+
+void Renderer::eventsCallback(const dvs_msgs::EventArray::ConstPtr& msg)
 {
   // only create image if at least one subscriber
   if (image_pub_.getNumSubscribers() > 0)
   {
     cv_bridge::CvImage cv_image;
 
-    if (display_method == RED_BLUE)
+    if (display_method_ == RED_BLUE)
     {
       cv_image.encoding = "bgr8";
       cv_image.image = cv::Mat(128, 128, CV_8UC3);
@@ -108,43 +111,14 @@ void eventsCallback(const dvs_msgs::EventArray::ConstPtr& msg)
 
     image_pub_.publish(cv_image.toImageMsg());
 
-    if (got_camera_info && undistorted_image_pub_.getNumSubscribers() > 0)
+    if (got_camera_info_ && undistorted_image_pub_.getNumSubscribers() > 0)
     {
       cv_bridge::CvImage cv_image2;
       cv_image2.encoding = cv_image.encoding;
-      cv::undistort(cv_image.image, cv_image2.image, cameraMatrix, distCoeffs);
+      cv::undistort(cv_image.image, cv_image2.image, camera_matrix_, dist_coeffs_);
       undistorted_image_pub_.publish(cv_image2.toImageMsg());
     }
   }
 }
 
-int main(int argc, char* argv[])
-{
-  ros::init(argc, argv, "dvs_renderer");
-
-  ros::NodeHandle nh;
-
-  // get parameters of display method
-  std::string display_method_str;
-  ros::param::get("~display_method", display_method_str);
-
-  if (display_method_str == std::string("grayscale"))
-    display_method = GRAYSCALE;
-  else
-    display_method = RED_BLUE;
-
-  // setup subscribers and publishers
-  ros::Subscriber sub = nh.subscribe("events", 1, eventsCallback);
-  ros::Subscriber sub2 = nh.subscribe("camera_info", 1, cameraInfoCallback);
-
-  image_transport::ImageTransport it_(nh);
-  image_pub_ = it_.advertise("dvs_rendering", 1);
-  undistorted_image_pub_ = it_.advertise("dvs_undistorted", 1);
-
-  ros::spin();
-
-  image_pub_.shutdown();
-  undistorted_image_pub_.shutdown();
-
-  return 0;
-}
+} // namespace

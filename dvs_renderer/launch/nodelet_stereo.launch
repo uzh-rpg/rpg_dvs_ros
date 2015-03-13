@@ -1,0 +1,58 @@
+<launch>  
+  <group ns="dvs_left">
+    <node pkg="nodelet" type="nodelet" name="nodelet_manager" args="manager" output="screen"/>
+  	
+    <node pkg="nodelet" type="nodelet" name="dvs_ros_driver" args="load dvs_ros_driver/DvsRosDriverNodelet nodelet_manager" output="screen">
+	  <!-- Serial number is on the back of the DVS -->
+	  <param name="serial_number" type="str" value="0273" />
+	  	
+	
+	 <!-- Set as master -->
+	 <param name="master" type="bool" value="true" />
+	
+	  <!-- Wait until both nodes are running before resetting timestamps -->
+	  	<param name="reset_timestamps_delay" type="double" value="2.0" />
+	
+	    <!-- Load configuration file -->
+	    <rosparam command="load" file="$(find dvs_ros_driver)/config/fast.yaml" />
+	  </node>
+	  
+	  <!-- renderer -->
+	   <node pkg="nodelet" type="nodelet" name="dvs_renderer" args="load dvs_renderer/DvsRendererNodelet nodelet_manager" output="screen">
+		    <param name="display_method" value="red-blue"/>
+	  </node>
+	  
+	    <!-- display -->
+	  <node name="image_view" pkg="image_view" type="image_view">
+	  	<remap from="image" to="dvs_rendering"/>
+	  </node>
+  </group>
+  
+  <group ns="dvs_right">
+  	<node pkg="nodelet" type="nodelet" name="nodelet_manager" args="manager" output="screen"/>
+  	
+	  <node pkg="nodelet" type="nodelet" name="dvs_ros_driver" args="load dvs_ros_driver/DvsRosDriverNodelet nodelet_manager" output="screen">
+		<param name="serial_number" type="str" value="0272" />  	
+	
+	    <!-- Set as slave -->
+	  	<param name="master" type="bool" value="false" />
+	  	 
+	    <rosparam command="load" file="$(find dvs_ros_driver)/config/fast.yaml" />
+	  </node>
+  	
+	  <node pkg="nodelet" type="nodelet" name="dvs_renderer" args="load dvs_renderer/DvsRendererNodelet nodelet_manager" output="screen">
+	    <param name="display_method" value="red-blue"/>
+	  </node>		  
+	
+	  <node name="image_view" pkg="image_view" type="image_view">
+	  	<remap from="image" to="dvs_rendering"/>
+	  </node>
+	  
+  </group>
+  
+  
+
+  
+  
+</launch>
+
