@@ -55,7 +55,8 @@ DvsRosDriver::DvsRosDriver(ros::NodeHandle & nh, ros::NodeHandle nh_private) :
 
   // Dynamic reconfigure
   f = boost::bind(&DvsRosDriver::callback, this, _1, _2);
-  server.setCallback(f);
+  server.reset(new dynamic_reconfigure::Server<dvs_ros_driver::DVS_ROS_DriverConfig>(nh_private));
+  server->setCallback(f);
 
   // start timer to reset timestamps for synchronization
   if (reset_timestamps_delay > 0.0)

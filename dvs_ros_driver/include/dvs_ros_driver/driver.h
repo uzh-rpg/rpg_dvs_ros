@@ -58,7 +58,7 @@ private:
 
   volatile bool running_;
 
-  dynamic_reconfigure::Server<dvs_ros_driver::DVS_ROS_DriverConfig> server;
+  boost::shared_ptr<dynamic_reconfigure::Server<dvs_ros_driver::DVS_ROS_DriverConfig> > server;
   dynamic_reconfigure::Server<dvs_ros_driver::DVS_ROS_DriverConfig>::CallbackType f;
 
   ros::Subscriber reset_sub;
