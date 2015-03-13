@@ -54,7 +54,7 @@ int main(int argc, char* argv[])
 
   myfile.open(file_name.c_str());
 
-  ROS_INFO("Writing events to %s.", file_name.c_str());
+  ROS_INFO("Writing events to %s", file_name.c_str());
   ros::Subscriber sub = nh.subscribe("dvs/events", 1000, eventsCallback);
 
   ros::spin();
