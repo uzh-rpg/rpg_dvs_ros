@@ -13,8 +13,7 @@
 // You should have received a copy of the GNU General Public License
 // along with DVS-ROS.  If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef DVS_DRIVER_H_
-#define DVS_DRIVER_H_
+#pragma once
 
 #include <libusb-1.0/libusb.h>
 #include <boost/thread.hpp>
@@ -55,14 +54,14 @@ struct Event {
   uint64_t timestamp;
 };
 
-class DVS_Driver {
+class DvsDriver {
 public:
-  DVS_Driver(std::string dvs_serial_number = "", bool master = true);
-  ~DVS_Driver();
+  DvsDriver(std::string dvs_serial_number = "", bool master = true);
+  ~DvsDriver();
 
-  std::vector<Event> get_events();
+  std::vector<Event> getEvents();
 
-  bool change_parameters(uint32_t cas, uint32_t injGnd, uint32_t reqPd, uint32_t puX,
+  bool changeParameters(uint32_t cas, uint32_t injGnd, uint32_t reqPd, uint32_t puX,
                          uint32_t diffOff, uint32_t req, uint32_t refr, uint32_t puY,
                          uint32_t diffOn, uint32_t diff, uint32_t foll, uint32_t Pr);
 
@@ -70,48 +69,56 @@ public:
 
   void resetTimestamps();
 
-  inline std::string get_camera_id() {
-    return camera_id;
+  inline std::string getCameraId() const
+  {
+    return camera_id_;
+  }
+
+  inline bool isDeviceRunning() const
+  {
+    return device_running_;
   }
 
 private:
-  bool change_parameter(std::string parameter, uint32_t value);
-  bool send_parameters();
+  bool changeParameter(std::string parameter, uint32_t value);
+  bool sendParameters();
 
-  bool open_device(std::string dvs_serial_number = "");
-  void close_device();
+  bool openDevice(std::string dvs_serial_number = "");
+  void closeDevice();
 
-  boost::mutex event_buffer_mutex;
-  boost::mutex device_mutex;
-  boost::thread* thread;
+  bool device_running_;
+
+  boost::mutex event_buffer_mutex_;
+  boost::mutex device_mutex_;
+  boost::thread* thread_;
   void run();
 
-  void event_translator(uint8_t *buffer, size_t bytesSent);
+  void eventTranslator(uint8_t *buffer, size_t bytes_sent);
 
   // USB handle and buffer
-  libusb_device_handle *device_handle;
-  struct libusb_transfer *transfer;
-  unsigned char *buffer;
+  libusb_device_handle *device_handle_;
+  struct libusb_transfer *transfer_;
+  unsigned char *buffer_;
 
   // event buffer
-  std::vector<dvs::Event> event_buffer;
+  std::vector<dvs::Event> event_buffer_;
 
   // buffers
   static const uint32_t bufferSize = 512;
 
-  uint64_t wrapAdd;
-  uint64_t lastTimestamp;
+  uint64_t wrap_add_;
+  uint64_t last_timestamp_;
 
   class Parameter {
   public:
     Parameter(uint32_t min = 0, uint32_t max = 0, uint32_t value = 0) :
-      _min(min), _max(max), _value(value) {}
+      min_(min), max_(max), value_(value) {}
 
-    uint32_t get_value() { return _value; }
+    uint32_t getValue() { return value_; }
 
-    bool set_value(uint32_t value) {
-      if (value >= _min && value <= _max) {
-        _value = value;
+    bool setValue(uint32_t value) {
+      if (value >= min_ && value <= max_) {
+        value_ = value;
         return true;
       }
       else {
@@ -119,18 +126,18 @@ private:
       }
     }
   private:
-    uint32_t _min;
-    uint32_t _max;
-    uint32_t _value;
+    uint32_t min_;
+    uint32_t max_;
+    uint32_t value_;
 
   };
 
   // parameters
-  std::map<std::string, Parameter> parameters;
+  std::map<std::string, Parameter> parameters_;
 
   // camera name
-  std::string camera_id;
+  std::string camera_id_;
+
 };
 
 } // namespace
-#endif

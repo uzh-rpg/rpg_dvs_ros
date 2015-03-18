@@ -22,7 +22,7 @@ namespace dvs_ros_driver
 
 void DvsRosDriverNodelet::onInit()
 {
-  driver = new dvs_ros_driver::DvsRosDriver(getNodeHandle(), getPrivateNodeHandle());
+  driver_ = new dvs_ros_driver::DvsRosDriver(getNodeHandle(), getPrivateNodeHandle());
 
   NODELET_INFO_STREAM("Initialized " <<  getName() << " nodelet.");
 }

@@ -18,10 +18,8 @@
 namespace dvs_ros_driver {
 
 DvsRosDriver::DvsRosDriver(ros::NodeHandle & nh, ros::NodeHandle nh_private) :
-    nh_(nh)
+    nh_(nh), parameter_update_required_(false)
 {
-  parameter_update_required = false;
-
   // load parameters
   std::string dvs_serial_number;
   nh_private.param<std::string>("serial_number", dvs_serial_number, "");
@@ -31,32 +29,49 @@ DvsRosDriver::DvsRosDriver(ros::NodeHandle & nh, ros::NodeHandle nh_private) :
   nh_private.param<double>("reset_timestamps_delay", reset_timestamps_delay, -1.0);
 
   // start driver
-  driver = new dvs::DVS_Driver(dvs_serial_number, master);
+  bool dvs_running = false;
+  while (!dvs_running)
+  {
+    driver_ = new dvs::DvsDriver(dvs_serial_number, master);
+    dvs_running = driver_->isDeviceRunning();
+
+    if (!dvs_running)
+    {
+      ROS_WARN("Could not find DVS. Will retry every second.");
+      ros::Duration(1.0).sleep();
+      ros::spinOnce();
+    }
+
+    if (!ros::ok())
+    {
+      return;
+    }
+  }
 
   // camera info handling
-  cameraInfoManager = new camera_info_manager::CameraInfoManager(nh_, driver->get_camera_id());
+  camera_info_manager_ = new camera_info_manager::CameraInfoManager(nh_, driver_->getCameraId());
 
-  current_config.streaming_rate = 30;
-  delta = boost::posix_time::microseconds(1e6/current_config.streaming_rate);
+  current_config_.streaming_rate = 30;
+  delta_ = boost::posix_time::microseconds(1e6/current_config_.streaming_rate);
 
   // set namespace
   std::string ns = ros::this_node::getNamespace();
   if (ns == "/")
     ns = "/dvs";
-  event_array_pub = nh_.advertise<dvs_msgs::EventArray>(ns + "/events", 1);
-  camera_info_pub = nh_.advertise<sensor_msgs::CameraInfo>(ns + "/camera_info", 1);
+  event_array_pub_ = nh_.advertise<dvs_msgs::EventArray>(ns + "/events", 1);
+  camera_info_pub_ = nh_.advertise<sensor_msgs::CameraInfo>(ns + "/camera_info", 1);
 
   // spawn threads
   running_ = true;
-  parameter_thread = boost::shared_ptr< boost::thread >(new boost::thread(boost::bind(&DvsRosDriver::change_dvs_parameters, this)));
-  readout_thread = boost::shared_ptr< boost::thread >(new boost::thread(boost::bind(&DvsRosDriver::readout, this)));
+  parameter_thread_ = boost::shared_ptr< boost::thread >(new boost::thread(boost::bind(&DvsRosDriver::changeDvsParameters, this)));
+  readout_thread_ = boost::shared_ptr< boost::thread >(new boost::thread(boost::bind(&DvsRosDriver::readout, this)));
 
-  reset_sub = nh_.subscribe((ns + "/reset_timestamps").c_str(), 1, &DvsRosDriver::reset_timestamps, this);
+  reset_sub_ = nh_.subscribe((ns + "/reset_timestamps").c_str(), 1, &DvsRosDriver::resetTimestamps, this);
 
   // Dynamic reconfigure
-  f = boost::bind(&DvsRosDriver::callback, this, _1, _2);
-  server.reset(new dynamic_reconfigure::Server<dvs_ros_driver::DVS_ROS_DriverConfig>(nh_private));
-  server->setCallback(f);
+  dynamic_reconfigure_callback_ = boost::bind(&DvsRosDriver::callback, this, _1, _2);
+  server_.reset(new dynamic_reconfigure::Server<dvs_ros_driver::DVS_ROS_DriverConfig>(nh_private));
+  server_->setCallback(dynamic_reconfigure_callback_);
 
   // start timer to reset timestamps for synchronization
   if (reset_timestamps_delay > 0.0)
@@ -68,42 +83,41 @@ DvsRosDriver::DvsRosDriver(ros::NodeHandle & nh, ros::NodeHandle nh_private) :
 
 DvsRosDriver::~DvsRosDriver()
 {
-  ROS_INFO("Destructor call");
   if (running_)
   {
     ROS_INFO("shutting down threads");
     running_ = false;
-    parameter_thread->join();
-    readout_thread->join();
+    parameter_thread_->join();
+    readout_thread_->join();
     ROS_INFO("threads stopped");
   }
 }
 
-void DvsRosDriver::reset_timestamps(std_msgs::Empty msg)
+void DvsRosDriver::resetTimestamps(std_msgs::Empty msg)
 {
-  ROS_INFO("Reset timestamps on %s", driver->get_camera_id().c_str());
-  driver->resetTimestamps();
+  ROS_INFO("Reset timestamps on %s", driver_->getCameraId().c_str());
+  driver_->resetTimestamps();
 }
 
 void DvsRosDriver::resetTimerCallback(const ros::TimerEvent& te)
 {
-  ROS_INFO("Reset timestamps on %s", driver->get_camera_id().c_str());
-  driver->resetTimestamps();
+  ROS_INFO("Reset timestamps on %s", driver_->getCameraId().c_str());
+  driver_->resetTimestamps();
   timestamp_reset_timer_.stop();
 }
 
-void DvsRosDriver::change_dvs_parameters()
+void DvsRosDriver::changeDvsParameters()
 {
   while(running_)
   {
     try
     {
-      if (parameter_update_required)
+      if (parameter_update_required_)
       {
-        parameter_update_required = false;
-        driver->change_parameters(current_config.cas, current_config.injGnd, current_config.reqPd, current_config.puX,
-                                  current_config.diffOff, current_config.req, current_config.refr, current_config.puY,
-                                  current_config.diffOn, current_config.diff, current_config.foll, current_config.Pr);
+        parameter_update_required_ = false;
+        driver_->changeParameters(current_config_.cas, current_config_.injGnd, current_config_.reqPd, current_config_.puX,
+                                  current_config_.diffOff, current_config_.req, current_config_.refr, current_config_.puY,
+                                  current_config_.diffOn, current_config_.diff, current_config_.foll, current_config_.Pr);
       }
 
       boost::this_thread::sleep(boost::posix_time::milliseconds(100));
@@ -118,46 +132,47 @@ void DvsRosDriver::change_dvs_parameters()
 void DvsRosDriver::callback(dvs_ros_driver::DVS_ROS_DriverConfig &config, uint32_t level)
 {
   // did any DVS bias setting change?
-   if (current_config.cas != config.cas || current_config.injGnd != config.injGnd ||
-       current_config.reqPd != config.reqPd || current_config.puX != config.puX ||
-       current_config.diffOff != config.diffOff || current_config.req != config.req ||
-       current_config.refr != config.refr || current_config.puY != config.puY ||
-       current_config.diffOn != config.diffOn || current_config.diff != config.diff ||
-       current_config.foll != config.foll || current_config.Pr != config.Pr) {
+   if (current_config_.cas != config.cas || current_config_.injGnd != config.injGnd ||
+       current_config_.reqPd != config.reqPd || current_config_.puX != config.puX ||
+       current_config_.diffOff != config.diffOff || current_config_.req != config.req ||
+       current_config_.refr != config.refr || current_config_.puY != config.puY ||
+       current_config_.diffOn != config.diffOn || current_config_.diff != config.diff ||
+       current_config_.foll != config.foll || current_config_.Pr != config.Pr) {
 
-     current_config.cas = config.cas;
-     current_config.injGnd = config.injGnd;
-     current_config.reqPd = config.reqPd;
-     current_config.puX = config.puX;
-     current_config.diffOff = config.diffOff;
-     current_config.req = config.req;
-     current_config.refr = config.refr;
-     current_config.puY = config.puY;
-     current_config.diffOn = config.diffOn;
-     current_config.diff = config.diff;
-     current_config.foll = config.foll;
-     current_config.Pr = config.Pr;
+     current_config_.cas = config.cas;
+     current_config_.injGnd = config.injGnd;
+     current_config_.reqPd = config.reqPd;
+     current_config_.puX = config.puX;
+     current_config_.diffOff = config.diffOff;
+     current_config_.req = config.req;
+     current_config_.refr = config.refr;
+     current_config_.puY = config.puY;
+     current_config_.diffOn = config.diffOn;
+     current_config_.diff = config.diff;
+     current_config_.foll = config.foll;
+     current_config_.Pr = config.Pr;
 
-     parameter_update_required = true;
+     parameter_update_required_ = true;
    }
 
    // change streaming rate, if necessary
-   if (current_config.streaming_rate != config.streaming_rate) {
-     current_config.streaming_rate = config.streaming_rate;
-     delta = boost::posix_time::microseconds(1e6/current_config.streaming_rate);
+   if (current_config_.streaming_rate != config.streaming_rate) {
+     current_config_.streaming_rate = config.streaming_rate;
+     delta_ = boost::posix_time::microseconds(1e6/current_config_.streaming_rate);
    }
 }
 
-void DvsRosDriver::readout() {
+void DvsRosDriver::readout()
+{
   std::vector<dvs::Event> events;
 
   boost::posix_time::ptime next_send_time = boost::posix_time::microsec_clock::local_time();
 
-  while(running_)
+  while (running_)
   {
     try
     {
-      events = driver->get_events();
+      events = driver_->getEvents();
       dvs_msgs::EventArrayPtr msg(new dvs_msgs::EventArray());
 
       for (int i=0; i<events.size(); ++i)
@@ -171,26 +186,26 @@ void DvsRosDriver::readout() {
         msg->events.push_back(e);
       }
 
-      if (cameraInfoManager->isCalibrated())
+      if (camera_info_manager_->isCalibrated())
       {
-        sensor_msgs::CameraInfoPtr camera_info_msg(new sensor_msgs::CameraInfo(cameraInfoManager->getCameraInfo()));
-        camera_info_pub.publish(camera_info_msg);
+        sensor_msgs::CameraInfoPtr camera_info_msg(new sensor_msgs::CameraInfo(camera_info_manager_->getCameraInfo()));
+        camera_info_pub_.publish(camera_info_msg);
       }
-      event_array_pub.publish(msg);
+      event_array_pub_.publish(msg);
 
 //      ROS_INFO("Sending events %d", msg->events.size());
 
       ros::spinOnce();
       events.clear();
 
-      next_send_time += delta;
+      next_send_time += delta_;
 
       while (boost::posix_time::microsec_clock::local_time() < next_send_time)
       {
-        boost::this_thread::sleep(delta/10.0);
+        boost::this_thread::sleep(delta_/10.0);
       }
     }
-    catch(boost::thread_interrupted&)
+    catch (boost::thread_interrupted&)
     {
       return;
     }

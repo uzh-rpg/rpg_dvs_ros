@@ -13,8 +13,7 @@
 // You should have received a copy of the GNU General Public License
 // along with DVS-ROS.  If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef DVS_ROS_DRIVER_H_
-#define DVS_ROS_DRIVER_H_
+#pragma once
 
 #include <ros/ros.h>
 
@@ -47,38 +46,36 @@ public:
   ~DvsRosDriver();
 
 private:
-  void change_dvs_parameters();
+  void changeDvsParameters();
   void callback(dvs_ros_driver::DVS_ROS_DriverConfig &config, uint32_t level);
   void readout();
 
   ros::NodeHandle nh_;
-  ros::Publisher event_array_pub;
-  ros::Publisher camera_info_pub;
-  dvs::DVS_Driver *driver;
+  ros::Publisher event_array_pub_;
+  ros::Publisher camera_info_pub_;
+  dvs::DvsDriver *driver_;
 
   volatile bool running_;
 
-  boost::shared_ptr<dynamic_reconfigure::Server<dvs_ros_driver::DVS_ROS_DriverConfig> > server;
-  dynamic_reconfigure::Server<dvs_ros_driver::DVS_ROS_DriverConfig>::CallbackType f;
+  boost::shared_ptr<dynamic_reconfigure::Server<dvs_ros_driver::DVS_ROS_DriverConfig> > server_;
+  dynamic_reconfigure::Server<dvs_ros_driver::DVS_ROS_DriverConfig>::CallbackType dynamic_reconfigure_callback_;
 
-  ros::Subscriber reset_sub;
-  void reset_timestamps(std_msgs::Empty msg);
+  ros::Subscriber reset_sub_;
+  void resetTimestamps(std_msgs::Empty msg);
 
-  boost::shared_ptr<boost::thread> parameter_thread;
-  boost::shared_ptr<boost::thread> readout_thread;
+  boost::shared_ptr<boost::thread> parameter_thread_;
+  boost::shared_ptr<boost::thread> readout_thread_;
 
-  boost::posix_time::time_duration delta;
+  boost::posix_time::time_duration delta_;
 
-  dvs_ros_driver::DVS_ROS_DriverConfig current_config;
-  camera_info_manager::CameraInfoManager* cameraInfoManager;
+  dvs_ros_driver::DVS_ROS_DriverConfig current_config_;
+  camera_info_manager::CameraInfoManager* camera_info_manager_;
 
   ros::Timer timestamp_reset_timer_;
   void resetTimerCallback(const ros::TimerEvent& te);
 
-  bool parameter_update_required;
+  bool parameter_update_required_;
 
 };
 
 } // namespace
-
-#endif // DVS_ROS_DRIVER_H_

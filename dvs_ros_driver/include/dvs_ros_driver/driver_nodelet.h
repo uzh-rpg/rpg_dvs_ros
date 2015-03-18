@@ -13,8 +13,7 @@
 // You should have received a copy of the GNU General Public License
 // along with DVS-ROS.  If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef DVS_ROS_DRIVER_NODELET_H_
-#define DVS_ROS_DRIVER_NODELET_H_
+#pragma once
 
 #include <nodelet/nodelet.h>
 
@@ -27,9 +26,7 @@ public:
   virtual void onInit();
 
 private:
-  dvs_ros_driver::DvsRosDriver* driver;
+  dvs_ros_driver::DvsRosDriver* driver_;
 };
 
 }
-
-#endif // DVS_ROS_DRIVER_NODELET_H_
