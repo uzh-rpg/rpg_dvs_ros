@@ -50,7 +50,7 @@ void DvsCalibration::eventsCallback(const dvs_msgs::EventArray::ConstPtr& msg, i
   if (transition_maps[camera_id].max() > params.enough_transitions_threshold) {
     transition_maps[camera_id].find_pattern();
     if (transition_maps[camera_id].has_pattern()) {
-      ROS_INFO("Has pattern...");
+      ROS_DEBUG("Found pattern.");
       add_pattern(camera_id);
 
       std_msgs::Int32 msg;
@@ -58,7 +58,6 @@ void DvsCalibration::eventsCallback(const dvs_msgs::EventArray::ConstPtr& msg, i
       numDetectionsPublisher.publish(msg);
 
       update_visualization(camera_id);
-      ros::Duration(0.5).sleep();
     }
 
     transition_maps[camera_id].reset_maps();
@@ -69,7 +68,7 @@ void DvsCalibration::eventsCallback(const dvs_msgs::EventArray::ConstPtr& msg, i
 
   // reset if nothing is found after certain amount of time
   if (ros::Time::now() - transition_maps[camera_id].get_last_reset_time() > ros::Duration(params.pattern_search_timeout)) {
-    ROS_INFO("calling reset because of time...");
+    ROS_DEBUG("Reset maps because of time.");
     transition_maps[camera_id].reset_maps();
   }
 }
@@ -90,21 +89,21 @@ void DvsCalibration::loadCalibrationParameters()
 
 bool DvsCalibration::resetCalibrationCallback(std_srvs::Empty::Request& request, std_srvs::Empty::Response& response)
 {
-  ROS_INFO("reset call");
+  ROS_INFO("Reset call");
   resetCalibration();
   return true;
 }
 
 bool DvsCalibration::startCalibrationCallback(std_srvs::Empty::Request& request, std_srvs::Empty::Response& response)
 {
-  ROS_INFO("start calib call");
+  ROS_INFO("Start calibration call");
   startCalibration();
   return true;
 }
 
 bool DvsCalibration::saveCalibrationCallback(std_srvs::Empty::Request& request, std_srvs::Empty::Response& response)
 {
-  ROS_INFO("save calib call");
+  ROS_INFO("Save calibration call");
   saveCalibration();
   return true;
 }
