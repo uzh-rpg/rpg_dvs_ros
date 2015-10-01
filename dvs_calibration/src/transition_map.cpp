@@ -71,7 +71,8 @@ cv::Mat TransitionMap::get_visualization_image()
     }
   }
 
-  if (has_pattern()) {
+  if (has_pattern())
+  {
     cv::drawChessboardCorners(image, cv::Size(params.dots_w, params.dots_h), cv::Mat(pattern), true);
   }
 
@@ -98,7 +99,8 @@ void TransitionMap::find_pattern()
 
   pattern = BoardDetection::findPattern(points, params.dots_w, params.dots_h, params.minimum_led_mass);
 
-  if (pattern.size() == params.dots_w * params.dots_h) {
+  if (pattern.size() == params.dots_w * params.dots_h)
+  {
     _has_pattern = true;
   }
 }
@@ -116,8 +118,6 @@ void TransitionMap::reset_maps()
     }
   }
   _has_pattern = false;
-
-  std::cout << "map reset" << std::endl;
 }
 
 } // namespace
