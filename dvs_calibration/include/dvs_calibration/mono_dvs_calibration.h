@@ -27,6 +27,7 @@
 #include <std_srvs/Empty.h>
 #include <sensor_msgs/CameraInfo.h>
 #include <sensor_msgs/SetCameraInfo.h>
+#include <geometry_msgs/PoseStamped.h>
 
 #include <opencv2/calib3d/calib3d.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
@@ -40,7 +41,7 @@ class MonoDvsCalibration : public DvsCalibration
 {
 public:
   MonoDvsCalibration();
-  virtual ~MonoDvsCalibration(){};
+  virtual ~MonoDvsCalibration() {}
 
 private:
   void resetCalibration();
@@ -51,7 +52,8 @@ private:
   void update_visualization(int id);
 
   // services
-  sensor_msgs::CameraInfo cameraInfo;
+  sensor_msgs::CameraInfo camera_info_external;
+  sensor_msgs::CameraInfo new_camera_info;
   bool setCameraInfo();
 
   void calibrate();
@@ -63,9 +65,13 @@ private:
 
   // ROS interface
   ros::Subscriber eventSubscriber;
+  ros::Publisher cameraPosePublisher;
   image_transport::Publisher visualizationPublisher;
   image_transport::Publisher patternPublisher;
   ros::ServiceClient setCameraInfoClient;
+  ros::Subscriber cameraInfoSubscriber;
+  bool gotCameraInfo;
+  void cameraInfoCallback(const sensor_msgs::CameraInfo::ConstPtr& msg);
 };
 
 } // namespace
