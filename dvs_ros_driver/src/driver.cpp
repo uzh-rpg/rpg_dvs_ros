@@ -48,9 +48,6 @@ DvsRosDriver::DvsRosDriver(ros::NodeHandle & nh, ros::NodeHandle nh_private) :
     }
   }
 
-  // camera info handling
-  camera_info_manager_ = new camera_info_manager::CameraInfoManager(nh_, driver_->getCameraId());
-
   current_config_.streaming_rate = 30;
   delta_ = boost::posix_time::microseconds(1e6/current_config_.streaming_rate);
 
@@ -60,6 +57,11 @@ DvsRosDriver::DvsRosDriver(ros::NodeHandle & nh, ros::NodeHandle nh_private) :
     ns = "/dvs";
   event_array_pub_ = nh_.advertise<dvs_msgs::EventArray>(ns + "/events", 1);
   camera_info_pub_ = nh_.advertise<sensor_msgs::CameraInfo>(ns + "/camera_info", 1);
+
+  // camera info handling
+  ros::NodeHandle nh_ns(ns);
+  camera_info_manager_ = new camera_info_manager::CameraInfoManager(nh_ns, driver_->getCameraId());
+
 
   // spawn threads
   running_ = true;
