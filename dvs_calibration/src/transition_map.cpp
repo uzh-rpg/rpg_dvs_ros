@@ -17,12 +17,12 @@
 
 namespace dvs_calibration {
 
-TransitionMap::TransitionMap(const CalibrationParameters params) : params(params)
+TransitionMap::TransitionMap(const CalibrationParameters params) : params_(params)
 {
-  _has_pattern = false;
+  has_pattern_ = false;
 
   reset_maps();
-  last_reset_time = ros::Time::now();
+  last_reset_time_ = ros::Time::now();
 }
 
 int TransitionMap::max()
@@ -32,8 +32,8 @@ int TransitionMap::max()
   {
     for (int j = 0; j < sensor_height; j++)
     {
-      if (transition_sum_map[i][j] > max)
-        max = transition_sum_map[i][j];
+      if (transition_sum_map_[i][j] > max)
+        max = transition_sum_map_[i][j];
     }
   }
   return max;
@@ -45,13 +45,13 @@ void TransitionMap::update(const dvs_msgs::EventArray::ConstPtr& msg)
   {
     if (msg->events[i].polarity == true)
     {
-      last_off_map[msg->events[i].x][msg->events[i].y] = msg->events[i].time;
+      last_off_map_[msg->events[i].x][msg->events[i].y] = msg->events[i].time;
     }
     else
     {
-      int delta_t = msg->events[i].time - last_off_map[msg->events[i].x][msg->events[i].y];
-      if (delta_t < params.blinking_time_us + params.blinking_time_tolerance && delta_t > params.blinking_time_us - params.blinking_time_tolerance)
-        transition_sum_map[msg->events[i].x][msg->events[i].y]++;
+      int delta_t = msg->events[i].time - last_off_map_[msg->events[i].x][msg->events[i].y];
+      if (delta_t < params_.blinking_time_us + params_.blinking_time_tolerance && delta_t > params_.blinking_time_us - params_.blinking_time_tolerance)
+        transition_sum_map_[msg->events[i].x][msg->events[i].y]++;
     }
   }
 
@@ -66,14 +66,14 @@ cv::Mat TransitionMap::get_visualization_image()
   {
     for (int j = 0; j < sensor_height; j++)
     {
-      int value = 255.0 - ((double)transition_sum_map[i][j]) / ((double)max_value) * 255.0;
+      int value = 255.0 - ((double)transition_sum_map_[i][j]) / ((double)max_value) * 255.0;
       image.at<cv::Vec3b>(j, i) = cv::Vec3b(value, value, value);
     }
   }
 
   if (has_pattern())
   {
-    cv::drawChessboardCorners(image, cv::Size(params.dots_w, params.dots_h), cv::Mat(pattern), true);
+    cv::drawChessboardCorners(image, cv::Size(params_.dots_w, params_.dots_h), cv::Mat(pattern), true);
   }
 
   return image;
@@ -87,37 +87,37 @@ void TransitionMap::find_pattern()
   {
     for (int j = 0; j < sensor_height; j++)
     {
-      if (transition_sum_map[i][j] > params.minimum_transitions_threshold)
+      if (transition_sum_map_[i][j] > params_.minimum_transitions_threshold)
       {
         PointWithWeight p;
         p.point = cv::Point(i, j);
-        p.weight = (double) transition_sum_map[i][j];
+        p.weight = (double) transition_sum_map_[i][j];
         points.push_back(p);
       }
     }
   }
 
-  pattern = BoardDetection::findPattern(points, params.dots_w, params.dots_h, params.minimum_led_mass);
+  pattern = BoardDetection::findPattern(points, params_.dots_w, params_.dots_h, params_.minimum_led_mass);
 
-  if (pattern.size() == params.dots_w * params.dots_h)
+  if (pattern.size() == params_.dots_w * params_.dots_h)
   {
-    _has_pattern = true;
+    has_pattern_ = true;
   }
 }
 
 void TransitionMap::reset_maps()
 {
-  last_reset_time = ros::Time::now();
+  last_reset_time_ = ros::Time::now();
   for (int i = 0; i < sensor_width; i++)
   {
     for (int j = 0; j < sensor_height; j++)
     {
-      last_on_map[i][j] = 0;
-      last_off_map[i][j] = 0;
-      transition_sum_map[i][j] = 0;
+      last_on_map_[i][j] = 0;
+      last_off_map_[i][j] = 0;
+      transition_sum_map_[i][j] = 0;
     }
   }
-  _has_pattern = false;
+  has_pattern_ = false;
 }
 
 } // namespace

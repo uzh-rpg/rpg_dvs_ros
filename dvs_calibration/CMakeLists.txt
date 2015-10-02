@@ -76,12 +76,35 @@ add_executable(stereo
   src/transition_map.cpp
 )
 
-# to build the executable we depend on other packets, 
+# to build the executable we depend on other packets,
 # they need to be build beforehand, especially the messages
 add_dependencies(stereo ${catkin_EXPORTED_TARGETS})
 
 # link the executable to the necesarry libs
 target_link_libraries(stereo
+   ${catkin_LIBRARIES}
+   ${OpenCV_LIBRARIES}
+)
+
+
+#########################
+# make the executable for Camera-DVS
+#########################
+
+add_executable(camera_dvs
+  src/camera_dvs_node.cpp
+  src/camera_dvs_calibration.cpp
+  src/dvs_calibration.cpp
+  src/board_detection.cpp
+  src/transition_map.cpp
+)
+
+# to build the executable we depend on other packets,
+# they need to be build beforehand, especially the messages
+add_dependencies(camera_dvs ${catkin_EXPORTED_TARGETS})
+
+# link the executable to the necesarry libs
+target_link_libraries(camera_dvs
    ${catkin_LIBRARIES}
    ${OpenCV_LIBRARIES}
 )

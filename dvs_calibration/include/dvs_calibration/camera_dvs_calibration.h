@@ -25,27 +25,32 @@
 #include <std_msgs/Int32.h>
 #include <std_msgs/String.h>
 #include <std_srvs/Empty.h>
+#include <sensor_msgs/Image.h>
 #include <sensor_msgs/CameraInfo.h>
 #include <sensor_msgs/SetCameraInfo.h>
+#include <sensor_msgs/image_encodings.h>
 
 #include <opencv2/calib3d/calib3d.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
+
+#include <dvs_calibration/circlesgrid.hpp>
 
 #include "dvs_calibration/dvs_calibration.h"
 
 
 namespace dvs_calibration {
 
-class StereoDvsCalibration : public DvsCalibration
+class CameraDvsCalibration : public DvsCalibration
 {
 public:
-  StereoDvsCalibration();
-  virtual ~StereoDvsCalibration() {}
+  CameraDvsCalibration();
+  virtual ~CameraDvsCalibration() {}
 
 private:
   // callbacks
-  void cameraInfoLeftCallback(const sensor_msgs::CameraInfo::ConstPtr& msg);
-  void cameraInfoRightCallback(const sensor_msgs::CameraInfo::ConstPtr& msg);
+  void standardCameraInfoCallback(const sensor_msgs::CameraInfo::ConstPtr& msg);
+  void dvsCameraInfoCallback(const sensor_msgs::CameraInfo::ConstPtr& msg);
+  void imageCallback(const sensor_msgs::Image::ConstPtr& msg);
 
   void resetCalibration();
   void startCalibration();
@@ -55,7 +60,8 @@ private:
   void updateVisualization(int id);
 
   // services
-  sensor_msgs::CameraInfo camera_info_left_, camera_info_right_;
+  sensor_msgs::CameraInfo standard_camera_info_, dvs_camera_info_;
+  sensor_msgs::CameraInfo new_standard_camera_info_, new_dvs_camera_info_;
   bool setCameraInfo();
 
   void calibrate();
@@ -63,22 +69,26 @@ private:
 
   // calibration
   std::vector< std::vector<cv::Point3f> > object_points_;
-  std::vector< std::vector<cv::Point2f> > image_points_left_, image_points_right_;
+  std::vector< std::vector<cv::Point2f> > image_points_camera_, image_points_dvs_;
 
   // ROS interface
-  ros::Subscriber event_left_sub_, event_right_sub_;
-  ros::Subscriber camera_info_left_sub_, camera_info_right_sub_;
-  image_transport::Publisher visualization_left_pub_, visualization_right_pub_;
-  ros::ServiceClient set_camera_info_left_client_, set_camera_info_right_client_;
+  ros::Subscriber event_sub_, image_sub_;
+  ros::Subscriber standard_camera_info_sub_, dvs_camera_info_sub_;
+  image_transport::Publisher camera_visualization_pub_, dvs_visualization_pub_;
+  ros::ServiceClient set_standard_camera_info_client_, set_dvs_camera_info_client_;
 
   // buffer to wait for other camera
-  void addStereoPattern(std::vector<cv::Point2f> left, std::vector<cv::Point2f> right);
-  std::vector<cv::Point2f> image_point_buffer_;
-  bool has_left_buffer_, has_right_buffer_;
-  ros::Time buffer_time_;
+  void add_stereo_pattern(std::vector<cv::Point2f> camera_image_points, std::vector<cv::Point2f> dvs_image_points);
+  std::vector<cv::Point2f> camera_image_point_buffer_;
+  ros::Time last_detection_camera_time_;
+
+  // parameters
+  int image_led_threshold_;
+  double max_time_difference_;
+  bool fix_intrinsics_;
 
   // for pose publishing
-  bool got_camera_info_left_, got_camera_info_right_;
+  bool got_standard_camera_info_, got_dvs_camera_info_;
 };
 
 } // namespace
