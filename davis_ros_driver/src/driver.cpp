@@ -175,18 +175,8 @@ void DavisRosDriver::changeDvsParameters()
       if (parameter_update_required_)
       {
         parameter_update_required_ = false;
-//        caerDeviceConfigSet(davis_handle, DVS128_CONFIG_BIAS, DVS128_CONFIG_BIAS_CAS, current_config_.cas);
-//        caerDeviceConfigSet(davis_handle, DVS128_CONFIG_BIAS, DVS128_CONFIG_BIAS_INJGND, current_config_.injGnd);
-//        caerDeviceConfigSet(davis_handle, DVS128_CONFIG_BIAS, DVS128_CONFIG_BIAS_REQPD, current_config_.reqPd);
-//        caerDeviceConfigSet(davis_handle, DVS128_CONFIG_BIAS, DVS128_CONFIG_BIAS_PUX, current_config_.puX);
-//        caerDeviceConfigSet(davis_handle, DVS128_CONFIG_BIAS, DVS128_CONFIG_BIAS_DIFFOFF, current_config_.diffOff);
-//        caerDeviceConfigSet(davis_handle, DVS128_CONFIG_BIAS, DVS128_CONFIG_BIAS_REQ, current_config_.req);
-//        caerDeviceConfigSet(davis_handle, DVS128_CONFIG_BIAS, DVS128_CONFIG_BIAS_REFR, current_config_.refr);
-//        caerDeviceConfigSet(davis_handle, DVS128_CONFIG_BIAS, DVS128_CONFIG_BIAS_PUY, current_config_.puY);
-//        caerDeviceConfigSet(davis_handle, DVS128_CONFIG_BIAS, DVS128_CONFIG_BIAS_DIFFON, current_config_.diffOn);
-//        caerDeviceConfigSet(davis_handle, DVS128_CONFIG_BIAS, DVS128_CONFIG_BIAS_DIFF, current_config_.diff);
-//        caerDeviceConfigSet(davis_handle, DVS128_CONFIG_BIAS, DVS128_CONFIG_BIAS_FOLL, current_config_.foll);
-//        caerDeviceConfigSet(davis_handle, DVS128_CONFIG_BIAS, DVS128_CONFIG_BIAS_PR, current_config_.Pr);
+        caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_APS, DAVIS_CONFIG_APS_EXPOSURE, current_config_.exposure);
+        caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_APS, DAVIS_CONFIG_APS_FRAME_DELAY, current_config_.frame_delay);
       }
 
       boost::this_thread::sleep(boost::posix_time::milliseconds(100));
@@ -201,25 +191,10 @@ void DavisRosDriver::changeDvsParameters()
 void DavisRosDriver::callback(davis_ros_driver::DAVIS_ROS_DriverConfig &config, uint32_t level)
 {
   // did any DVS bias setting change?
-   if (current_config_.cas != config.cas || current_config_.injGnd != config.injGnd ||
-       current_config_.reqPd != config.reqPd || current_config_.puX != config.puX ||
-       current_config_.diffOff != config.diffOff || current_config_.req != config.req ||
-       current_config_.refr != config.refr || current_config_.puY != config.puY ||
-       current_config_.diffOn != config.diffOn || current_config_.diff != config.diff ||
-       current_config_.foll != config.foll || current_config_.Pr != config.Pr)
+   if (current_config_.exposure != config.exposure || current_config_.frame_delay != config.frame_delay)
    {
-     current_config_.cas = config.cas;
-     current_config_.injGnd = config.injGnd;
-     current_config_.reqPd = config.reqPd;
-     current_config_.puX = config.puX;
-     current_config_.diffOff = config.diffOff;
-     current_config_.req = config.req;
-     current_config_.refr = config.refr;
-     current_config_.puY = config.puY;
-     current_config_.diffOn = config.diffOn;
-     current_config_.diff = config.diff;
-     current_config_.foll = config.foll;
-     current_config_.Pr = config.Pr;
+     current_config_.exposure = config.exposure;
+     current_config_.frame_delay = config.frame_delay;
 
      parameter_update_required_ = true;
    }
