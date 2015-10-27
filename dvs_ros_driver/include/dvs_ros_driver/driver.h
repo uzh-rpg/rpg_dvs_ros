@@ -16,6 +16,7 @@
 #pragma once
 
 #include <ros/ros.h>
+#include <string>
 
 // boost
 #include <boost/thread.hpp>
@@ -28,7 +29,8 @@
 #include <std_msgs/Empty.h>
 
 // DVS driver
-#include <dvs_driver/dvs_driver.h>
+#include <libcaer/libcaer.h>
+#include <libcaer/devices/dvs128.h>
 
 // dynamic reconfigure
 #include <dynamic_reconfigure/server.h>
@@ -53,7 +55,7 @@ private:
   ros::NodeHandle nh_;
   ros::Publisher event_array_pub_;
   ros::Publisher camera_info_pub_;
-  dvs::DvsDriver *driver_;
+  caerDeviceHandle dvs128_handle;
 
   volatile bool running_;
 
@@ -70,6 +72,8 @@ private:
 
   dvs_ros_driver::DVS_ROS_DriverConfig current_config_;
   camera_info_manager::CameraInfoManager* camera_info_manager_;
+
+  std::string device_id_;
 
   ros::Timer timestamp_reset_timer_;
   void resetTimerCallback(const ros::TimerEvent& te);

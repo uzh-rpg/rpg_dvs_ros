@@ -32,8 +32,11 @@ DvsRosDriver::DvsRosDriver(ros::NodeHandle & nh, ros::NodeHandle nh_private) :
   bool dvs_running = false;
   while (!dvs_running)
   {
-    driver_ = new dvs::DvsDriver(dvs_serial_number, master);
-    dvs_running = driver_->isDeviceRunning();
+    //driver_ = new dvs::DvsDriver(dvs_serial_number, master);
+    dvs128_handle = caerDeviceOpen(1, CAER_DEVICE_DVS128, 0, 0, NULL);
+
+    //dvs_running = driver_->isDeviceRunning();
+    dvs_running = !(dvs128_handle == NULL);
 
     if (!dvs_running)
     {
@@ -48,6 +51,13 @@ DvsRosDriver::DvsRosDriver(ros::NodeHandle & nh, ros::NodeHandle nh_private) :
     }
   }
 
+  struct caer_dvs128_info dvs128_info = caerDVS128InfoGet(dvs128_handle);
+  device_id_ = "DVS128-V1-" + std::string(dvs128_info.deviceString).substr(15, 4);
+
+  ROS_INFO("%s --- ID: %d, Master: %d, DVS X: %d, DVS Y: %d, Logic: %d.\n", dvs128_info.deviceString,
+           dvs128_info.deviceID, dvs128_info.deviceIsMaster, dvs128_info.dvsSizeX, dvs128_info.dvsSizeY,
+           dvs128_info.logicVersion);
+
   current_config_.streaming_rate = 30;
   delta_ = boost::posix_time::microseconds(1e6/current_config_.streaming_rate);
 
@@ -60,7 +70,7 @@ DvsRosDriver::DvsRosDriver(ros::NodeHandle & nh, ros::NodeHandle nh_private) :
 
   // camera info handling
   ros::NodeHandle nh_ns(ns);
-  camera_info_manager_ = new camera_info_manager::CameraInfoManager(nh_ns, driver_->getCameraId());
+  camera_info_manager_ = new camera_info_manager::CameraInfoManager(nh_ns, device_id_);
 
 
   // spawn threads
@@ -92,19 +102,24 @@ DvsRosDriver::~DvsRosDriver()
     parameter_thread_->join();
     readout_thread_->join();
     ROS_INFO("threads stopped");
+
+    caerDeviceClose(&dvs128_handle);
   }
 }
 
 void DvsRosDriver::resetTimestamps(std_msgs::Empty msg)
 {
-  ROS_INFO("Reset timestamps on %s", driver_->getCameraId().c_str());
-  driver_->resetTimestamps();
+  ROS_INFO("Reset timestamps on %s", device_id_.c_str());
+  //driver_->resetTimestamps();
+  caerDeviceConfigSet(dvs128_handle, DVS128_CONFIG_DVS, DVS128_CONFIG_DVS_TIMESTAMP_RESET, 0);
 }
 
 void DvsRosDriver::resetTimerCallback(const ros::TimerEvent& te)
 {
-  ROS_INFO("Reset timestamps on %s", driver_->getCameraId().c_str());
-  driver_->resetTimestamps();
+  ROS_INFO("Reset timestamps on %s", device_id_.c_str());
+  //driver_->resetTimestamps();
+  caerDeviceConfigSet(dvs128_handle, DVS128_CONFIG_DVS, DVS128_CONFIG_DVS_TIMESTAMP_RESET, 0);
+
   timestamp_reset_timer_.stop();
 }
 
@@ -117,9 +132,18 @@ void DvsRosDriver::changeDvsParameters()
       if (parameter_update_required_)
       {
         parameter_update_required_ = false;
-        driver_->changeParameters(current_config_.cas, current_config_.injGnd, current_config_.reqPd, current_config_.puX,
-                                  current_config_.diffOff, current_config_.req, current_config_.refr, current_config_.puY,
-                                  current_config_.diffOn, current_config_.diff, current_config_.foll, current_config_.Pr);
+        caerDeviceConfigSet(dvs128_handle, DVS128_CONFIG_BIAS, DVS128_CONFIG_BIAS_CAS, current_config_.cas);
+        caerDeviceConfigSet(dvs128_handle, DVS128_CONFIG_BIAS, DVS128_CONFIG_BIAS_INJGND, current_config_.injGnd);
+        caerDeviceConfigSet(dvs128_handle, DVS128_CONFIG_BIAS, DVS128_CONFIG_BIAS_REQPD, current_config_.reqPd);
+        caerDeviceConfigSet(dvs128_handle, DVS128_CONFIG_BIAS, DVS128_CONFIG_BIAS_PUX, current_config_.puX);
+        caerDeviceConfigSet(dvs128_handle, DVS128_CONFIG_BIAS, DVS128_CONFIG_BIAS_DIFFOFF, current_config_.diffOff);
+        caerDeviceConfigSet(dvs128_handle, DVS128_CONFIG_BIAS, DVS128_CONFIG_BIAS_REQ, current_config_.req);
+        caerDeviceConfigSet(dvs128_handle, DVS128_CONFIG_BIAS, DVS128_CONFIG_BIAS_REFR, current_config_.refr);
+        caerDeviceConfigSet(dvs128_handle, DVS128_CONFIG_BIAS, DVS128_CONFIG_BIAS_PUY, current_config_.puY);
+        caerDeviceConfigSet(dvs128_handle, DVS128_CONFIG_BIAS, DVS128_CONFIG_BIAS_DIFFON, current_config_.diffOn);
+        caerDeviceConfigSet(dvs128_handle, DVS128_CONFIG_BIAS, DVS128_CONFIG_BIAS_DIFF, current_config_.diff);
+        caerDeviceConfigSet(dvs128_handle, DVS128_CONFIG_BIAS, DVS128_CONFIG_BIAS_FOLL, current_config_.foll);
+        caerDeviceConfigSet(dvs128_handle, DVS128_CONFIG_BIAS, DVS128_CONFIG_BIAS_PR, current_config_.Pr);
       }
 
       boost::this_thread::sleep(boost::posix_time::milliseconds(100));
@@ -166,7 +190,10 @@ void DvsRosDriver::callback(dvs_ros_driver::DVS_ROS_DriverConfig &config, uint32
 
 void DvsRosDriver::readout()
 {
-  std::vector<dvs::Event> events;
+  //std::vector<dvs::Event> events;
+
+  caerDeviceDataStart(dvs128_handle, NULL, NULL, NULL, NULL, NULL);
+  caerDeviceConfigSet(dvs128_handle, CAER_HOST_CONFIG_DATAEXCHANGE, CAER_HOST_CONFIG_DATAEXCHANGE_BLOCKING, true);
 
   boost::posix_time::ptime next_send_time = boost::posix_time::microsec_clock::local_time();
 
@@ -174,44 +201,86 @@ void DvsRosDriver::readout()
   {
     try
     {
-      events = driver_->getEvents();
-      dvs_msgs::EventArrayPtr msg(new dvs_msgs::EventArray());
-
-      for (int i=0; i<events.size(); ++i)
+      caerEventPacketContainer packetContainer = caerDeviceDataGet(dvs128_handle);
+      if (packetContainer == NULL)
       {
-        dvs_msgs::Event e;
-        e.x = events[i].x;
-        e.y = events[i].y;
-        e.time = events[i].timestamp;
-        e.polarity = events[i].polarity;
-
-        msg->events.push_back(e);
+        continue; // Skip if nothing there.
       }
 
-      if (camera_info_manager_->isCalibrated())
-      {
-        sensor_msgs::CameraInfoPtr camera_info_msg(new sensor_msgs::CameraInfo(camera_info_manager_->getCameraInfo()));
-        camera_info_pub_.publish(camera_info_msg);
-      }
-      event_array_pub_.publish(msg);
+      int32_t packetNum = caerEventPacketContainerGetEventPacketsNumber(packetContainer);
 
-//      ROS_INFO("Sending events %d", msg->events.size());
+//      printf("\nGot event container with %d packets (allocated).\n", packetNum);
+
+      for (int32_t i = 0; i < packetNum; i++)
+      {
+        caerEventPacketHeader packetHeader = caerEventPacketContainerGetEventPacket(packetContainer, i);
+        if (packetHeader == NULL)
+        {
+//          printf("Packet %d is empty (not present).\n", i);
+          continue; // Skip if nothing there.
+        }
+
+//        printf("Packet %d of type %d -> size is %d.\n", i, caerEventPacketHeaderGetEventType(packetHeader),
+//          caerEventPacketHeaderGetEventNumber(packetHeader));
+
+        // Packet 0 is always the special events packet for DVS128, while packet is the polarity events packet.
+        if (i == POLARITY_EVENT)
+        {
+          caerPolarityEventPacket polarity = (caerPolarityEventPacket) packetHeader;
+
+          const int numEvents = caerEventPacketHeaderGetEventNumber(packetHeader);
+          dvs_msgs::EventArrayPtr msg(new dvs_msgs::EventArray());
+
+          msg->width = 128;
+          msg->height = 128;
+
+          for (int j = 0; j < numEvents; j++)
+          {
+            // Get full timestamp and addresses of first event.
+            caerPolarityEvent event = caerPolarityEventPacketGetEvent(polarity, j);
+
+            dvs_msgs::Event e;
+            e.x = caerPolarityEventGetX(event);
+            e.y = 127 - caerPolarityEventGetY(event);
+            e.ts = ros::Time::now();// caerPolarityEventGetTimestamp(event);
+            e.polarity = caerPolarityEventGetPolarity(event);
+
+//            printf("First polarity event - x: %d \n", e.x);
+
+            msg->events.push_back(e);
+          }
+
+          event_array_pub_.publish(msg);
+
+          if (camera_info_manager_->isCalibrated())
+          {
+            sensor_msgs::CameraInfoPtr camera_info_msg(new sensor_msgs::CameraInfo(camera_info_manager_->getCameraInfo()));
+            camera_info_pub_.publish(camera_info_msg);
+          }
+
+//          printf("First polarity event - ts: %d, x: %d, y: %d, pol: %d.\n", ts, x, y, pol);
+        }
+      }
+
+      caerEventPacketContainerFree(packetContainer);
+
 
       ros::spinOnce();
-      events.clear();
 
       next_send_time += delta_;
 
-      while (boost::posix_time::microsec_clock::local_time() < next_send_time)
-      {
-        boost::this_thread::sleep(delta_/10.0);
-      }
+//      while (boost::posix_time::microsec_clock::local_time() < next_send_time)
+//      {
+//        boost::this_thread::sleep(delta_/10.0);
+//      }
     }
     catch (boost::thread_interrupted&)
     {
       return;
     }
   }
+
+  caerDeviceDataStop(dvs128_handle);
 }
 
 } // namespace

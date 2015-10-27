@@ -4,7 +4,7 @@ project(dvs_ros_driver)
 # search for everything we need to build the package
 find_package(catkin REQUIRED COMPONENTS
   roscpp
-  dvs_driver
+  libcaer_catkin
   dvs_msgs
   std_msgs
   dynamic_reconfigure
@@ -16,6 +16,8 @@ generate_dynamic_reconfigure_options(
   cfg/DVS_ROS_Driver.cfg
 )
 
+SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -O3")
+
 # since we need eigen and boost search them as well
 # find_package makes the ${..._INCLUDE_DIRS} ${..._LIBRARIES} variables we use later
 find_package(Boost REQUIRED COMPONENTS system thread)
@@ -26,7 +28,7 @@ catkin_package(
   	include
   CATKIN_DEPENDS 
   	roscpp 
-  	dvs_driver 
+    libcaer_catkin
   	dvs_msgs 
   	std_msgs
   	dynamic_reconfigure
@@ -71,12 +73,14 @@ add_dependencies(dvs_ros_driver_nodelet
 target_link_libraries(dvs_ros_driver
   ${catkin_LIBRARIES}
   ${Boost_LIBRARIES}
+  ${CATKIN_DEVEL_PREFIX}/lib/libcaer${CMAKE_SHARED_LIBRARY_SUFFIX}
 )
 
 # link the executable to the necesarry libs
 target_link_libraries(dvs_ros_driver_nodelet
   ${catkin_LIBRARIES}
   ${Boost_LIBRARIES}
+  ${CATKIN_DEVEL_PREFIX}/lib/libcaer${CMAKE_SHARED_LIBRARY_SUFFIX}
 )
 
 # Install the nodelet library
