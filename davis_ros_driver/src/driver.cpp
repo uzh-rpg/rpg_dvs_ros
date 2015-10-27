@@ -177,6 +177,10 @@ void DavisRosDriver::changeDvsParameters()
         parameter_update_required_ = false;
         caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_APS, DAVIS_CONFIG_APS_EXPOSURE, current_config_.exposure);
         caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_APS, DAVIS_CONFIG_APS_FRAME_DELAY, current_config_.frame_delay);
+
+        caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_APS, DAVIS_CONFIG_APS_RUN, current_config_.aps_enabled);
+        caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_DVS, DAVIS_CONFIG_DVS_RUN, current_config_.dvs_enabled);
+        caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_IMU, DAVIS_CONFIG_IMU_RUN, current_config_.imu_enabled);
       }
 
       boost::this_thread::sleep(boost::posix_time::milliseconds(100));
@@ -191,10 +195,16 @@ void DavisRosDriver::changeDvsParameters()
 void DavisRosDriver::callback(davis_ros_driver::DAVIS_ROS_DriverConfig &config, uint32_t level)
 {
   // did any DVS bias setting change?
-   if (current_config_.exposure != config.exposure || current_config_.frame_delay != config.frame_delay)
+   if (current_config_.exposure != config.exposure || current_config_.frame_delay != config.frame_delay ||
+       current_config_.aps_enabled != config.aps_enabled || current_config_.dvs_enabled != config.dvs_enabled ||
+       current_config_.imu_enabled != config.imu_enabled)
    {
      current_config_.exposure = config.exposure;
      current_config_.frame_delay = config.frame_delay;
+
+     current_config_.aps_enabled = config.aps_enabled;
+     current_config_.dvs_enabled = config.dvs_enabled;
+     current_config_.imu_enabled = config.imu_enabled;
 
      parameter_update_required_ = true;
    }
