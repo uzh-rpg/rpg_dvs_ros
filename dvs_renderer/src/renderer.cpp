@@ -31,6 +31,7 @@ Renderer::Renderer(ros::NodeHandle & nh, ros::NodeHandle nh_private) : nh_(nh)
   camera_info_sub_ = nh_.subscribe("camera_info", 1, &Renderer::cameraInfoCallback, this);
 
   image_transport::ImageTransport it_(nh_);
+  image_sub_ = it_.subscribe("image", 1, &Renderer::imageCallback, this);
   image_pub_ = it_.advertise("dvs_rendering", 1);
   undistorted_image_pub_ = it_.advertise("dvs_undistorted", 1);
 }
@@ -55,6 +56,27 @@ void Renderer::cameraInfoCallback(const sensor_msgs::CameraInfo::ConstPtr& msg)
     dist_coeffs_.at<double>(i) = msg->D[i];
 }
 
+void Renderer::imageCallback(const sensor_msgs::Image::ConstPtr& msg)
+{
+  cv_bridge::CvImagePtr cv_ptr;
+
+  try
+  {
+    cv_ptr = cv_bridge::toCvCopy(msg, sensor_msgs::image_encodings::MONO16);
+  }
+  catch (cv_bridge::Exception& e)
+  {
+    ROS_ERROR("cv_bridge exception: %s", e.what());
+    return;
+  }
+
+  // convert from 16-bit to 8-bit image
+  cv_ptr->image.convertTo(last_image_, CV_8U, 1./256);
+
+  // convert from grayscale to color image
+  cv::cvtColor(last_image_, last_image_, CV_GRAY2BGR);
+}
+
 void Renderer::eventsCallback(const dvs_msgs::EventArray::ConstPtr& msg)
 {
   // only create image if at least one subscriber
@@ -65,8 +87,16 @@ void Renderer::eventsCallback(const dvs_msgs::EventArray::ConstPtr& msg)
     if (display_method_ == RED_BLUE)
     {
       cv_image.encoding = "bgr8";
-      cv_image.image = cv::Mat(128, 128, CV_8UC3);
-      cv_image.image = cv::Scalar(128, 128, 128);
+
+      if (last_image_.rows == msg->height && last_image_.cols == msg->width)
+      {
+        cv_image.image = last_image_;
+      }
+      else
+      {
+        cv_image.image = cv::Mat(msg->height, msg->width, CV_8UC3);
+        cv_image.image = cv::Scalar(128, 128, 128);
+      }
 
       for (int i = 0; i < msg->events.size(); ++i)
       {
@@ -80,13 +110,13 @@ void Renderer::eventsCallback(const dvs_msgs::EventArray::ConstPtr& msg)
     else
     {
       cv_image.encoding = "mono8";
-      cv_image.image = cv::Mat(128, 128, CV_8U);
+      cv_image.image = cv::Mat(msg->height, msg->width, CV_8U);
       cv_image.image = cv::Scalar(128);
 
-      cv::Mat on_events = cv::Mat(128, 128, CV_8U);
+      cv::Mat on_events = cv::Mat(msg->height, msg->width, CV_8U);
       on_events = cv::Scalar(0);
 
-      cv::Mat off_events = cv::Mat(128, 128, CV_8U);
+      cv::Mat off_events = cv::Mat(msg->height, msg->width, CV_8U);
       off_events = cv::Scalar(0);
 
       // count events per pixels with polarity

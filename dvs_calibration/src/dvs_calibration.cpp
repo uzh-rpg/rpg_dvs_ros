@@ -84,7 +84,7 @@ void DvsCalibration::loadCalibrationParameters()
   nh_private.param<int>("dots_w", params_.dots_w, 5);
   nh_private.param<int>("dots_h", params_.dots_h, 5);
   nh_private.param<double>("dot_distance", params_.dot_distance, 0.05);
-  nh_private.param<double>("pattern_search_timeout", params_.pattern_search_timeout, 2.0);
+  nh_private.param<double>("pattern_search_timeout", params_.pattern_search_timeout, 2.0);  
 }
 
 bool DvsCalibration::resetCalibrationCallback(std_srvs::Empty::Request& request, std_srvs::Empty::Response& response)

@@ -1,0 +1,7 @@
+<library path="lib/libdavis_ros_driver_nodelet">
+  <class name="davis_ros_driver/DavisRosDriverNodelet" type="davis_ros_driver::DavisRosDriverNodelet" base_class_type="nodelet::Nodelet">
+    <description>
+      A nodelet wrapper for the davis_ros_driver.
+    </description>
+  </class>
+</library>

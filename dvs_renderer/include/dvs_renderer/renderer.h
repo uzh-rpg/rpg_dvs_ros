@@ -43,6 +43,7 @@ private:
 
   void cameraInfoCallback(const sensor_msgs::CameraInfo::ConstPtr& msg);
   void eventsCallback(const dvs_msgs::EventArray::ConstPtr& msg);
+  void imageCallback(const sensor_msgs::Image::ConstPtr& msg);
 
   bool got_camera_info_;
   cv::Mat camera_matrix_, dist_coeffs_;
@@ -52,6 +53,9 @@ private:
 
   image_transport::Publisher image_pub_;
   image_transport::Publisher undistorted_image_pub_;
+
+  image_transport::Subscriber image_sub_;
+  cv::Mat last_image_;
 
   enum DisplayMethod
   {
