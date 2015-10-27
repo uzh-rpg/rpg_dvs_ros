@@ -90,7 +90,7 @@ void Renderer::eventsCallback(const dvs_msgs::EventArray::ConstPtr& msg)
 
       if (last_image_.rows == msg->height && last_image_.cols == msg->width)
       {
-        cv_image.image = last_image_;
+        last_image_.copyTo(cv_image.image);
       }
       else
       {
