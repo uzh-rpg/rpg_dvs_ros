@@ -213,7 +213,10 @@ void DavisRosDriver::callback(davis_ros_driver::DAVIS_ROS_DriverConfig &config, 
    if (current_config_.streaming_rate != config.streaming_rate)
    {
      current_config_.streaming_rate = config.streaming_rate;
-     delta_ = boost::posix_time::microseconds(1e6/current_config_.streaming_rate);
+     if (current_config_.streaming_rate > 0)
+     {
+       delta_ = boost::posix_time::microseconds(1e6/current_config_.streaming_rate);
+     }
    }
 }
 
@@ -225,6 +228,10 @@ void DavisRosDriver::readout()
   caerDeviceConfigSet(davis_handle_, CAER_HOST_CONFIG_DATAEXCHANGE, CAER_HOST_CONFIG_DATAEXCHANGE_BLOCKING, true);
 
   boost::posix_time::ptime next_send_time = boost::posix_time::microsec_clock::local_time();
+
+  dvs_msgs::EventArrayPtr event_array_msg(new dvs_msgs::EventArray());
+  event_array_msg->height = davis_info_.dvsSizeY;
+  event_array_msg->width = davis_info_.dvsSizeX;
 
   while (running_)
   {
@@ -252,11 +259,6 @@ void DavisRosDriver::readout()
           caerPolarityEventPacket polarity = (caerPolarityEventPacket) packetHeader;
 
           const int numEvents = caerEventPacketHeaderGetEventNumber(packetHeader);
-          dvs_msgs::EventArrayPtr msg(new dvs_msgs::EventArray());
-
-          msg->height = davis_info_.dvsSizeY;
-          msg->width = davis_info_.dvsSizeX;
-
           for (int j = 0; j < numEvents; j++)
           {
             // Get full timestamp and addresses of first event.
@@ -268,10 +270,19 @@ void DavisRosDriver::readout()
             e.ts = reset_time_ + ros::Duration(caerPolarityEventGetTimestamp64(event, polarity) / 1.e6);
             e.polarity = caerPolarityEventGetPolarity(event);
 
-            msg->events.push_back(e);
+            event_array_msg->events.push_back(e);
           }
 
-          event_array_pub_.publish(msg);
+          // throttle event messages
+          if (boost::posix_time::microsec_clock::local_time() > next_send_time || current_config_.streaming_rate == 0)
+          {
+            event_array_pub_.publish(event_array_msg);
+            event_array_msg->events.clear();
+            if (current_config_.streaming_rate > 0)
+            {
+              next_send_time += delta_;
+            }
+          }
 
           if (camera_info_manager_->isCalibrated())
           {
@@ -330,14 +341,11 @@ void DavisRosDriver::readout()
 
           image_pub_.publish(msg);
         }
-
       }
 
       caerEventPacketContainerFree(packetContainer);
 
       ros::spinOnce();
-
-      next_send_time += delta_;
     }
     catch (boost::thread_interrupted&)
     {

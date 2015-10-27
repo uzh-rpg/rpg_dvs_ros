@@ -51,12 +51,12 @@ DvsRosDriver::DvsRosDriver(ros::NodeHandle & nh, ros::NodeHandle nh_private) :
     }
   }
 
-  struct caer_dvs128_info dvs128_info = caerDVS128InfoGet(dvs128_handle);
-  device_id_ = "DVS128-V1-" + std::string(dvs128_info.deviceString).substr(15, 4);
+  dvs128_info_ = caerDVS128InfoGet(dvs128_handle);
+  device_id_ = "DVS128-V1-" + std::string(dvs128_info_.deviceString).substr(15, 4);
 
-  ROS_INFO("%s --- ID: %d, Master: %d, DVS X: %d, DVS Y: %d, Logic: %d.\n", dvs128_info.deviceString,
-           dvs128_info.deviceID, dvs128_info.deviceIsMaster, dvs128_info.dvsSizeX, dvs128_info.dvsSizeY,
-           dvs128_info.logicVersion);
+  ROS_INFO("%s --- ID: %d, Master: %d, DVS X: %d, DVS Y: %d, Logic: %d.\n", dvs128_info_.deviceString,
+           dvs128_info_.deviceID, dvs128_info_.deviceIsMaster, dvs128_info_.dvsSizeX, dvs128_info_.dvsSizeY,
+           dvs128_info_.logicVersion);
 
   current_config_.streaming_rate = 30;
   delta_ = boost::posix_time::microseconds(1e6/current_config_.streaming_rate);
@@ -72,13 +72,16 @@ DvsRosDriver::DvsRosDriver(ros::NodeHandle & nh, ros::NodeHandle nh_private) :
   ros::NodeHandle nh_ns(ns);
   camera_info_manager_ = new camera_info_manager::CameraInfoManager(nh_ns, device_id_);
 
+  // initialize timestamps
+  resetTimestamps();
+  reset_time_ = ros::Time::now();
 
   // spawn threads
   running_ = true;
   parameter_thread_ = boost::shared_ptr< boost::thread >(new boost::thread(boost::bind(&DvsRosDriver::changeDvsParameters, this)));
   readout_thread_ = boost::shared_ptr< boost::thread >(new boost::thread(boost::bind(&DvsRosDriver::readout, this)));
 
-  reset_sub_ = nh_.subscribe((ns + "/reset_timestamps").c_str(), 1, &DvsRosDriver::resetTimestamps, this);
+  reset_sub_ = nh_.subscribe((ns + "/reset_timestamps").c_str(), 1, &DvsRosDriver::resetTimestampsCallback, this);
 
   // Dynamic reconfigure
   dynamic_reconfigure_callback_ = boost::bind(&DvsRosDriver::callback, this, _1, _2);
@@ -107,19 +110,20 @@ DvsRosDriver::~DvsRosDriver()
   }
 }
 
-void DvsRosDriver::resetTimestamps(std_msgs::Empty msg)
+void DvsRosDriver::resetTimestamps()
 {
   ROS_INFO("Reset timestamps on %s", device_id_.c_str());
-  //driver_->resetTimestamps();
   caerDeviceConfigSet(dvs128_handle, DVS128_CONFIG_DVS, DVS128_CONFIG_DVS_TIMESTAMP_RESET, 0);
+}
+
+void DvsRosDriver::resetTimestampsCallback(std_msgs::Empty msg)
+{
+  resetTimestamps();
 }
 
 void DvsRosDriver::resetTimerCallback(const ros::TimerEvent& te)
 {
-  ROS_INFO("Reset timestamps on %s", device_id_.c_str());
-  //driver_->resetTimestamps();
-  caerDeviceConfigSet(dvs128_handle, DVS128_CONFIG_DVS, DVS128_CONFIG_DVS_TIMESTAMP_RESET, 0);
-
+  resetTimestamps();
   timestamp_reset_timer_.stop();
 }
 
@@ -184,7 +188,10 @@ void DvsRosDriver::callback(dvs_ros_driver::DVS_ROS_DriverConfig &config, uint32
    // change streaming rate, if necessary
    if (current_config_.streaming_rate != config.streaming_rate) {
      current_config_.streaming_rate = config.streaming_rate;
-     delta_ = boost::posix_time::microseconds(1e6/current_config_.streaming_rate);
+     if (current_config_.streaming_rate > 0)
+     {
+       delta_ = boost::posix_time::microseconds(1e6/current_config_.streaming_rate);
+     }
    }
 }
 
@@ -196,6 +203,10 @@ void DvsRosDriver::readout()
   caerDeviceConfigSet(dvs128_handle, CAER_HOST_CONFIG_DATAEXCHANGE, CAER_HOST_CONFIG_DATAEXCHANGE_BLOCKING, true);
 
   boost::posix_time::ptime next_send_time = boost::posix_time::microsec_clock::local_time();
+
+  dvs_msgs::EventArrayPtr event_array_msg(new dvs_msgs::EventArray());
+  event_array_msg->height = dvs128_info_.dvsSizeY;
+  event_array_msg->width = dvs128_info_.dvsSizeX;
 
   while (running_)
   {
@@ -209,19 +220,13 @@ void DvsRosDriver::readout()
 
       int32_t packetNum = caerEventPacketContainerGetEventPacketsNumber(packetContainer);
 
-//      printf("\nGot event container with %d packets (allocated).\n", packetNum);
-
       for (int32_t i = 0; i < packetNum; i++)
       {
         caerEventPacketHeader packetHeader = caerEventPacketContainerGetEventPacket(packetContainer, i);
         if (packetHeader == NULL)
         {
-//          printf("Packet %d is empty (not present).\n", i);
           continue; // Skip if nothing there.
         }
-
-//        printf("Packet %d of type %d -> size is %d.\n", i, caerEventPacketHeaderGetEventType(packetHeader),
-//          caerEventPacketHeaderGetEventNumber(packetHeader));
 
         // Packet 0 is always the special events packet for DVS128, while packet is the polarity events packet.
         if (i == POLARITY_EVENT)
@@ -229,10 +234,6 @@ void DvsRosDriver::readout()
           caerPolarityEventPacket polarity = (caerPolarityEventPacket) packetHeader;
 
           const int numEvents = caerEventPacketHeaderGetEventNumber(packetHeader);
-          dvs_msgs::EventArrayPtr msg(new dvs_msgs::EventArray());
-
-          msg->width = 128;
-          msg->height = 128;
 
           for (int j = 0; j < numEvents; j++)
           {
@@ -242,37 +243,34 @@ void DvsRosDriver::readout()
             dvs_msgs::Event e;
             e.x = caerPolarityEventGetX(event);
             e.y = 127 - caerPolarityEventGetY(event);
-            e.ts = ros::Time::now();// caerPolarityEventGetTimestamp(event);
+            e.ts = reset_time_ + ros::Duration(caerPolarityEventGetTimestamp64(event, polarity) / 1.e6);
             e.polarity = caerPolarityEventGetPolarity(event);
 
-//            printf("First polarity event - x: %d \n", e.x);
-
-            msg->events.push_back(e);
+            event_array_msg->events.push_back(e);
           }
 
-          event_array_pub_.publish(msg);
+          // throttle event messages
+          if (boost::posix_time::microsec_clock::local_time() > next_send_time || current_config_.streaming_rate == 0)
+          {
+            event_array_pub_.publish(event_array_msg);
+            event_array_msg->events.clear();
+            if (current_config_.streaming_rate > 0)
+            {
+              next_send_time += delta_;
+            }
+          }
 
           if (camera_info_manager_->isCalibrated())
           {
             sensor_msgs::CameraInfoPtr camera_info_msg(new sensor_msgs::CameraInfo(camera_info_manager_->getCameraInfo()));
             camera_info_pub_.publish(camera_info_msg);
           }
-
-//          printf("First polarity event - ts: %d, x: %d, y: %d, pol: %d.\n", ts, x, y, pol);
         }
       }
 
       caerEventPacketContainerFree(packetContainer);
 
-
       ros::spinOnce();
-
-      next_send_time += delta_;
-
-//      while (boost::posix_time::microsec_clock::local_time() < next_send_time)
-//      {
-//        boost::this_thread::sleep(delta_/10.0);
-//      }
     }
     catch (boost::thread_interrupted&)
     {

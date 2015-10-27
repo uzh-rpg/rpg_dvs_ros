@@ -51,6 +51,7 @@ private:
   void changeDvsParameters();
   void callback(dvs_ros_driver::DVS_ROS_DriverConfig &config, uint32_t level);
   void readout();
+  void resetTimestamps();
 
   ros::NodeHandle nh_;
   ros::Publisher event_array_pub_;
@@ -63,7 +64,7 @@ private:
   dynamic_reconfigure::Server<dvs_ros_driver::DVS_ROS_DriverConfig>::CallbackType dynamic_reconfigure_callback_;
 
   ros::Subscriber reset_sub_;
-  void resetTimestamps(std_msgs::Empty msg);
+  void resetTimestampsCallback(std_msgs::Empty msg);
 
   boost::shared_ptr<boost::thread> parameter_thread_;
   boost::shared_ptr<boost::thread> readout_thread_;
@@ -73,7 +74,10 @@ private:
   dvs_ros_driver::DVS_ROS_DriverConfig current_config_;
   camera_info_manager::CameraInfoManager* camera_info_manager_;
 
+  struct caer_dvs128_info dvs128_info_;
   std::string device_id_;
+
+  ros::Time reset_time_;
 
   ros::Timer timestamp_reset_timer_;
   void resetTimerCallback(const ros::TimerEvent& te);
