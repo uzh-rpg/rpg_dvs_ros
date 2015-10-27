@@ -62,7 +62,7 @@ void Renderer::imageCallback(const sensor_msgs::Image::ConstPtr& msg)
 
   try
   {
-    cv_ptr = cv_bridge::toCvCopy(msg, sensor_msgs::image_encodings::MONO16);
+    cv_ptr = cv_bridge::toCvCopy(msg, sensor_msgs::image_encodings::MONO8);
   }
   catch (cv_bridge::Exception& e)
   {
@@ -70,11 +70,8 @@ void Renderer::imageCallback(const sensor_msgs::Image::ConstPtr& msg)
     return;
   }
 
-  // convert from 16-bit to 8-bit image
-  cv_ptr->image.convertTo(last_image_, CV_8U, 1./256);
-
   // convert from grayscale to color image
-  cv::cvtColor(last_image_, last_image_, CV_GRAY2BGR);
+  cv::cvtColor(cv_ptr->image, last_image_, CV_GRAY2BGR);
 }
 
 void Renderer::eventsCallback(const dvs_msgs::EventArray::ConstPtr& msg)

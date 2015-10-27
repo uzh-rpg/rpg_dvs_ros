@@ -320,10 +320,10 @@ void DavisRosDriver::readout()
           sensor_msgs::Image msg;
 
           // meta information
-          msg.encoding = "mono16";
+          msg.encoding = "mono8";
           msg.width = davis_info_.apsSizeX;
           msg.height = davis_info_.apsSizeY;
-          msg.step = 2 * davis_info_.apsSizeX;
+          msg.step = davis_info_.apsSizeX;
 
           // image data: y-axis must be flipped
           for (int img_y=0; img_y<davis_info_.apsSizeY; img_y++)
@@ -331,7 +331,7 @@ void DavisRosDriver::readout()
             for (int img_x=0; img_x<davis_info_.apsSizeX; img_x++)
             {
               const uint16_t value = image[(davis_info_.apsSizeY - 1 - img_y)*davis_info_.apsSizeX + img_x];
-              msg.data.push_back(value & 0xff);
+              //msg.data.push_back(value & 0xff);
               msg.data.push_back(value >> 8);
             }
           }
