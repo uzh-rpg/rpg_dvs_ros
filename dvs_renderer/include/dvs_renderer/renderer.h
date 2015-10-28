@@ -56,6 +56,7 @@ private:
 
   image_transport::Subscriber image_sub_;
   cv::Mat last_image_;
+  bool used_last_image_;
 
   enum DisplayMethod
   {

@@ -72,6 +72,16 @@ void Renderer::imageCallback(const sensor_msgs::Image::ConstPtr& msg)
 
   // convert from grayscale to color image
   cv::cvtColor(cv_ptr->image, last_image_, CV_GRAY2BGR);
+
+  if (!used_last_image_)
+  {
+    cv_bridge::CvImage cv_image;
+    last_image_.copyTo(cv_image.image);
+    cv_image.encoding = "bgr8";
+    std::cout << "publish image from callback" << std::endl;
+    image_pub_.publish(cv_image.toImageMsg());
+  }
+  used_last_image_ = false;
 }
 
 void Renderer::eventsCallback(const dvs_msgs::EventArray::ConstPtr& msg)
@@ -88,6 +98,7 @@ void Renderer::eventsCallback(const dvs_msgs::EventArray::ConstPtr& msg)
       if (last_image_.rows == msg->height && last_image_.cols == msg->width)
       {
         last_image_.copyTo(cv_image.image);
+        used_last_image_ = true;
       }
       else
       {
