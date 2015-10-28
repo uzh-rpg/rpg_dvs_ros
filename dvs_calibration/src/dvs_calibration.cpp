@@ -77,7 +77,7 @@ void DvsCalibration::loadCalibrationParameters()
 {
   ros::NodeHandle nh_private("~");
   nh_private.param<int>("blinking_time_us", params_.blinking_time_us, 1000);
-  nh_private.param<int>("blinking_time_tolerance", params_.blinking_time_tolerance, 500);
+  nh_private.param<int>("blinking_time_tolerance_us", params_.blinking_time_tolerance_us, 500);
   nh_private.param<int>("enough_transitions_threshold", params_.enough_transitions_threshold, 200);
   nh_private.param<int>("minimum_transitions_threshold", params_.minimum_transitions_threshold, 10);
   nh_private.param<int>("minimum_led_mass", params_.minimum_led_mass, 50);

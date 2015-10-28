@@ -45,12 +45,12 @@ void TransitionMap::update(const dvs_msgs::EventArray::ConstPtr& msg)
   {
     if (msg->events[i].polarity == true)
     {
-      last_off_map_[msg->events[i].x][msg->events[i].y] = msg->events[i].time;
+      last_off_map_[msg->events[i].x][msg->events[i].y] = msg->events[i].ts.toNSec();
     }
     else
     {
-      int delta_t = msg->events[i].time - last_off_map_[msg->events[i].x][msg->events[i].y];
-      if (delta_t < params_.blinking_time_us + params_.blinking_time_tolerance && delta_t > params_.blinking_time_us - params_.blinking_time_tolerance)
+      int delta_t_us = (msg->events[i].ts.toNSec() - last_off_map_[msg->events[i].x][msg->events[i].y])/1e3;
+      if (delta_t_us < params_.blinking_time_us + params_.blinking_time_tolerance_us && delta_t_us > params_.blinking_time_us - params_.blinking_time_tolerance_us)
         transition_sum_map_[msg->events[i].x][msg->events[i].y]++;
     }
   }

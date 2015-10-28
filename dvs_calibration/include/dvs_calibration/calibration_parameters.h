@@ -20,7 +20,7 @@ namespace dvs_calibration {
 
 struct CalibrationParameters {
   int blinking_time_us;
-  int blinking_time_tolerance;
+  int blinking_time_tolerance_us;
   int enough_transitions_threshold;
   int minimum_transitions_threshold;
   int minimum_led_mass;

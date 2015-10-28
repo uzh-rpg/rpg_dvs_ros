@@ -18,7 +18,8 @@
     <remap from="camera_info" to="/dvs/camera_info" />
     <remap from="set_camera_info" to="/dvs/set_camera_info" />
 
-    <param name="blinking_time_tolerance" value="500" />
+    <param name="blinking_time_us" value="1000" />
+    <param name="blinking_time_tolerance_us" value="500" />
     <param name="enough_transitions_threshold" value="100" />
     <param name="minimum_transitions_threshold" value="30" />
     <param name="minimum_transitions_threshold" value="30" />
