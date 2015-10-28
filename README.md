@@ -32,7 +32,7 @@ Make sure, libusb is installed on your system:
 1. `$ sudo apt-get install libusb-1.0-0-dev`
 
 Only a udev rule is needed to run the DVS driver. An install script is provided in the package dvs_driver.  
-2. `$ roscd dvs_driver`  
+2. `$ roscd libcaer_catkin`  
 3. `$ ./install.sh` (needs root privileges)
 
 You can test the installation by running a provided launch file. It starts the driver, the renderer, an image viewer, and the dynamic reconfigure GUI.  
