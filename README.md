@@ -32,11 +32,12 @@ Make sure, libusb is installed on your system:
 1. `$ sudo apt-get install libusb-1.0-0-dev`
 
 Only a udev rule is needed to run the DVS driver. An install script is provided in the package dvs_driver.  
-2. `$ roscd dvs_driver`  
+2. `$ roscd libcaer_catkin`  
 3. `$ ./install.sh` (needs root privileges)
 
-You can test the installation by running a provided launch file. It starts the driver, the renderer, an image viewer, and the dynamic reconfigure GUI.  
-4. `$ roslaunch dvs_renderer mono.launch`  
+You can test the installation by running a provided launch file. It starts the driver (DVS or DAVIS), the renderer, an image viewer, and the dynamic reconfigure GUI.   
+4. `$ roslaunch dvs_renderer dvs_mono.launch`  
+5. `$ roslaunch dvs_renderer davis_mono.launch`  
 
 
 # DVS Calibration
@@ -91,7 +92,7 @@ The following parameters can be tuned using ROS parameters:
 
 If you have your own LED board with different LEDs or blinking frequencies, you might want to tweak these parameters as well:
 * `blinking_time_us` (default: 1000) is the blinking time in **micro**-seconds
-* `blinking_time_tolerance` (default: 500) is the tolerance in **micro**-seconds to still count the transition
+* `blinking_time_tolerance_us` (default: 500) is the tolerance in **micro**-seconds to still count the transition
 * `enough_transitions_threshold` (default: 200) is the minimum number of transitions before searching the LEDs
 * `minimum_transitions_threshold` (default: 10) is the minimum number of transitions required to be considered in the LED search
 * `minimum_led_mass` (default: 50) is the minimum "mass" of an LED blob, i.e., the sum of transitions in this blop
