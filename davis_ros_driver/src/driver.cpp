@@ -152,7 +152,7 @@ DavisRosDriver::~DavisRosDriver()
 void DavisRosDriver::resetTimestamps()
 {
   ROS_INFO("Reset timestamps on %s", device_id_.c_str());
-  caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_MUX, DAVIS_CONFIG_MUX_TIMESTAMP_RESET, 0);
+  caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_MUX, DAVIS_CONFIG_MUX_TIMESTAMP_RESET, 1);
 }
 
 void DavisRosDriver::resetTimestampsCallback(std_msgs::Empty msg)
@@ -326,11 +326,14 @@ void DavisRosDriver::readout()
           msg.step = davis_info_.apsSizeX;
 
           // image data: y-axis must be flipped
-          for (int img_y=0; img_y<davis_info_.apsSizeY; img_y++)
+          const int32_t frame_width = caerFrameEventGetLengthX(event);
+          const int32_t frame_height= caerFrameEventGetLengthY(event);
+
+          for (int img_y=0; img_y<frame_height; img_y++)
           {
-            for (int img_x=0; img_x<davis_info_.apsSizeX; img_x++)
+            for (int img_x=0; img_x<frame_width; img_x++)
             {
-              const uint16_t value = image[(davis_info_.apsSizeY - 1 - img_y)*davis_info_.apsSizeX + img_x];
+              const uint16_t value = image[(frame_height - 1 - img_y)*frame_width + img_x];
               //msg.data.push_back(value & 0xff);
               msg.data.push_back(value >> 8);
             }

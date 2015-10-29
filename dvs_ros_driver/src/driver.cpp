@@ -113,7 +113,7 @@ DvsRosDriver::~DvsRosDriver()
 void DvsRosDriver::resetTimestamps()
 {
   ROS_INFO("Reset timestamps on %s", device_id_.c_str());
-  caerDeviceConfigSet(dvs128_handle, DVS128_CONFIG_DVS, DVS128_CONFIG_DVS_TIMESTAMP_RESET, 0);
+  caerDeviceConfigSet(dvs128_handle, DVS128_CONFIG_DVS, DVS128_CONFIG_DVS_TIMESTAMP_RESET, 1);
 }
 
 void DvsRosDriver::resetTimestampsCallback(std_msgs::Empty msg)
