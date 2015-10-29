@@ -95,8 +95,7 @@ bool polarity
 	def update(self, old_msg, new_msg):
 		new_msg.x = old_msg.x
 		new_msg.y = old_msg.y
-		#No matching field name in old message
-		new_msg.ts.secs = 0 #FIXME: translate from old_msg.time
-		new_msg.ts.nsecs = 0
+		new_msg.ts.secs = int(old_msg.time/1e6)
+		t = old_msg.time - long(new_msg.ts.secs)*1e6
+		new_msg.ts.nsecs = t*1e3
 		new_msg.polarity = old_msg.polarity
-		#No field to match field time from old message
