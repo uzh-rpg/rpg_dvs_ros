@@ -63,10 +63,8 @@ bool polarity
 	def update(self, old_msg, new_msg):
 		#No matching field name in old message
 		new_msg.header = self.get_new_class('std_msgs/Header')()
-		#No matching field name in old message
-		new_msg.height = 0
-		#No matching field name in old message
-		new_msg.width = 0
+		new_msg.height = 128 #resolution of the DVS
+		new_msg.width = 128
 		self.migrate_array(old_msg.events, new_msg.events, "dvs_msgs/Event")
 class update_dvs_msgs_Event_77331a9e8b243d7e378ead150e50b8ef(MessageUpdateRule):
 	old_type = "dvs_msgs/Event"
