@@ -74,7 +74,6 @@ DvsRosDriver::DvsRosDriver(ros::NodeHandle & nh, ros::NodeHandle nh_private) :
 
   // initialize timestamps
   resetTimestamps();
-  reset_time_ = ros::Time::now();
 
   // spawn threads
   running_ = true;
@@ -112,8 +111,15 @@ DvsRosDriver::~DvsRosDriver()
 
 void DvsRosDriver::resetTimestamps()
 {
-  ROS_INFO("Reset timestamps on %s", device_id_.c_str());
-  caerDeviceConfigSet(dvs128_handle, DVS128_CONFIG_DVS, DVS128_CONFIG_DVS_TIMESTAMP_RESET, 1);
+  if (caerDeviceConfigSet(dvs128_handle, DVS128_CONFIG_DVS, DVS128_CONFIG_DVS_TIMESTAMP_RESET, 1))
+  {
+    ROS_INFO("Reset timestamps on %s", device_id_.c_str());
+    reset_time_ = ros::Time::now();
+  }
+  else
+  {
+    ROS_ERROR("Failed to reset timestamps on %s", device_id_.c_str());
+  }
 }
 
 void DvsRosDriver::resetTimestampsCallback(std_msgs::Empty msg)
@@ -197,8 +203,6 @@ void DvsRosDriver::callback(dvs_ros_driver::DVS_ROS_DriverConfig &config, uint32
 
 void DvsRosDriver::readout()
 {
-  //std::vector<dvs::Event> events;
-
   caerDeviceDataStart(dvs128_handle, NULL, NULL, NULL, NULL, NULL);
   caerDeviceConfigSet(dvs128_handle, CAER_HOST_CONFIG_DATAEXCHANGE, CAER_HOST_CONFIG_DATAEXCHANGE_BLOCKING, true);
 
