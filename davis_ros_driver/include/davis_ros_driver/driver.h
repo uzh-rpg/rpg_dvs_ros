@@ -87,6 +87,7 @@ private:
   void resetTimerCallback(const ros::TimerEvent& te);
 
   bool parameter_update_required_;
+  bool parameter_bias_update_required_;
 
 };
 
