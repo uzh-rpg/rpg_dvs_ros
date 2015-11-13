@@ -45,6 +45,8 @@ private:
   void eventsCallback(const dvs_msgs::EventArray::ConstPtr& msg);
   void imageCallback(const sensor_msgs::Image::ConstPtr& msg);
 
+  void publishStats();
+
   bool got_camera_info_;
   cv::Mat camera_matrix_, dist_coeffs_;
 
@@ -57,6 +59,14 @@ private:
   image_transport::Subscriber image_sub_;
   cv::Mat last_image_;
   bool used_last_image_;
+
+  struct EventStats {
+    ros::Publisher events_mean_[2]; /**< event stats output */
+    int events_counter_[2]; /**< event counters for on/off events */
+    double events_mean_lasttime_;
+    double dt;
+  };
+  EventStats event_stats_[2]; /**< event statistics for 1 and 5 sec */
 
   enum DisplayMethod
   {

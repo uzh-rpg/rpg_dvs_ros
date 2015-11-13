@@ -14,6 +14,7 @@
 // along with DVS-ROS.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "dvs_renderer/renderer.h"
+#include <std_msgs/Float32.h>
 
 namespace dvs_renderer {
 
@@ -34,6 +35,18 @@ Renderer::Renderer(ros::NodeHandle & nh, ros::NodeHandle nh_private) : nh_(nh)
   image_sub_ = it_.subscribe("image", 1, &Renderer::imageCallback, this);
   image_pub_ = it_.advertise("dvs_rendering", 1);
   undistorted_image_pub_ = it_.advertise("dvs_undistorted", 1);
+
+  for (int i = 0; i < 2; ++i)
+    for (int k = 0; k < 2; ++k)
+      event_stats_[i].events_counter_[k] = 0;
+  event_stats_[0].dt = 1;
+  event_stats_[0].events_mean_lasttime_ = 0;
+  event_stats_[0].events_mean_[0] = nh_.advertise<std_msgs::Float32>("events_on_mean_1", 1);
+  event_stats_[0].events_mean_[1] = nh_.advertise<std_msgs::Float32>("events_off_mean_1", 1);
+  event_stats_[1].dt = 5;
+  event_stats_[1].events_mean_lasttime_ = 0;
+  event_stats_[1].events_mean_[0] = nh_.advertise<std_msgs::Float32>("events_on_mean_5", 1);
+  event_stats_[1].events_mean_[1] = nh_.advertise<std_msgs::Float32>("events_off_mean_5", 1);
 }
 
 Renderer::~Renderer()
@@ -86,6 +99,14 @@ void Renderer::imageCallback(const sensor_msgs::Image::ConstPtr& msg)
 
 void Renderer::eventsCallback(const dvs_msgs::EventArray::ConstPtr& msg)
 {
+  for (int i = 0; i < msg->events.size(); ++i)
+  {
+    ++event_stats_[0].events_counter_[msg->events[i].polarity];
+    ++event_stats_[1].events_counter_[msg->events[i].polarity];
+  }
+
+  publishStats();
+
   // only create image if at least one subscriber
   if (image_pub_.getNumSubscribers() > 0)
   {
@@ -155,6 +176,24 @@ void Renderer::eventsCallback(const dvs_msgs::EventArray::ConstPtr& msg)
       cv_image2.encoding = cv_image.encoding;
       cv::undistort(cv_image.image, cv_image2.image, camera_matrix_, dist_coeffs_);
       undistorted_image_pub_.publish(cv_image2.toImageMsg());
+    }
+  }
+}
+
+void Renderer::publishStats()
+{
+  std_msgs::Float32 msg;
+  ros::Time now = ros::Time::now();
+  for (int i = 0; i < 2; ++i)
+  {
+    if (event_stats_[i].events_mean_lasttime_ + event_stats_[i].dt <= now.toSec()) {
+      event_stats_[i].events_mean_lasttime_ = now.toSec();
+      for (int k = 0; k < 2; ++k)
+      {
+        msg.data = (float)event_stats_[i].events_counter_[k] / event_stats_[i].dt;
+        event_stats_[i].events_mean_[k].publish(msg);
+        event_stats_[i].events_counter_[k] = 0;
+      }
     }
   }
 }
