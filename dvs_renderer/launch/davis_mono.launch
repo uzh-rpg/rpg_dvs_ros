@@ -8,6 +8,7 @@
     <param name="display_method" value="red-blue"/>
     <remap from="events" to="/dvs/events" />
     <remap from="image" to="/dvs/image_raw" />
+    <remap from="camera_info" to="/dvs/camera_info" />
   </node>
 
   <!-- display -->
