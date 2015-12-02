@@ -99,3 +99,10 @@ If you have your own LED board with different LEDs or blinking frequencies, you 
 * `minimum_transitions_threshold` (default: 10) is the minimum number of transitions required to be considered in the LED search
 * `minimum_led_mass` (default: 50) is the minimum "mass" of an LED blob, i.e., the sum of transitions in this blop
 * `pattern_search_timeout` (default: 2.0) is the timeout in **seconds** when the transition map is reset (it is also reset when the LED grid was found)
+
+# Troubleshooting
+## New dvs_msgs format
+If you recorded rosbags with a previous version of this package, they must be migrated. 
+The format for the timestamps changed from uint64 to rostime.
+To convert an "old" bag file, use   
+`$ rosbag fix old.bag new.bag`.
