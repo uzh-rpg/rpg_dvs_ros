@@ -49,7 +49,9 @@ Adjust the focus of the DVS. One way of achieving this is using a special patter
 ## Instrisic Parameters
 To run the intrinsic camera calibration, we use a 5x5 LED board that is blinking at 500Hz.
 The calibration procedure is then started using  
-`$ roslaunch dvs_calibration intrinsic.launch`  
+`$ roslaunch dvs_calibration dvs_intrinsic.launch`  
+or, for the DAVIS,  
+`$ roslaunch dvs_calibration davis_intrinsic.launch`  
 You will see an RQT interface with all necessary information.
 Top left is the calibration GUI, which displays the amount of detected patterns.
 **Currently, pattern detection does not seem to work indoors. Try close to a window.**
@@ -77,7 +79,7 @@ Hover, the timestamps within the messages are synchronized.
 
 ## Calibration
 1. Calibrate each DVS independently
-2. Use `$ roslaunch dvs_calibration stereo.launch`  
+2. Use `$ roslaunch dvs_calibration dvs_stereo.launch`  
 3. Use the same checkerboard with blinking LEDs and make sure it is visible in both cameras. Collect at least 30 samples.
 4. Start the calibration and check the reprojection error. Then save it (this will extend your intrinsic camera info files with the stereo information).
 
