@@ -66,12 +66,12 @@ void StereoDvsCalibration::calibrate()
   cv::Mat R, T, E, F;
   double reproj_error = cv::stereoCalibrate(object_points_, image_points_left_, image_points_right_,
                                             cameraMatrixLeft, distCoeffsLeft, cameraMatrixRight, distCoeffsRight,
-                                            cv::Size(sensor_width, sensor_height),
+                                            cv::Size(sensor_width_, sensor_height_),
                                             R, T, E, F);
 
   cv::Mat R1, R2, P1, P2, Q;
   cv::stereoRectify(cameraMatrixLeft, distCoeffsLeft, cameraMatrixRight, distCoeffsRight,
-                    cv::Size(sensor_width, sensor_height), R, T, R1, R2, P1, P2, Q);
+                    cv::Size(sensor_width_, sensor_height_), R, T, R1, R2, P1, P2, Q);
 
   // update camera messages
   for (int i = 0; i < 9; i++) {

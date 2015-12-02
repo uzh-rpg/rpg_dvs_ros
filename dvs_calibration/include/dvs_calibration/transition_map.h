@@ -48,12 +48,12 @@ public:
   }
 
 private:
-  static const int sensor_width = 128;
-  static const int sensor_height = 128;
+  int sensor_width_;
+  int sensor_height_;
 
-  int last_off_map_[sensor_width][sensor_height];
-  int last_on_map_[sensor_width][sensor_height];
-  int transition_sum_map_[sensor_width][sensor_height];
+  void init_transition_maps(const int width, const int height);
+  std::vector<std::vector<ros::Time>> last_off_map_, last_on_map_;
+  std::vector<std::vector<int>> transition_sum_map_;
 
   CalibrationParameters params_;
 

@@ -42,12 +42,12 @@ void MonoDvsCalibration::calibrate()
   // run camera calibration
   cv::Mat cameraMatrix, distCoeffs;
   std::vector<cv::Mat> rvecs, tvecs;
-  double reproj_error = cv::calibrateCamera(object_points_, image_points_, cv::Size(sensor_width, sensor_height),
+  double reproj_error = cv::calibrateCamera(object_points_, image_points_, cv::Size(sensor_width_, sensor_height_),
                                             cameraMatrix, distCoeffs, rvecs, tvecs, CV_CALIB_FIX_K3);
 
   // update camera info
-  new_camera_info_.height = sensor_height;
-  new_camera_info_.width = sensor_width;
+  new_camera_info_.height = sensor_height_;
+  new_camera_info_.width = sensor_width_;
   new_camera_info_.distortion_model = "plumb_bob";
 
   new_camera_info_.D.clear();
