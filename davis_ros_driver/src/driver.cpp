@@ -101,6 +101,7 @@ DavisRosDriver::DavisRosDriver(ros::NodeHandle & nh, ros::NodeHandle nh_private)
   readout_thread_ = boost::shared_ptr< boost::thread >(new boost::thread(boost::bind(&DavisRosDriver::readout, this)));
 
   reset_sub_ = nh_.subscribe((ns + "/reset_timestamps").c_str(), 1, &DavisRosDriver::resetTimestampsCallback, this);
+  snapshot_sub_ = nh_.subscribe((ns + "/trigger_snapshot").c_str(), 1, &DavisRosDriver::snapshotCallback, this);
 
   // Dynamic reconfigure
   dynamic_reconfigure_callback_ = boost::bind(&DavisRosDriver::callback, this, _1, _2);
@@ -135,9 +136,22 @@ void DavisRosDriver::resetTimestamps()
   caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_MUX, DAVIS_CONFIG_MUX_TIMESTAMP_RESET, 1);
 }
 
-void DavisRosDriver::resetTimestampsCallback(std_msgs::Empty msg)
+void DavisRosDriver::resetTimestampsCallback(const std_msgs::Empty::ConstPtr& msg)
 {
   resetTimestamps();
+}
+
+void DavisRosDriver::snapshotCallback(const std_msgs::Empty::ConstPtr& msg)
+{
+  // only trigger frame readout when APS not running
+  if (!current_config_.aps_enabled)
+  {
+    caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_APS, DAVIS_CONFIG_APS_SNAPSHOT, 1);
+  }
+  else
+  {
+    ROS_WARN("Snapshot will only be taken when APS is not enabled.");
+  }
 }
 
 void DavisRosDriver::resetTimerCallback(const ros::TimerEvent& te)
