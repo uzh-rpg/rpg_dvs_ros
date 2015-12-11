@@ -205,7 +205,7 @@ void DavisRosDriver::callback(davis_ros_driver::DAVIS_ROS_DriverConfig &config, 
    if (current_config_.exposure != config.exposure || current_config_.frame_delay != config.frame_delay ||
        current_config_.aps_enabled != config.aps_enabled || current_config_.dvs_enabled != config.dvs_enabled ||
        current_config_.imu_enabled != config.imu_enabled || current_config_.imu_acc_scale != config.imu_acc_scale ||
-       current_config_.imu_gyro_scale != config.imu_gyro_scale)
+       current_config_.imu_gyro_scale != config.imu_gyro_scale || current_config_.max_events != config.max_events)
    {
      current_config_.exposure = config.exposure;
      current_config_.frame_delay = config.frame_delay;
@@ -216,6 +216,8 @@ void DavisRosDriver::callback(davis_ros_driver::DAVIS_ROS_DriverConfig &config, 
 
      current_config_.imu_acc_scale = config.imu_acc_scale;
      current_config_.imu_gyro_scale = config.imu_gyro_scale;
+
+     current_config_.max_events = config.max_events;
 
      parameter_update_required_ = true;
    }
@@ -302,14 +304,17 @@ void DavisRosDriver::readout()
           }
 
           // throttle event messages
-          if (boost::posix_time::microsec_clock::local_time() > next_send_time || current_config_.streaming_rate == 0)
+          if (boost::posix_time::microsec_clock::local_time() > next_send_time ||
+              current_config_.streaming_rate == 0 ||
+              (current_config_.max_events != 0 && event_array_msg->events.size() > current_config_.max_events)
+             )
           {
             event_array_pub_.publish(event_array_msg);
             event_array_msg->events.clear();
             if (current_config_.streaming_rate > 0)
-            {
               next_send_time += delta_;
-            }
+            if (current_config_.max_events != 0 && event_array_msg->events.size() > current_config_.max_events)
+              next_send_time = boost::posix_time::microsec_clock::local_time() + delta_;
           }
 
           if (camera_info_manager_->isCalibrated())
