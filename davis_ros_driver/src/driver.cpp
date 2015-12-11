@@ -324,14 +324,16 @@ void DavisRosDriver::readout()
           caerIMU6Event event = caerIMU6EventPacketGetEvent(imu, 0);
 
           sensor_msgs::Imu msg;
+          // NED -> ROS ENU Conversion:  (x y z) -> (x -y -z)
+          // https://github.com/cra-ros-pkg/robot_localization/issues/22
           // convert from g's to m/s^2
           msg.linear_acceleration.x = caerIMU6EventGetAccelX(event) * 9.81;
-          msg.linear_acceleration.y = caerIMU6EventGetAccelY(event) * 9.81;
-          msg.linear_acceleration.z = caerIMU6EventGetAccelZ(event) * 9.81;
+          msg.linear_acceleration.y = -caerIMU6EventGetAccelY(event) * 9.81;
+          msg.linear_acceleration.z = -caerIMU6EventGetAccelZ(event) * 9.81;
           // convert from deg/s to rad/s
           msg.angular_velocity.x = caerIMU6EventGetGyroX(event) / 180.0 * M_PI;
-          msg.angular_velocity.y = caerIMU6EventGetGyroY(event) / 180.0 * M_PI;
-          msg.angular_velocity.z = caerIMU6EventGetGyroZ(event) / 180.0 * M_PI;
+          msg.angular_velocity.y = -caerIMU6EventGetGyroY(event) / 180.0 * M_PI;
+          msg.angular_velocity.z = -caerIMU6EventGetGyroZ(event) / 180.0 * M_PI;
           // time
           msg.header.stamp = reset_time_ + ros::Duration(caerIMU6EventGetTimestamp64(event, imu) / 1.e6);
 
