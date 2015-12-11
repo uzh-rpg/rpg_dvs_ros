@@ -20,12 +20,10 @@ namespace dvs_calibration {
 std::vector<cv::Point2f> BoardDetection::findPattern(std::list<PointWithWeight> points, int dots_w, int dots_h, int minimum_mass)
 {
   cv::Size patternsize(dots_w, dots_h); //number of centers
-  std::vector<cv::Point2f> centers; //this will be filled by the detected centers
-  std::vector<cv::Point2f> centers_tmp; //this will be filled by the detected centers
-  std::vector<int> center_count;
 
   std::vector<std::list<PointWithWeight> > clusters;
 
+  // build clusters
   std::list<PointWithWeight>::iterator point_it, cluster_it;
   while (!points.empty())
   {
@@ -43,7 +41,8 @@ std::vector<cv::Point2f> BoardDetection::findPattern(std::list<PointWithWeight> 
         for (cluster_it = current_cluster.begin(); cluster_it != current_cluster.end(); ++cluster_it)
         {
           cv::Point dist = point_it->point - cluster_it->point;
-          if (dist.x >= -1 && dist.x <= 1 && dist.y >= -1 && dist.y <= 1)
+          const int max_dist = 1;
+          if (dist.x >= -max_dist && dist.x <= max_dist && dist.y >= -max_dist && dist.y <= max_dist)
           {
             current_cluster.push_back(*point_it);
             point_it = points.erase(point_it);
@@ -61,6 +60,7 @@ std::vector<cv::Point2f> BoardDetection::findPattern(std::list<PointWithWeight> 
       clusters.push_back(current_cluster);
   }
 
+  // find cluster centers and grid
   std::vector<cv::Point2f> centers_good;
   if (clusters.size() == dots_w * dots_h)
   {
@@ -81,8 +81,25 @@ std::vector<cv::Point2f> BoardDetection::findPattern(std::list<PointWithWeight> 
       centers.push_back(center);
     }
 
-    CirclesGridClusterFinder grid(false);
-    grid.findGrid(centers, patternsize, centers_good);
+
+    // check centers (at least 3 pixels apart)
+    bool checks_passed = true;
+    for (int i=0; i<centers.size(); i++)
+    {
+      for (int j=i+1; j<centers.size(); j++)
+      {
+        if (cv::norm(centers[i] - centers[j]) < 3.0)
+        {
+          checks_passed = false;
+        }
+      }
+    }
+
+    if (checks_passed)
+    {
+      CirclesGridClusterFinder grid(false);
+      grid.findGrid(centers, patternsize, centers_good);
+    }
   }
 
   return centers_good;

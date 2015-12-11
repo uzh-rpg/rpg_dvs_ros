@@ -1,8 +1,8 @@
 <launch>
   <!-- camera driver -->
-  <node name="dvs_ros_driver" pkg="dvs_ros_driver" type="dvs_ros_driver" output="screen">
+  <node name="davis_ros_driver" pkg="davis_ros_driver" type="davis_ros_driver" output="screen">
   	<!-- <param name="serial_number" type="str" value="0273" /> -->
-    <rosparam command="load" file="$(find dvs_ros_driver)/config/fast.yaml" />
+    <rosparam command="load" file="$(find davis_ros_driver)/config/calib.yaml" />
   </node>
 
   <!-- visualization -->
@@ -19,10 +19,10 @@
     <remap from="set_camera_info" to="/dvs/set_camera_info" />
 
     <param name="blinking_time_us" value="1000" />
-    <param name="blinking_time_tolerance_us" value="500" />
+    <param name="blinking_time_tolerance_us" value="100" />
     <param name="enough_transitions_threshold" value="100" />
     <param name="minimum_transitions_threshold" value="30" />
-    <param name="minimum_transitions_threshold" value="30" />
+    <param name="minimum_led_mass" value="50" />
 
     <param name="dots_w" value="5"/>
     <param name="dots_h" value="5"/>

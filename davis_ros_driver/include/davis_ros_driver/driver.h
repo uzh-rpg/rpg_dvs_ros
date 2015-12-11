@@ -68,7 +68,10 @@ private:
   dynamic_reconfigure::Server<davis_ros_driver::DAVIS_ROS_DriverConfig>::CallbackType dynamic_reconfigure_callback_;
 
   ros::Subscriber reset_sub_;
-  void resetTimestampsCallback(std_msgs::Empty msg);
+  void resetTimestampsCallback(const std_msgs::Empty::ConstPtr& msg);
+
+  ros::Subscriber snapshot_sub_;
+  void snapshotCallback(const std_msgs::Empty::ConstPtr& msg);
 
   boost::shared_ptr<boost::thread> parameter_thread_;
   boost::shared_ptr<boost::thread> readout_thread_;

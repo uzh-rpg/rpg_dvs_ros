@@ -61,12 +61,12 @@ add_library(dvs_ros_driver_nodelet
 # they need to be build beforehand, especially the messages
 add_dependencies(dvs_ros_driver 
   ${catkin_EXPORTED_TARGETS} 
-  ${PROJECT_NAME}_gencf
+  ${PROJECT_NAME}_gencfg
 )
 
 add_dependencies(dvs_ros_driver_nodelet 
   ${catkin_EXPORTED_TARGETS} 
-  ${PROJECT_NAME}_gencf
+  ${PROJECT_NAME}_gencfg
 )
 
 # link the executable to the necesarry libs

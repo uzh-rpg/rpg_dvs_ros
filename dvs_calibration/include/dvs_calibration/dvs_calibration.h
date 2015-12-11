@@ -53,8 +53,8 @@ public:
 
 protected:
   // parameters
-  static const int sensor_width = 128;
-  static const int sensor_height = 128;
+  int sensor_width_;
+  int sensor_height_;
   CalibrationParameters params_;
   ros::Time last_pattern_found_;
 

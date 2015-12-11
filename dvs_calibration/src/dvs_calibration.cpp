@@ -46,6 +46,9 @@ void DvsCalibration::eventsCallback(const dvs_msgs::EventArray::ConstPtr& msg, i
   if (calibration_running_)
     return;
 
+  sensor_width_ = msg->width;
+  sensor_height_ = msg->height;
+
   transition_maps_[camera_id].update(msg);
   if (transition_maps_[camera_id].max() > params_.enough_transitions_threshold) {
     transition_maps_[camera_id].find_pattern();
