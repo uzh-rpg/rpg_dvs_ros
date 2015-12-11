@@ -335,6 +335,9 @@ void DavisRosDriver::readout()
           // time
           msg.header.stamp = reset_time_ + ros::Duration(caerIMU6EventGetTimestamp64(event, imu) / 1.e6);
 
+          // frame
+          msg.header.frame_id = "base_link";
+
           imu_pub_.publish(msg);
         }
 
