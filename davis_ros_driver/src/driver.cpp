@@ -219,7 +219,7 @@ void DavisRosDriver::callback(davis_ros_driver::DAVIS_ROS_DriverConfig &config, 
    if (current_config_.exposure != config.exposure || current_config_.frame_delay != config.frame_delay ||
        current_config_.aps_enabled != config.aps_enabled || current_config_.dvs_enabled != config.dvs_enabled ||
        current_config_.imu_enabled != config.imu_enabled || current_config_.imu_acc_scale != config.imu_acc_scale ||
-       current_config_.imu_gyro_scale != config.imu_gyro_scale)
+       current_config_.imu_gyro_scale != config.imu_gyro_scale || current_config_.max_events != config.max_events)
    {
      current_config_.exposure = config.exposure;
      current_config_.frame_delay = config.frame_delay;
@@ -230,6 +230,8 @@ void DavisRosDriver::callback(davis_ros_driver::DAVIS_ROS_DriverConfig &config, 
 
      current_config_.imu_acc_scale = config.imu_acc_scale;
      current_config_.imu_gyro_scale = config.imu_gyro_scale;
+
+     current_config_.max_events = config.max_events;
 
      parameter_update_required_ = true;
    }
@@ -316,14 +318,17 @@ void DavisRosDriver::readout()
           }
 
           // throttle event messages
-          if (boost::posix_time::microsec_clock::local_time() > next_send_time || current_config_.streaming_rate == 0)
+          if (boost::posix_time::microsec_clock::local_time() > next_send_time ||
+              current_config_.streaming_rate == 0 ||
+              (current_config_.max_events != 0 && event_array_msg->events.size() > current_config_.max_events)
+             )
           {
             event_array_pub_.publish(event_array_msg);
             event_array_msg->events.clear();
             if (current_config_.streaming_rate > 0)
-            {
               next_send_time += delta_;
-            }
+            if (current_config_.max_events != 0 && event_array_msg->events.size() > current_config_.max_events)
+              next_send_time = boost::posix_time::microsec_clock::local_time() + delta_;
           }
 
           if (camera_info_manager_->isCalibrated())
@@ -338,16 +343,21 @@ void DavisRosDriver::readout()
           caerIMU6Event event = caerIMU6EventPacketGetEvent(imu, 0);
 
           sensor_msgs::Imu msg;
+          // NED -> ROS ENU Conversion:  (x y z) -> (x -y -z)
+          // https://github.com/cra-ros-pkg/robot_localization/issues/22
           // convert from g's to m/s^2
           msg.linear_acceleration.x = caerIMU6EventGetAccelX(event) * 9.81;
-          msg.linear_acceleration.y = caerIMU6EventGetAccelY(event) * 9.81;
-          msg.linear_acceleration.z = caerIMU6EventGetAccelZ(event) * 9.81;
+          msg.linear_acceleration.y = -caerIMU6EventGetAccelY(event) * 9.81;
+          msg.linear_acceleration.z = -caerIMU6EventGetAccelZ(event) * 9.81;
           // convert from deg/s to rad/s
           msg.angular_velocity.x = caerIMU6EventGetGyroX(event) / 180.0 * M_PI;
-          msg.angular_velocity.y = caerIMU6EventGetGyroY(event) / 180.0 * M_PI;
-          msg.angular_velocity.z = caerIMU6EventGetGyroZ(event) / 180.0 * M_PI;
+          msg.angular_velocity.y = -caerIMU6EventGetGyroY(event) / 180.0 * M_PI;
+          msg.angular_velocity.z = -caerIMU6EventGetGyroZ(event) / 180.0 * M_PI;
           // time
           msg.header.stamp = reset_time_ + ros::Duration(caerIMU6EventGetTimestamp64(event, imu) / 1.e6);
+
+          // frame
+          msg.header.frame_id = "base_link";
 
           imu_pub_.publish(msg);
         }
