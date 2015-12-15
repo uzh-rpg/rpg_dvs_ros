@@ -70,6 +70,17 @@ private:
   ros::Subscriber reset_sub_;
   void resetTimestampsCallback(const std_msgs::Empty::ConstPtr& msg);
 
+  ros::Subscriber imu_calibration_sub_;
+  void imuCalibrationCallback(const std_msgs::Empty::ConstPtr& msg);
+  int imu_calibration_sample_size_;
+  bool imu_calibration_running_;
+  std::vector<sensor_msgs::Imu> imu_calibration_samples_;
+  sensor_msgs::Imu bias;
+  void updateImuBias();
+  template <typename T> int sgn(T val) {
+      return (T(0) < val) - (val < T(0));
+  }
+
   ros::Subscriber snapshot_sub_;
   void snapshotCallback(const std_msgs::Empty::ConstPtr& msg);
 
@@ -85,6 +96,8 @@ private:
   std::string device_id_;
 
   ros::Time reset_time_;
+
+  static constexpr double STANDARD_GRAVITY = 9.81;
 
   ros::Timer timestamp_reset_timer_;
   void resetTimerCallback(const ros::TimerEvent& te);

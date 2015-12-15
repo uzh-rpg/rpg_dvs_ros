@@ -39,6 +39,15 @@ DavisRosDriver::DavisRosDriver(ros::NodeHandle & nh, ros::NodeHandle nh_private)
   nh_private.param<bool>("master", master, true);
   double reset_timestamps_delay;
   nh_private.param<double>("reset_timestamps_delay", reset_timestamps_delay, -1.0);
+  nh_private.param<int>("imu_calibration_sample_size", imu_calibration_sample_size_, 1000);
+
+  // initialize bias
+  bias.linear_acceleration.x = 0.0;
+  bias.linear_acceleration.y = 0.0;
+  bias.linear_acceleration.z = 0.0;
+  bias.angular_velocity.x = 0.0;
+  bias.angular_velocity.y = 0.0;
+  bias.angular_velocity.z = 0.0;
 
   // start driver
   bool dvs_running = false;
@@ -101,6 +110,7 @@ DavisRosDriver::DavisRosDriver(ros::NodeHandle & nh, ros::NodeHandle nh_private)
   readout_thread_ = boost::shared_ptr< boost::thread >(new boost::thread(boost::bind(&DavisRosDriver::readout, this)));
 
   reset_sub_ = nh_.subscribe((ns + "/reset_timestamps").c_str(), 1, &DavisRosDriver::resetTimestampsCallback, this);
+  imu_calibration_sub_ = nh_.subscribe((ns + "/calibrate_imu").c_str(), 1, &DavisRosDriver::imuCalibrationCallback, this);
   snapshot_sub_ = nh_.subscribe((ns + "/trigger_snapshot").c_str(), 1, &DavisRosDriver::snapshotCallback, this);
 
   // Dynamic reconfigure
@@ -139,6 +149,48 @@ void DavisRosDriver::resetTimestamps()
 void DavisRosDriver::resetTimestampsCallback(const std_msgs::Empty::ConstPtr& msg)
 {
   resetTimestamps();
+}
+
+void DavisRosDriver::imuCalibrationCallback(const std_msgs::Empty::ConstPtr &msg)
+{
+  ROS_INFO("Starting IMU calibration with %d samples...", (int) imu_calibration_sample_size_);
+  imu_calibration_running_ = true;
+  imu_calibration_samples_.clear();
+}
+
+void DavisRosDriver::updateImuBias()
+{
+  bias.linear_acceleration.x = 0.0;
+  bias.linear_acceleration.y = 0.0;
+  bias.linear_acceleration.z = 0.0;
+  bias.angular_velocity.x = 0.0;
+  bias.angular_velocity.y = 0.0;
+  bias.angular_velocity.z = 0.0;
+
+  for (auto m : imu_calibration_samples_)
+  {
+    bias.linear_acceleration.x += m.linear_acceleration.x;
+    bias.linear_acceleration.y += m.linear_acceleration.y;
+    bias.linear_acceleration.z += m.linear_acceleration.z;
+    bias.angular_velocity.x += m.angular_velocity.x;
+    bias.angular_velocity.y += m.angular_velocity.y;
+    bias.angular_velocity.z += m.angular_velocity.z;
+  }
+
+  bias.linear_acceleration.x /= (double) imu_calibration_samples_.size();
+  bias.linear_acceleration.y /= (double) imu_calibration_samples_.size();
+  bias.linear_acceleration.z /= (double) imu_calibration_samples_.size();
+  bias.linear_acceleration.z -= STANDARD_GRAVITY * sgn(bias.linear_acceleration.z);
+
+  bias.angular_velocity.x /= (double) imu_calibration_samples_.size();
+  bias.angular_velocity.y /= (double) imu_calibration_samples_.size();
+  bias.angular_velocity.z /= (double) imu_calibration_samples_.size();
+
+  ROS_INFO("IMU calibration done.");
+  ROS_INFO("Acceleration biases: %1.5f %1.5f %1.5f [m/s^2]", bias.linear_acceleration.x,
+           bias.linear_acceleration.y, bias.linear_acceleration.z);
+  ROS_INFO("Gyroscope biases: %1.5f %1.5f %1.5f [rad/s]", bias.angular_velocity.x,
+           bias.angular_velocity.y, bias.angular_velocity.z);
 }
 
 void DavisRosDriver::snapshotCallback(const std_msgs::Empty::ConstPtr& msg)
@@ -346,9 +398,9 @@ void DavisRosDriver::readout()
           // NED -> ROS ENU Conversion:  (x y z) -> (x -y -z)
           // https://github.com/cra-ros-pkg/robot_localization/issues/22
           // convert from g's to m/s^2
-          msg.linear_acceleration.x = caerIMU6EventGetAccelX(event) * 9.81;
-          msg.linear_acceleration.y = -caerIMU6EventGetAccelY(event) * 9.81;
-          msg.linear_acceleration.z = -caerIMU6EventGetAccelZ(event) * 9.81;
+          msg.linear_acceleration.x = caerIMU6EventGetAccelX(event) * STANDARD_GRAVITY;
+          msg.linear_acceleration.y = -caerIMU6EventGetAccelY(event) * STANDARD_GRAVITY;
+          msg.linear_acceleration.z = -caerIMU6EventGetAccelZ(event) * STANDARD_GRAVITY;
           // convert from deg/s to rad/s
           msg.angular_velocity.x = caerIMU6EventGetGyroX(event) / 180.0 * M_PI;
           msg.angular_velocity.y = -caerIMU6EventGetGyroY(event) / 180.0 * M_PI;
@@ -358,6 +410,28 @@ void DavisRosDriver::readout()
 
           // frame
           msg.header.frame_id = "base_link";
+
+          // IMU calibration
+          if (imu_calibration_running_)
+          {
+            if (imu_calibration_samples_.size() < imu_calibration_sample_size_)
+            {
+              imu_calibration_samples_.push_back(msg);
+            }
+            else
+            {
+              imu_calibration_running_ = false;
+              updateImuBias();
+            }
+          }
+
+          // bias correction
+          msg.linear_acceleration.x -= bias.linear_acceleration.x;
+          msg.linear_acceleration.y -= bias.linear_acceleration.y;
+          msg.linear_acceleration.z -= bias.linear_acceleration.z;
+          msg.angular_velocity.x -= bias.angular_velocity.x;
+          msg.angular_velocity.y -= bias.angular_velocity.y;
+          msg.angular_velocity.z -= bias.angular_velocity.z;
 
           imu_pub_.publish(msg);
         }
