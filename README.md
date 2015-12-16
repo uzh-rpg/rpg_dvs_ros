@@ -106,3 +106,12 @@ If you recorded rosbags with a previous version of this package, they must be mi
 The format for the timestamps changed from uint64 to rostime.
 To convert an "old" bag file, use   
 `$ rosbag fix old.bag new.bag`.
+
+## Compiling error
+On Ubuntu 14.04 with GCC 4.8, you will receive an error about missing file (`stdatomic.h`).
+This is a [problem](https://gcc.gnu.org/bugzilla/show_bug.cgi?id=58016) related to GCC 4.8 and can be resolved by [updating to version 4.9](http://askubuntu.com/a/581497/218846):
+
+    sudo add-apt-repository ppa:ubuntu-toolchain-r/test
+    sudo apt-get update
+    sudo apt-get install gcc-4.9 g++-4.9
+    sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-4.9 60 --slave /usr/bin/g++ g++ /usr/bin/g++-4.9
