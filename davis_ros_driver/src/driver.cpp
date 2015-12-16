@@ -91,9 +91,9 @@ DavisRosDriver::DavisRosDriver(ros::NodeHandle & nh, ros::NodeHandle nh_private)
   std::string ns = ros::this_node::getNamespace();
   if (ns == "/")
     ns = "/dvs";
-  event_array_pub_ = nh_.advertise<dvs_msgs::EventArray>(ns + "/events", 1);
+  event_array_pub_ = nh_.advertise<dvs_msgs::EventArray>(ns + "/events", 10);
   camera_info_pub_ = nh_.advertise<sensor_msgs::CameraInfo>(ns + "/camera_info", 1);
-  imu_pub_ = nh_.advertise<sensor_msgs::Imu>(ns + "/imu", 1);
+  imu_pub_ = nh_.advertise<sensor_msgs::Imu>(ns + "/imu", 10);
   image_pub_ = nh_.advertise<sensor_msgs::Image>(ns + "/image_raw", 1);
 
   // camera info handling
@@ -392,48 +392,58 @@ void DavisRosDriver::readout()
         else if (i == IMU6_EVENT)
         {
           caerIMU6EventPacket imu = (caerIMU6EventPacket) packetHeader;
-          caerIMU6Event event = caerIMU6EventPacketGetEvent(imu, 0);
 
-          sensor_msgs::Imu msg;
-          // NED -> ROS ENU Conversion:  (x y z) -> (x -y -z)
-          // https://github.com/cra-ros-pkg/robot_localization/issues/22
-          // convert from g's to m/s^2
-          msg.linear_acceleration.x = caerIMU6EventGetAccelX(event) * STANDARD_GRAVITY;
-          msg.linear_acceleration.y = -caerIMU6EventGetAccelY(event) * STANDARD_GRAVITY;
-          msg.linear_acceleration.z = -caerIMU6EventGetAccelZ(event) * STANDARD_GRAVITY;
-          // convert from deg/s to rad/s
-          msg.angular_velocity.x = caerIMU6EventGetGyroX(event) / 180.0 * M_PI;
-          msg.angular_velocity.y = -caerIMU6EventGetGyroY(event) / 180.0 * M_PI;
-          msg.angular_velocity.z = -caerIMU6EventGetGyroZ(event) / 180.0 * M_PI;
-          // time
-          msg.header.stamp = reset_time_ + ros::Duration(caerIMU6EventGetTimestamp64(event, imu) / 1.e6);
+          const int numEvents = caerEventPacketHeaderGetEventNumber(packetHeader);
 
-          // frame
-          msg.header.frame_id = "base_link";
-
-          // IMU calibration
-          if (imu_calibration_running_)
+          for (int j = 0; j < numEvents; j++)
           {
-            if (imu_calibration_samples_.size() < imu_calibration_sample_size_)
+            caerIMU6Event event = caerIMU6EventPacketGetEvent(imu, j);
+
+            sensor_msgs::Imu msg;
+            // NED -> ROS ENU Conversion:  (x y z) -> (x -y -z)
+            // https://github.com/cra-ros-pkg/robot_localization/issues/22
+            // convert from g's to m/s^2
+            msg.linear_acceleration.x = caerIMU6EventGetAccelX(event) * STANDARD_GRAVITY;
+            msg.linear_acceleration.y = -caerIMU6EventGetAccelY(event) * STANDARD_GRAVITY;
+            msg.linear_acceleration.z = -caerIMU6EventGetAccelZ(event) * STANDARD_GRAVITY;
+            // convert from deg/s to rad/s
+            msg.angular_velocity.x = caerIMU6EventGetGyroX(event) / 180.0 * M_PI;
+            msg.angular_velocity.y = -caerIMU6EventGetGyroY(event) / 180.0 * M_PI;
+            msg.angular_velocity.z = -caerIMU6EventGetGyroZ(event) / 180.0 * M_PI;
+
+            // no orientation estimate: http://docs.ros.org/api/sensor_msgs/html/msg/Imu.html
+            msg.orientation_covariance[0] = -1.0;
+
+            // time
+            msg.header.stamp = reset_time_ + ros::Duration(caerIMU6EventGetTimestamp64(event, imu) / 1.e6);
+
+            // frame
+            msg.header.frame_id = "base_link";
+
+            // IMU calibration
+            if (imu_calibration_running_)
             {
-              imu_calibration_samples_.push_back(msg);
+              if (imu_calibration_samples_.size() < imu_calibration_sample_size_)
+              {
+                imu_calibration_samples_.push_back(msg);
+              }
+              else
+              {
+                imu_calibration_running_ = false;
+                updateImuBias();
+              }
             }
-            else
-            {
-              imu_calibration_running_ = false;
-              updateImuBias();
-            }
+
+            // bias correction
+            msg.linear_acceleration.x -= bias.linear_acceleration.x;
+            msg.linear_acceleration.y -= bias.linear_acceleration.y;
+            msg.linear_acceleration.z -= bias.linear_acceleration.z;
+            msg.angular_velocity.x -= bias.angular_velocity.x;
+            msg.angular_velocity.y -= bias.angular_velocity.y;
+            msg.angular_velocity.z -= bias.angular_velocity.z;
+
+            imu_pub_.publish(msg);
           }
-
-          // bias correction
-          msg.linear_acceleration.x -= bias.linear_acceleration.x;
-          msg.linear_acceleration.y -= bias.linear_acceleration.y;
-          msg.linear_acceleration.z -= bias.linear_acceleration.z;
-          msg.angular_velocity.x -= bias.angular_velocity.x;
-          msg.angular_velocity.y -= bias.angular_velocity.y;
-          msg.angular_velocity.z -= bias.angular_velocity.z;
-
-          imu_pub_.publish(msg);
         }
 
         else if (i == FRAME_EVENT)
