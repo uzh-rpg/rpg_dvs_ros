@@ -11,7 +11,7 @@ DiffBn_coarse: 5
 DiffBn_fine: 255
 ONBn_coarse: 6
 ONBn_fine: 255
-OFFBn_coarse: 4
+OFFBn_coarse: 3
 OFFBn_fine: 20
 RefrBp_coarse: 7
 RefrBp_fine: 25
