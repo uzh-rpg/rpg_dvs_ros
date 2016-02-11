@@ -37,6 +37,8 @@ include_directories(
   ${OpenCV_INCLUDE_DIRS}
 )
 
+set(CMAKE_CXX_FLAGS "-std=c++11 ${CMAKE_CXX_FLAGS}")
+
 # make the executable
 add_executable(dvs_renderer
   src/renderer.cpp
