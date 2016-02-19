@@ -30,7 +30,10 @@
 namespace davis_ros_driver {
 
 DavisRosDriver::DavisRosDriver(ros::NodeHandle & nh, ros::NodeHandle nh_private) :
-    nh_(nh), parameter_update_required_(false), parameter_bias_update_required_(false)
+    nh_(nh),
+    parameter_update_required_(false),
+    parameter_bias_update_required_(false),
+    imu_calibration_running_(false)
 {
   // load parameters
   std::string dvs_serial_number;
