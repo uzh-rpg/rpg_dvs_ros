@@ -160,7 +160,7 @@ void DavisRosDriver::caerConnect()
 }
 
 void DavisRosDriver::onDisconnectUSB(void* driver){
-  std::cout << "USB connection lost!!" << std::endl;
+  ROS_ERROR("USB connection lost with DVS !");
   static_cast<davis_ros_driver::DavisRosDriver*>(driver)->caerConnect();
 }
 
