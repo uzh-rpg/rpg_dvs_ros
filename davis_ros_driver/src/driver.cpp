@@ -136,7 +136,9 @@ void DavisRosDriver::caerConnect()
   // No configuration is sent automatically!
   caerDeviceSendDefaultConfig(davis_handle_);
   
-  // TODO resend latest params from param server if this is not the first connection
+  // Re-send params from param server if not first connection
+  parameter_bias_update_required_ = true;
+  parameter_update_required_ = true;
   
   // camera info handling
   ros::NodeHandle nh_ns(ns);
