@@ -13,11 +13,4 @@
   	<remap from="image" to="dvs_rendering"/>
   </node>
 
-  <!-- plot mean number of events -->
-  <node name="dvs_events_stats_plot"
-    pkg="rqt_plot"
-    type="rqt_plot"
-	args="/events_off_mean_1 /events_on_mean_1 /events_off_mean_5 /events_on_mean_5">
-  </node>
-
 </launch>
