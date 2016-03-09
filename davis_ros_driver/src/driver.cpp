@@ -35,6 +35,7 @@ DavisRosDriver::DavisRosDriver(ros::NodeHandle & nh, ros::NodeHandle nh_private)
     parameter_bias_update_required_(false),
     imu_calibration_running_(false)
 {
+  
   // load parameters
   std::string dvs_serial_number;
   nh_private.param<std::string>("serial_number", dvs_serial_number, "");
@@ -52,66 +53,21 @@ DavisRosDriver::DavisRosDriver(ros::NodeHandle & nh, ros::NodeHandle nh_private)
   bias.angular_velocity.y = 0.0;
   bias.angular_velocity.z = 0.0;
 
-  // start driver
-  bool dvs_running = false;
-  while (!dvs_running)
-  {
-    //driver_ = new dvs::DvsDriver(dvs_serial_number, master);
-    davis_handle_ = caerDeviceOpen(1, CAER_DEVICE_DAVIS_FX2, 0, 0, NULL);
-
-    //dvs_running = driver_->isDeviceRunning();
-    dvs_running = !(davis_handle_ == NULL);
-
-    if (!dvs_running)
-    {
-      ROS_WARN("Could not find DVS. Will retry every second.");
-      ros::Duration(1.0).sleep();
-      ros::spinOnce();
-    }
-
-    if (!ros::ok())
-    {
-      return;
-    }
-  }
-
-  davis_info_ = caerDavisInfoGet(davis_handle_);
-  device_id_ = "DAVIS-" + std::string(davis_info_.deviceString).substr(18, 7);
-
-  ROS_INFO("%s --- ID: %d, Master: %d, DVS X: %d, DVS Y: %d, Logic: %d.\n", davis_info_.deviceString,
-           davis_info_.deviceID, davis_info_.deviceIsMaster, davis_info_.dvsSizeX, davis_info_.dvsSizeY,
-           davis_info_.logicVersion);
-
-
-  // Send the default configuration before using the device.
-  // No configuration is sent automatically!
-  caerDeviceSendDefaultConfig(davis_handle_);
-
-  current_config_.streaming_rate = 30;
-  delta_ = boost::posix_time::microseconds(1e6/current_config_.streaming_rate);
 
   // set namespace
-  std::string ns = ros::this_node::getNamespace();
+  ns = ros::this_node::getNamespace();
   if (ns == "/")
     ns = "/dvs";
+  
   event_array_pub_ = nh_.advertise<dvs_msgs::EventArray>(ns + "/events", 10);
   camera_info_pub_ = nh_.advertise<sensor_msgs::CameraInfo>(ns + "/camera_info", 1);
   imu_pub_ = nh_.advertise<sensor_msgs::Imu>(ns + "/imu", 10);
   image_pub_ = nh_.advertise<sensor_msgs::Image>(ns + "/image_raw", 1);
 
-  // camera info handling
-  ros::NodeHandle nh_ns(ns);
-  camera_info_manager_ = new camera_info_manager::CameraInfoManager(nh_ns, device_id_);
-
-  // initialize timestamps
-  resetTimestamps();
-  reset_time_ = ros::Time::now();
-
-  // spawn threads
-  running_ = true;
-  parameter_thread_ = boost::shared_ptr< boost::thread >(new boost::thread(boost::bind(&DavisRosDriver::changeDvsParameters, this)));
-  readout_thread_ = boost::shared_ptr< boost::thread >(new boost::thread(boost::bind(&DavisRosDriver::readout, this)));
-
+  caerConnect();
+  current_config_.streaming_rate = 30;
+  delta_ = boost::posix_time::microseconds(1e6/current_config_.streaming_rate);
+  
   reset_sub_ = nh_.subscribe((ns + "/reset_timestamps").c_str(), 1, &DavisRosDriver::resetTimestampsCallback, this);
   imu_calibration_sub_ = nh_.subscribe((ns + "/calibrate_imu").c_str(), 1, &DavisRosDriver::imuCalibrationCallback, this);
   snapshot_sub_ = nh_.subscribe((ns + "/trigger_snapshot").c_str(), 1, &DavisRosDriver::snapshotCallback, this);
@@ -141,6 +97,71 @@ DavisRosDriver::~DavisRosDriver()
 
     caerDeviceClose(&davis_handle_);
   }
+}
+
+void DavisRosDriver::caerConnect()
+{
+  
+  // start driver
+  bool dvs_running = false;
+  while (!dvs_running)
+  {
+    //driver_ = new dvs::DvsDriver(dvs_serial_number, master);
+    davis_handle_ = caerDeviceOpen(1, CAER_DEVICE_DAVIS_FX2, 0, 0, NULL);
+
+    //dvs_running = driver_->isDeviceRunning();
+    dvs_running = !(davis_handle_ == NULL);
+
+    if (!dvs_running)
+    {
+      ROS_WARN("Could not find DVS. Will retry every second.");
+      ros::Duration(1.0).sleep();
+      ros::spinOnce();
+    }
+
+    if (!ros::ok())
+    {
+      return;
+    }
+  }
+
+  davis_info_ = caerDavisInfoGet(davis_handle_);
+  device_id_ = "DAVIS-" + std::string(davis_info_.deviceString).substr(18, 7);
+
+  ROS_INFO("%s --- ID: %d, Master: %d, DVS X: %d, DVS Y: %d, Logic: %d.\n", davis_info_.deviceString,
+           davis_info_.deviceID, davis_info_.deviceIsMaster, davis_info_.dvsSizeX, davis_info_.dvsSizeY,
+           davis_info_.logicVersion);
+ 
+  // Send the default configuration before using the device.
+  // No configuration is sent automatically!
+  caerDeviceSendDefaultConfig(davis_handle_);
+  
+  // Re-send params from param server if not first connection
+  parameter_bias_update_required_ = true;
+  parameter_update_required_ = true;
+  
+  // camera info handling
+  ros::NodeHandle nh_ns(ns);
+  if(camera_info_manager_){
+    delete camera_info_manager_;
+  }
+  
+  camera_info_manager_ = new camera_info_manager::CameraInfoManager(nh_ns, device_id_);
+
+  // initialize timestamps
+  resetTimestamps();
+  reset_time_ = ros::Time::now();
+  
+  // spawn threads
+  running_ = true;
+  parameter_thread_ = boost::shared_ptr< boost::thread >(new boost::thread(boost::bind(&DavisRosDriver::changeDvsParameters, this)));
+  readout_thread_ = boost::shared_ptr< boost::thread >(new boost::thread(boost::bind(&DavisRosDriver::readout, this)));
+
+}
+
+void DavisRosDriver::onDisconnectUSB(void* driver){
+  ROS_ERROR("USB connection lost with DVS !");
+  static_cast<davis_ros_driver::DavisRosDriver*>(driver)->caerConnect();
 }
 
 void DavisRosDriver::resetTimestamps()
@@ -321,9 +342,10 @@ void DavisRosDriver::callback(davis_ros_driver::DAVIS_ROS_DriverConfig &config, 
 
 void DavisRosDriver::readout()
 {
+ 
   //std::vector<dvs::Event> events;
 
-  caerDeviceDataStart(davis_handle_, NULL, NULL, NULL, NULL, NULL);
+  caerDeviceDataStart(davis_handle_, NULL, NULL, NULL, &DavisRosDriver::onDisconnectUSB, this);
   caerDeviceConfigSet(davis_handle_, CAER_HOST_CONFIG_DATAEXCHANGE, CAER_HOST_CONFIG_DATAEXCHANGE_BLOCKING, true);
 
   boost::posix_time::ptime next_send_time = boost::posix_time::microsec_clock::local_time();

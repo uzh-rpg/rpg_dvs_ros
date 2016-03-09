@@ -49,11 +49,14 @@ public:
   DavisRosDriver(ros::NodeHandle & nh, ros::NodeHandle nh_private);
   ~DavisRosDriver();
 
+  static void onDisconnectUSB(void*);   
+  
 private:
   void changeDvsParameters();
   void callback(davis_ros_driver::DAVIS_ROS_DriverConfig &config, uint32_t level);
   void readout();
   void resetTimestamps();
+  void caerConnect();
 
   ros::NodeHandle nh_;
   ros::Publisher event_array_pub_;
@@ -61,6 +64,8 @@ private:
   ros::Publisher imu_pub_;
   ros::Publisher image_pub_;
   caerDeviceHandle davis_handle_;
+  
+  std::string ns;
 
   volatile bool running_;
 
