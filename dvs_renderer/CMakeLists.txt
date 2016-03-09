@@ -41,12 +41,14 @@ set(CMAKE_CXX_FLAGS "-std=c++11 ${CMAKE_CXX_FLAGS}")
 
 # make the executable
 add_executable(dvs_renderer
+  src/image_tracking.cpp
   src/renderer.cpp
   src/renderer_node.cpp
 )
 
 # make the nodelet into a library
 add_library(dvs_renderer_nodelet
+  src/image_tracking.cpp
   src/renderer_nodelet.cpp
   src/renderer.cpp
 )
