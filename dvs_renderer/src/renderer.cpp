@@ -18,7 +18,8 @@
 
 namespace dvs_renderer {
 
-Renderer::Renderer(ros::NodeHandle & nh, ros::NodeHandle nh_private) : nh_(nh)
+Renderer::Renderer(ros::NodeHandle & nh, ros::NodeHandle nh_private) : nh_(nh),
+    image_tracking_(nh)
 {
   got_camera_info_ = false;
 
@@ -71,6 +72,8 @@ void Renderer::cameraInfoCallback(const sensor_msgs::CameraInfo::ConstPtr& msg)
 
 void Renderer::imageCallback(const sensor_msgs::Image::ConstPtr& msg)
 {
+  image_tracking_.imageCallback(msg);
+
   cv_bridge::CvImagePtr cv_ptr;
 
   try
@@ -106,6 +109,7 @@ void Renderer::eventsCallback(const dvs_msgs::EventArray::ConstPtr& msg)
   }
 
   publishStats();
+  image_tracking_.eventsCallback(msg);
 
   // only create image if at least one subscriber
   if (image_pub_.getNumSubscribers() > 0)
