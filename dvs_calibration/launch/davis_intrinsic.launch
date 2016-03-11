@@ -1,0 +1,34 @@
+<launch>
+  <!-- camera driver -->
+  <node name="davis_ros_driver" pkg="davis_ros_driver" type="davis_ros_driver" output="screen">
+  	<!-- <param name="serial_number" type="str" value="0273" /> -->
+    <rosparam command="load" file="$(find davis_ros_driver)/config/calib.yaml" />
+  </node>
+
+  <!-- visualization -->
+  <node name="dvs_renderer" pkg="dvs_renderer" type="dvs_renderer">
+    <param name="display_method" value="grayscale"/>
+    <remap from="events" to="/dvs/events" />
+    <remap from="camera_info" to="/dvs/camera_info" />
+  </node>
+
+  <!-- calib node -->
+  <node name="dvs_calibration" pkg="dvs_calibration" type="mono" output="screen">
+    <remap from="events" to="/dvs/events" />
+    <remap from="camera_info" to="/dvs/camera_info" />
+    <remap from="set_camera_info" to="/dvs/set_camera_info" />
+
+    <param name="blinking_time_us" value="1000" />
+    <param name="blinking_time_tolerance_us" value="100" />
+    <param name="enough_transitions_threshold" value="100" />
+    <param name="minimum_transitions_threshold" value="30" />
+    <param name="minimum_led_mass" value="50" />
+
+    <param name="dots_w" value="5"/>
+    <param name="dots_h" value="5"/>
+    <param name="dot_distance" value="0.05"/>
+  </node>
+
+  <node name="rqt_gui" pkg="rqt_gui" type="rqt_gui" args="--perspective-file $(find dvs_calibration_gui)/rqt/IntrinsicCalibration.perspective" />
+
+</launch>

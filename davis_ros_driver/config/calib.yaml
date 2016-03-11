@@ -1,0 +1,17 @@
+dvs_enabled: true
+aps_enabled: false
+imu_enabled: false
+
+PrBp_coarse: 3
+PrBp_fine: 58
+PrSFBp_coarse: 4
+PrSFBp_fine: 33
+
+DiffBn_coarse: 5
+DiffBn_fine: 255
+ONBn_coarse: 6
+ONBn_fine: 255
+OFFBn_coarse: 3
+OFFBn_fine: 20
+RefrBp_coarse: 7
+RefrBp_fine: 25

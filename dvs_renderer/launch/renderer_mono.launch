@@ -1,0 +1,16 @@
+<launch>
+  <!-- visualization -->
+  <node name="dvs_renderer_left" pkg="dvs_renderer" type="dvs_renderer" output="screen">
+    <param name="display_method" value="red-blue"/>
+    <remap from="events" to="/dvs/events" />
+    <remap from="image" to="/dvs/image_raw" />
+    <remap from="dvs_rendering" to="dvs_rendering" />
+  </node>
+
+
+  <!-- display -->
+  <node name="image_view_left" pkg="image_view" type="image_view">
+  	<remap from="image" to="dvs_rendering"/>
+  </node>
+
+</launch>

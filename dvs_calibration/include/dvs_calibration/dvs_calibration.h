@@ -49,21 +49,21 @@ class DvsCalibration
 {
 public:
   DvsCalibration();
-  virtual ~DvsCalibration() {};
+  virtual ~DvsCalibration() {}
 
 protected:
   // parameters
-  static const int sensor_width = 128;
-  static const int sensor_height = 128;
-  CalibrationParameters params;
-  ros::Time last_pattern_found;
+  int sensor_width_;
+  int sensor_height_;
+  CalibrationParameters params_;
+  ros::Time last_pattern_found_;
 
   // event maps
-  std::map<int, TransitionMap> transition_maps;
+  std::map<int, TransitionMap> transition_maps_;
 
   // status
-  bool calibration_running;
-  int num_detections;
+  bool calibration_running_;
+  int num_detections_;
 
   // callbacks
   void eventsCallback(const dvs_msgs::EventArray::ConstPtr& msg, int camera_id);
@@ -79,17 +79,17 @@ protected:
   virtual void saveCalibration() = 0;
 
 
-  std::vector<cv::Point3f> world_pattern;
-  virtual void add_pattern(int id) = 0;
-  virtual void update_visualization(int id) = 0;
+  std::vector<cv::Point3f> world_pattern_;
+  virtual void addPattern(int id) = 0;
+  virtual void updateVisualization(int id) = 0;
 
   // ROS interface
-  ros::NodeHandle nh;
-  ros::ServiceServer startCalibrationService;
-  ros::ServiceServer saveCalibrationService;
-  ros::ServiceServer resetCalibrationService;
-  ros::Publisher numDetectionsPublisher;
-  ros::Publisher calibrationOutputPublisher;
+  ros::NodeHandle nh_;
+  ros::ServiceServer start_calibration_service_;
+  ros::ServiceServer save_calibration_service_;
+  ros::ServiceServer reset_calibration_service_;
+  ros::Publisher num_detections_pub_;
+  ros::Publisher calibration_output_pub_;
 
 
   void loadCalibrationParameters();

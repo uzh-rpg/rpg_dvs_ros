@@ -13,10 +13,10 @@
 // You should have received a copy of the GNU General Public License
 // along with DVS-ROS.  If not, see <http://www.gnu.org/licenses/>.
 
-#ifndef DVS_ROS_DRIVER_H_
-#define DVS_ROS_DRIVER_H_
+#pragma once
 
 #include <ros/ros.h>
+#include <string>
 
 // boost
 #include <boost/thread.hpp>
@@ -29,7 +29,8 @@
 #include <std_msgs/Empty.h>
 
 // DVS driver
-#include <dvs_driver/dvs_driver.h>
+#include <libcaer/libcaer.h>
+#include <libcaer/devices/dvs128.h>
 
 // dynamic reconfigure
 #include <dynamic_reconfigure/server.h>
@@ -43,37 +44,46 @@ namespace dvs_ros_driver {
 
 class DvsRosDriver {
 public:
-  DvsRosDriver();
+  DvsRosDriver(ros::NodeHandle & nh, ros::NodeHandle nh_private);
   ~DvsRosDriver();
 
 private:
-  void change_dvs_parameters();
+  void changeDvsParameters();
   void callback(dvs_ros_driver::DVS_ROS_DriverConfig &config, uint32_t level);
   void readout();
+  void resetTimestamps();
 
-  ros::NodeHandle nh;
-  ros::Publisher event_array_pub;
-  ros::Publisher camera_info_pub;
-  dvs::DVS_Driver *driver;
+  ros::NodeHandle nh_;
+  ros::Publisher event_array_pub_;
+  ros::Publisher camera_info_pub_;
+  caerDeviceHandle dvs128_handle;
 
-  dynamic_reconfigure::Server<dvs_ros_driver::DVS_ROS_DriverConfig> server;
-  dynamic_reconfigure::Server<dvs_ros_driver::DVS_ROS_DriverConfig>::CallbackType f;
+  volatile bool running_;
 
-  ros::Subscriber reset_sub;
-  void reset_timestamps(std_msgs::Empty msg);
+  boost::shared_ptr<dynamic_reconfigure::Server<dvs_ros_driver::DVS_ROS_DriverConfig> > server_;
+  dynamic_reconfigure::Server<dvs_ros_driver::DVS_ROS_DriverConfig>::CallbackType dynamic_reconfigure_callback_;
 
-  boost::thread* parameter_thread;
-  boost::thread* readout_thread;
+  ros::Subscriber reset_sub_;
+  void resetTimestampsCallback(std_msgs::Empty msg);
 
-  boost::posix_time::time_duration delta;
+  boost::shared_ptr<boost::thread> parameter_thread_;
+  boost::shared_ptr<boost::thread> readout_thread_;
 
-  dvs_ros_driver::DVS_ROS_DriverConfig current_config;
-  camera_info_manager::CameraInfoManager* cameraInfoManager;
+  boost::posix_time::time_duration delta_;
 
-  bool parameter_update_required;
+  dvs_ros_driver::DVS_ROS_DriverConfig current_config_;
+  camera_info_manager::CameraInfoManager* camera_info_manager_;
+
+  struct caer_dvs128_info dvs128_info_;
+  std::string device_id_;
+
+  ros::Time reset_time_;
+
+  ros::Timer timestamp_reset_timer_;
+  void resetTimerCallback(const ros::TimerEvent& te);
+
+  bool parameter_update_required_;
 
 };
 
 } // namespace
-
-#endif // DVS_ROS_DRIVER_H_

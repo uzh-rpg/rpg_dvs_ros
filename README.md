@@ -32,11 +32,12 @@ Make sure, libusb is installed on your system:
 1. `$ sudo apt-get install libusb-1.0-0-dev`
 
 Only a udev rule is needed to run the DVS driver. An install script is provided in the package dvs_driver.  
-2. `$ roscd dvs_driver`  
+2. `$ roscd libcaer_catkin`  
 3. `$ ./install.sh` (needs root privileges)
 
-You can test the installation by running a provided launch file. It starts the driver, the renderer, an image viewer, and the dynamic reconfigure GUI.  
-4. `$ roslaunch dvs_renderer mono.launch`  
+You can test the installation by running a provided launch file. It starts the driver (DVS or DAVIS), the renderer, an image viewer, and the dynamic reconfigure GUI.   
+4. `$ roslaunch dvs_renderer dvs_mono.launch`  
+5. `$ roslaunch dvs_renderer davis_mono.launch`  
 
 
 # DVS Calibration
@@ -48,7 +49,9 @@ Adjust the focus of the DVS. One way of achieving this is using a special patter
 ## Instrisic Parameters
 To run the intrinsic camera calibration, we use a 5x5 LED board that is blinking at 500Hz.
 The calibration procedure is then started using  
-`$ roslaunch dvs_calibration intrinsic.launch`  
+`$ roslaunch dvs_calibration dvs_intrinsic.launch`  
+or, for the DAVIS,  
+`$ roslaunch dvs_calibration davis_intrinsic.launch`  
 You will see an RQT interface with all necessary information.
 Top left is the calibration GUI, which displays the amount of detected patterns.
 **Currently, pattern detection does not seem to work indoors. Try close to a window.**
@@ -76,7 +79,7 @@ Hover, the timestamps within the messages are synchronized.
 
 ## Calibration
 1. Calibrate each DVS independently
-2. Use `$ roslaunch dvs_calibration stereo.launch`  
+2. Use `$ roslaunch dvs_calibration dvs_stereo.launch`  
 3. Use the same checkerboard with blinking LEDs and make sure it is visible in both cameras. Collect at least 30 samples.
 4. Start the calibration and check the reprojection error. Then save it (this will extend your intrinsic camera info files with the stereo information).
 
@@ -91,8 +94,24 @@ The following parameters can be tuned using ROS parameters:
 
 If you have your own LED board with different LEDs or blinking frequencies, you might want to tweak these parameters as well:
 * `blinking_time_us` (default: 1000) is the blinking time in **micro**-seconds
-* `blinking_time_tolerance` (default: 500) is the tolerance in **micro**-seconds to still count the transition
+* `blinking_time_tolerance_us` (default: 500) is the tolerance in **micro**-seconds to still count the transition
 * `enough_transitions_threshold` (default: 200) is the minimum number of transitions before searching the LEDs
 * `minimum_transitions_threshold` (default: 10) is the minimum number of transitions required to be considered in the LED search
 * `minimum_led_mass` (default: 50) is the minimum "mass" of an LED blob, i.e., the sum of transitions in this blop
 * `pattern_search_timeout` (default: 2.0) is the timeout in **seconds** when the transition map is reset (it is also reset when the LED grid was found)
+
+# Troubleshooting
+## New dvs_msgs format
+If you recorded rosbags with a previous version of this package, they must be migrated. 
+The format for the timestamps changed from uint64 to rostime.
+To convert an "old" bag file, use   
+`$ rosbag fix old.bag new.bag`.
+
+## Compiling error
+On Ubuntu 14.04 with GCC 4.8, you will receive an error about missing file (`stdatomic.h`).
+This is a [problem](https://gcc.gnu.org/bugzilla/show_bug.cgi?id=58016) related to GCC 4.8 and can be resolved by [updating to version 4.9](http://askubuntu.com/a/581497/218846):
+
+    sudo add-apt-repository ppa:ubuntu-toolchain-r/test
+    sudo apt-get update
+    sudo apt-get install gcc-4.9 g++-4.9
+    sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-4.9 60 --slave /usr/bin/g++ g++ /usr/bin/g++-4.9

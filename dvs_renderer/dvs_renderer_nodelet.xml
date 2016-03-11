@@ -1,0 +1,7 @@
+<library path="lib/libdvs_renderer_nodelet">
+  <class name="dvs_renderer/DvsRendererNodelet" type="dvs_renderer::DvsRendererNodelet" base_class_type="nodelet::Nodelet">
+    <description> 
+      A nodelet wrapper for the dvs_renderer.
+    </description>
+  </class>
+</library>

@@ -1,2 +1,0 @@
-SUBSYSTEM=="usb|usb_device", ATTR{idVendor}=="152a", ATTR{idProduct}=="8400", MODE="0666", GROUP="plugdev"
-

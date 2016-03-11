@@ -1,0 +1,48 @@
+<launch>
+  <!-- camera driver -->
+  <node pkg="bluefox_ros" type="bluefox_ros_node" name="camera" clear_params="true" output="screen">
+    <param name="fps" value="60" />
+    <param name="gain" value="1.1" />
+    <param name="exp_time" value="100" />
+    <param name="internal_exposure_control" value="false" />
+  </node>
+
+  <!-- DVS driver -->
+  <node name="dvs_ros_driver" pkg="dvs_ros_driver" type="dvs_ros_driver" output="screen">
+    <rosparam command="load" file="$(find dvs_ros_driver)/config/fast.yaml" />
+  </node>
+
+  <!-- visualization -->
+  <node name="dvs_renderer" pkg="dvs_renderer" type="dvs_renderer">
+    <param name="display_method" value="grayscale"/>
+    <remap from="events" to="/dvs/events" />
+  </node>
+
+  <!-- calib node -->
+  <node name="dvs_calibration" pkg="dvs_calibration" type="camera_dvs" output="screen">
+    <remap from="standard_camera_info" to="/camera/camera_info" />
+    <remap from="image" to="/camera/image_raw" />
+    <remap from="dvs_camera_info" to="/dvs/camera_info" />
+    <remap from="events" to="/dvs/events" />
+    <remap from="set_standard_camera_info" to="/camera/set_camera_info" />
+    <remap from="set_dvs_camera_info" to="/dvs/set_camera_info" />
+
+    <param name="max_time_difference" value="0.1" />
+    <param name="fix_intrinsics" value="true" />
+
+    <param name="image_led_threshold" value="250" />
+
+    <param name="blinking_time_us" value="1000" />
+    <param name="blinking_time_tolerance_us" value="500" />
+    <param name="enough_transitions_threshold" value="100" />
+    <param name="minimum_transitions_threshold" value="30" />
+    <param name="minimum_transitions_threshold" value="30" />
+
+    <param name="dots_w" value="5"/>
+    <param name="dots_h" value="4"/>
+    <param name="dot_distance" value="0.05"/>
+  </node>
+
+  <node name="rqt_gui" pkg="rqt_gui" type="rqt_gui" args="--perspective-file $(find dvs_calibration_gui)/rqt/CameraDvsCalibration.perspective" />
+
+</launch>

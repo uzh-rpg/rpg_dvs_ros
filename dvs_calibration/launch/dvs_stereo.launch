@@ -1,4 +1,4 @@
-<launch>  
+<launch>
   <!-- DVS drivers -->
   <include file="$(find dvs_ros_driver)/launch/stereo.launch" />
 
@@ -8,27 +8,33 @@
     <remap from="events" to="/dvs_left/events" />
     <remap from="dvs_rendering" to="dvs_rendering_left" />
   </node>
-  
+
   <node name="dvs_renderer_right" pkg="dvs_renderer" type="dvs_renderer">
     <param name="display_method" value="grayscale"/>
     <remap from="events" to="/dvs_right/events" />
     <remap from="dvs_rendering" to="dvs_rendering_right" />
   </node>
-  
+
   <!-- calib node -->
   <node name="dvs_calibration" pkg="dvs_calibration" type="stereo" output="screen">
-  	<remap from="camera_info_left" to="/dvs_left/camera_info" />
-  	<remap from="events_left" to="/dvs_left/events" />
-  	<remap from="camera_info_right" to="/dvs_right/camera_info" />
-  	<remap from="events_right" to="/dvs_right/events" />
-  	<remap from="set_camera_info_left" to="/dvs_left/set_camera_info" />
-  	<remap from="set_camera_info_right" to="/dvs_right/set_camera_info" />
-  	
-  	<param name="dots_w" value="5"/>
-  	<param name="dots_h" value="4"/>
-  	<param name="dot_distance" value="0.05"/>
+    <remap from="camera_info_left" to="/dvs_left/camera_info" />
+    <remap from="events_left" to="/dvs_left/events" />
+    <remap from="camera_info_right" to="/dvs_right/camera_info" />
+    <remap from="events_right" to="/dvs_right/events" />
+    <remap from="set_camera_info_left" to="/dvs_left/set_camera_info" />
+    <remap from="set_camera_info_right" to="/dvs_right/set_camera_info" />
+
+    <param name="blinking_time_us" value="1000" />
+    <param name="blinking_time_tolerance_us" value="500" />
+    <param name="enough_transitions_threshold" value="100" />
+    <param name="minimum_transitions_threshold" value="30" />
+    <param name="minimum_transitions_threshold" value="30" />
+
+    <param name="dots_w" value="5"/>
+    <param name="dots_h" value="4"/>
+    <param name="dot_distance" value="0.05"/>
   </node>
 
   <node name="rqt_gui" pkg="rqt_gui" type="rqt_gui" args="--perspective-file $(find dvs_calibration_gui)/rqt/StereoCalibration.perspective" />
-  
+
 </launch>

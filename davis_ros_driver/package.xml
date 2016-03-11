@@ -1,0 +1,33 @@
+<?xml version="1.0"?>
+<package>
+  <name>davis_ros_driver</name>
+  <version>0.0.0</version>
+  <description>The davis_ros_driver package</description>
+  <maintainer email="mueggler@ifi.uzh.ch">Elias Mueggler</maintainer>
+  <license>GNU GPL</license>
+
+  <buildtool_depend>catkin</buildtool_depend>
+
+  <build_depend>roscpp</build_depend>
+  <build_depend>libcaer_catkin</build_depend>
+  <build_depend>dvs_msgs</build_depend>
+  <build_depend>std_msgs</build_depend>
+  <build_depend>sensor_msgs</build_depend>
+  <build_depend>dynamic_reconfigure</build_depend>
+  <build_depend>camera_info_manager</build_depend>
+  <build_depend>nodelet</build_depend>
+
+  <run_depend>roscpp</run_depend>
+  <run_depend>libcaer_catkin</run_depend>
+  <run_depend>dvs_msgs</run_depend>
+  <run_depend>std_msgs</run_depend>
+  <run_depend>sensor_msgs</run_depend>
+  <run_depend>dynamic_reconfigure</run_depend>
+  <run_depend>camera_info_manager</run_depend>
+  <run_depend>nodelet</run_depend>
+
+  <export>
+    <nodelet plugin="${prefix}/davis_ros_driver_nodelet.xml"/>
+  </export>
+
+</package>

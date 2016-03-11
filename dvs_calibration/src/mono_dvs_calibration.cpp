@@ -19,18 +19,22 @@ namespace dvs_calibration {
 
 MonoDvsCalibration::MonoDvsCalibration()
 {
-  calibration_running = false;
+  calibration_running_ = false;
 
-  setCameraInfoClient = nh.serviceClient<sensor_msgs::SetCameraInfo>("set_camera_info");
+  set_camera_info_client_ = nh_.serviceClient<sensor_msgs::SetCameraInfo>("set_camera_info");
 
   // add transition map
-  transition_maps.insert(std::pair<int, TransitionMap>(mono_camera_id, TransitionMap(params)));
-  eventSubscriber = nh.subscribe<dvs_msgs::EventArray>("events", 1,
+  transition_maps_.insert(std::pair<int, TransitionMap>(mono_camera_id, TransitionMap(params_)));
+  event_sub_ = nh_.subscribe<dvs_msgs::EventArray>("events", 1,
                                                        boost::bind(&MonoDvsCalibration::eventsCallback, this, _1, mono_camera_id));
 
-  image_transport::ImageTransport it(nh);
-  patternPublisher = it.advertise("dvs_calibration/pattern", 1);
-  visualizationPublisher = it.advertise("dvs_calibration/visualization", 1);
+  image_transport::ImageTransport it(nh_);
+  pattern_pub_ = it.advertise("dvs_calibration/pattern", 1);
+  visualization_pub_ = it.advertise("dvs_calibration/visualization", 1);
+
+  camera_info_sub_ = nh_.subscribe("camera_info", 1, &MonoDvsCalibration::cameraInfoCallback, this);
+  got_camera_info_ = false;
+  camera_pose_pub_ = nh_.advertise<geometry_msgs::PoseStamped>("dvs_calibration/pose", 1);
 }
 
 void MonoDvsCalibration::calibrate()
@@ -38,18 +42,19 @@ void MonoDvsCalibration::calibrate()
   // run camera calibration
   cv::Mat cameraMatrix, distCoeffs;
   std::vector<cv::Mat> rvecs, tvecs;
-  double reproj_error = cv::calibrateCamera(object_points, image_points, cv::Size(sensor_width, sensor_height),
+  double reproj_error = cv::calibrateCamera(object_points_, image_points_, cv::Size(sensor_width_, sensor_height_),
                                             cameraMatrix, distCoeffs, rvecs, tvecs, CV_CALIB_FIX_K3);
 
   // update camera info
-  cameraInfo.height = sensor_height;
-  cameraInfo.width = sensor_width;
-  cameraInfo.distortion_model = "plumb_bob";
+  new_camera_info_.height = sensor_height_;
+  new_camera_info_.width = sensor_width_;
+  new_camera_info_.distortion_model = "plumb_bob";
 
+  new_camera_info_.D.clear();
   for (int i = 0; i < 5; i++)
-    cameraInfo.D.push_back(distCoeffs.at<double>(i));
+    new_camera_info_.D.push_back(distCoeffs.at<double>(i));
   for (int i = 0; i < 9; i++)
-    cameraInfo.K[i] = cameraMatrix.at<double>(i);
+    new_camera_info_.K[i] = cameraMatrix.at<double>(i);
 
   // send output
   std::ostringstream output;
@@ -58,18 +63,18 @@ void MonoDvsCalibration::calibrate()
   output << "Camera matrix (K):" << std::endl;
   for (int i = 0; i < 9; i++)
   {
-    output << std::setfill(' ') << std::setw(6) << std::setprecision(5) << cameraInfo.K[i] << "  ";
+    output << std::setfill(' ') << std::setw(6) << std::setprecision(5) << new_camera_info_.K[i] << "  ";
     if (i%3 == 2)
       output << std::endl;
   }
   output << "Distortion coefficients (D):" << std::endl;
   for (int i = 0; i < 5; i++)
-    output << std::setfill(' ') << std::setw(6) << std::setprecision(5) << cameraInfo.D[i] << "  ";
+    output << std::setfill(' ') << std::setw(6) << std::setprecision(5) << new_camera_info_.D[i] << "  ";
   output << std::endl;
 
   std_msgs::String output_msg;
   output_msg.data = output.str();
-  calibrationOutputPublisher.publish(output_msg);
+  calibration_output_pub_.publish(output_msg);
 }
 
 void MonoDvsCalibration::publishVisualizationImage(cv::Mat image)
@@ -78,29 +83,29 @@ void MonoDvsCalibration::publishVisualizationImage(cv::Mat image)
   cv_image.encoding = "bgr8";
   cv_image.image = image.clone();
 
-  visualizationPublisher.publish(cv_image.toImageMsg());
+  visualization_pub_.publish(cv_image.toImageMsg());
 }
 
 bool MonoDvsCalibration::setCameraInfo()
 {
   sensor_msgs::SetCameraInfo srv;
-  srv.request.camera_info = cameraInfo;
-  return setCameraInfoClient.call(srv);
+  srv.request.camera_info = new_camera_info_;
+  return set_camera_info_client_.call(srv);
 }
 
 void MonoDvsCalibration::resetCalibration()
 {
-  transition_maps[mono_camera_id].reset_maps();
-  calibration_running = false;
-  object_points.clear();
-  image_points.clear();
-  num_detections = 0;
+  transition_maps_[mono_camera_id].reset_maps();
+  calibration_running_ = false;
+  object_points_.clear();
+  image_points_.clear();
+  num_detections_ = 0;
 }
 
 void MonoDvsCalibration::startCalibration()
 {
-  calibration_running = true;
-  if (num_detections > 0)
+  calibration_running_ = true;
+  if (num_detections_ > 0)
   {
     calibrate();
   }
@@ -108,20 +113,61 @@ void MonoDvsCalibration::startCalibration()
 
 void MonoDvsCalibration::saveCalibration()
 {
-  setCameraInfo();
+  if (setCameraInfo())
+    ROS_INFO("Calibration saved successfully.");
+  else
+    ROS_ERROR("Error while saving calibration");
 }
 
-void MonoDvsCalibration::add_pattern(int id)
+void MonoDvsCalibration::addPattern(int id)
 {
   // add detection
-  image_points.push_back(transition_maps[id].pattern);
-  object_points.push_back(world_pattern);
-  num_detections++;
+  image_points_.push_back(transition_maps_[id].pattern);
+  object_points_.push_back(world_pattern_);
+  num_detections_++;
+
+  // compute and publish camera pose if camera is calibrated
+  if (got_camera_info_)
+  {
+    cv::Mat rvec, tvec;
+    cv::Mat cameraMatrix(3, 3, CV_64F);
+    cv::Mat distCoeffs(1, 5, CV_64F);
+
+    // convert to OpenCV
+    for (int i = 0; i < 5; i++)
+      distCoeffs.at<double>(i) = camera_info_external_.D[i];
+    for (int i = 0; i < 9; i++)
+      cameraMatrix.at<double>(i) = camera_info_external_.K[i];
+
+    cv::solvePnP(world_pattern_, transition_maps_[id].pattern, cameraMatrix, distCoeffs, rvec, tvec);
+
+    geometry_msgs::PoseStamped pose_msg;
+    pose_msg.header.stamp = ros::Time::now();
+    pose_msg.header.frame_id = "dvs";
+    pose_msg.pose.position.x = tvec.at<double>(0);
+    pose_msg.pose.position.y = tvec.at<double>(1);
+    pose_msg.pose.position.z = tvec.at<double>(2);
+
+    double angle = cv::norm(rvec);
+    cv::normalize(rvec, rvec);
+    pose_msg.pose.orientation.x = rvec.at<double>(0) * sin(angle/2.0);
+    pose_msg.pose.orientation.y = rvec.at<double>(1) * sin(angle/2.0);
+    pose_msg.pose.orientation.z = rvec.at<double>(2) * sin(angle/2.0);
+    pose_msg.pose.orientation.w = cos(angle/2.0);
+
+    camera_pose_pub_.publish(pose_msg);
+  }
 }
 
-void MonoDvsCalibration::update_visualization(int id)
+void MonoDvsCalibration::cameraInfoCallback(const sensor_msgs::CameraInfo::ConstPtr& msg)
 {
-  publishVisualizationImage(transition_maps[id].get_visualization_image());
+  got_camera_info_ = true;
+  camera_info_external_ = *msg;
+}
+
+void MonoDvsCalibration::updateVisualization(int id)
+{
+  publishVisualizationImage(transition_maps_[id].get_visualization_image());
 }
 
 } // namespace

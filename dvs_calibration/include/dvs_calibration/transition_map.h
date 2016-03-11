@@ -29,11 +29,11 @@ namespace dvs_calibration {
 class TransitionMap
 {
 public:
-  TransitionMap(const CalibrationParameters params = CalibrationParameters());
+  TransitionMap(const CalibrationParameters params_ = CalibrationParameters());
   int max();
   void update(const dvs_msgs::EventArray::ConstPtr& msg);
   bool has_pattern() {
-    return _has_pattern;
+    return has_pattern_;
   }
   void find_pattern();
 
@@ -44,22 +44,22 @@ public:
   cv::Mat get_visualization_image();
 
   ros::Time get_last_reset_time() {
-    return last_reset_time;
+    return last_reset_time_;
   }
 
 private:
-  static const int sensor_width = 128;
-  static const int sensor_height = 128;
+  int sensor_width_;
+  int sensor_height_;
 
-  int last_off_map[sensor_width][sensor_height];
-  int last_on_map[sensor_width][sensor_height];
-  int transition_sum_map[sensor_width][sensor_height];
+  void init_transition_maps(const int width, const int height);
+  std::vector<std::vector<ros::Time>> last_off_map_, last_on_map_;
+  std::vector<std::vector<int>> transition_sum_map_;
 
-  CalibrationParameters params;
+  CalibrationParameters params_;
 
-  bool _has_pattern;
+  bool has_pattern_;
 
-  ros::Time last_reset_time;
+  ros::Time last_reset_time_;
 };
 
 } // namespace

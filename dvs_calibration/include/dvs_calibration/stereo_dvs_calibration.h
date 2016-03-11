@@ -40,7 +40,7 @@ class StereoDvsCalibration : public DvsCalibration
 {
 public:
   StereoDvsCalibration();
-  virtual ~StereoDvsCalibration() {};
+  virtual ~StereoDvsCalibration() {}
 
 private:
   // callbacks
@@ -51,34 +51,34 @@ private:
   void startCalibration();
   void saveCalibration();
 
-  void add_pattern(int id);
-  void update_visualization(int id);
+  void addPattern(int id);
+  void updateVisualization(int id);
 
   // services
-  sensor_msgs::CameraInfo cameraInfoLeft, cameraInfoRight;
+  sensor_msgs::CameraInfo camera_info_left_, camera_info_right_;
   bool setCameraInfo();
 
   void calibrate();
   void publishVisualizationImage(cv::Mat image, int id);
 
   // calibration
-  std::vector< std::vector<cv::Point3f> > object_points;
-  std::vector< std::vector<cv::Point2f> > image_points_left, image_points_right;
+  std::vector< std::vector<cv::Point3f> > object_points_;
+  std::vector< std::vector<cv::Point2f> > image_points_left_, image_points_right_;
 
   // ROS interface
-  ros::Subscriber eventLeftSubscriber, eventRightSubscriber;
-  ros::Subscriber cameraInfoLeftSubscriber, cameraInfoRightSubscriber;
-  image_transport::Publisher visualizationLeftPublisher, visualizationRightPublisher;
-  ros::ServiceClient setCameraInfoLeftClient, setCameraInfoRightClient;
+  ros::Subscriber event_left_sub_, event_right_sub_;
+  ros::Subscriber camera_info_left_sub_, camera_info_right_sub_;
+  image_transport::Publisher visualization_left_pub_, visualization_right_pub_;
+  ros::ServiceClient set_camera_info_left_client_, set_camera_info_right_client_;
 
   // buffer to wait for other camera
-  void add_stereo_pattern(std::vector<cv::Point2f> left, std::vector<cv::Point2f> right);
-  std::vector<cv::Point2f> image_point_buffer;
-  bool has_left_buffer, has_right_buffer;
-  ros::Time buffer_time;
+  void addStereoPattern(std::vector<cv::Point2f> left, std::vector<cv::Point2f> right);
+  std::vector<cv::Point2f> image_point_buffer_;
+  bool has_left_buffer_, has_right_buffer_;
+  ros::Time buffer_time_;
 
   // for pose publishing
-  bool gotCameraInfoLeft, gotCameraInfoRight;
+  bool got_camera_info_left_, got_camera_info_right_;
 };
 
 } // namespace

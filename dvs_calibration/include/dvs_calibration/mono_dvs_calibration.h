@@ -27,6 +27,7 @@
 #include <std_srvs/Empty.h>
 #include <sensor_msgs/CameraInfo.h>
 #include <sensor_msgs/SetCameraInfo.h>
+#include <geometry_msgs/PoseStamped.h>
 
 #include <opencv2/calib3d/calib3d.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
@@ -40,32 +41,37 @@ class MonoDvsCalibration : public DvsCalibration
 {
 public:
   MonoDvsCalibration();
-  virtual ~MonoDvsCalibration(){};
+  virtual ~MonoDvsCalibration() {}
 
 private:
   void resetCalibration();
   void startCalibration();
   void saveCalibration();
 
-  void add_pattern(int id);
-  void update_visualization(int id);
+  void addPattern(int id);
+  void updateVisualization(int id);
 
   // services
-  sensor_msgs::CameraInfo cameraInfo;
+  sensor_msgs::CameraInfo camera_info_external_;
+  sensor_msgs::CameraInfo new_camera_info_;
   bool setCameraInfo();
 
   void calibrate();
   void publishVisualizationImage(cv::Mat image);
 
   // calibration
-  std::vector< std::vector<cv::Point3f> > object_points;
-  std::vector< std::vector<cv::Point2f> > image_points;
+  std::vector< std::vector<cv::Point3f> > object_points_;
+  std::vector< std::vector<cv::Point2f> > image_points_;
 
   // ROS interface
-  ros::Subscriber eventSubscriber;
-  image_transport::Publisher visualizationPublisher;
-  image_transport::Publisher patternPublisher;
-  ros::ServiceClient setCameraInfoClient;
+  ros::Subscriber event_sub_;
+  ros::Publisher camera_pose_pub_;
+  image_transport::Publisher visualization_pub_;
+  image_transport::Publisher pattern_pub_;
+  ros::ServiceClient set_camera_info_client_;
+  ros::Subscriber camera_info_sub_;
+  bool got_camera_info_;
+  void cameraInfoCallback(const sensor_msgs::CameraInfo::ConstPtr& msg);
 };
 
 } // namespace
