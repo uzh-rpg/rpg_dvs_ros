@@ -16,20 +16,20 @@ find_package(catkin REQUIRED COMPONENTS
 
 # since we need boost search it as well
 # find_package makes the ${..._INCLUDE_DIRS} ${..._LIBRARIES} variables we use later
-find_package(OpenCV REQUIRED)
+find_package(OpenCV 2 REQUIRED)
 find_package(Boost REQUIRED)
 
 # export the dependencis of this package for who ever depends on us
 catkin_package(
   INCLUDE_DIRS include
-  CATKIN_DEPENDS 
-    roscpp 
-    image_transport 
-    cv_bridge 
+  CATKIN_DEPENDS
+    roscpp
+    image_transport
+    cv_bridge
     dvs_msgs
     geometry_msgs
     sensor_msgs
-  DEPENDS 
+  DEPENDS
   	OpenCV
   	boost
 )
@@ -55,7 +55,7 @@ add_executable(mono
   src/transition_map.cpp
 )
 
-# to build the executable we depend on other packets, 
+# to build the executable we depend on other packets,
 # they need to be build beforehand, especially the messages
 add_dependencies(mono ${catkin_EXPORTED_TARGETS})
 

@@ -13,20 +13,20 @@ find_package(catkin REQUIRED COMPONENTS
 
 # since we need eigen and boost search them as well
 # find_package makes the ${..._INCLUDE_DIRS} ${..._LIBRARIES} variables we use later
-find_package(OpenCV REQUIRED)
+find_package(OpenCV 2 REQUIRED)
 
 # export the dependencis of this package for who ever depends on us
 catkin_package(
-  INCLUDE_DIRS 
+  INCLUDE_DIRS
     include
-  CATKIN_DEPENDS 
-    roscpp 
-    sensor_msgs 
-    dvs_msgs 
-    cv_bridge 
+  CATKIN_DEPENDS
+    roscpp
+    sensor_msgs
+    dvs_msgs
+    cv_bridge
     image_transport
     nodelet
-  DEPENDS 
+  DEPENDS
     OpenCV
 )
 
@@ -53,9 +53,9 @@ add_library(dvs_renderer_nodelet
   src/renderer.cpp
 )
 
-# to build the executable we depend on other packets, 
+# to build the executable we depend on other packets,
 # they need to be build beforehand, especially the messages
-add_dependencies(dvs_renderer 
+add_dependencies(dvs_renderer
   ${catkin_EXPORTED_TARGETS}
 )
 
