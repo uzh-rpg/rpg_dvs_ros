@@ -80,13 +80,19 @@ void CameraDvsCalibration::calibrate()
 
   // call stereo calibration
   cv::Mat R, T, E, F;
-  bool flags = fix_intrinsics_ ? CV_CALIB_FIX_INTRINSIC : CV_CALIB_USE_INTRINSIC_GUESS;
+  int flags = fix_intrinsics_ ? CV_CALIB_FIX_INTRINSIC : CV_CALIB_USE_INTRINSIC_GUESS;
 
   cv::TermCriteria term_crit = cv::TermCriteria(cv::TermCriteria::COUNT + cv::TermCriteria::EPS, 30, 1e-6);
   double reproj_error = cv::stereoCalibrate(object_points_, image_points_camera_, image_points_dvs_,
                                             camera_matrix_camera, dist_coeffs_camera, camera_matrix_dvs, dist_coeffs_dvs,
                                             cv::Size(standard_camera_info_.width, standard_camera_info_.height),
-                                            R, T, E, F, term_crit, flags);
+                                            R, T, E, F,
+// the stereoCalibrate interface swapped the last two parameters from version 2.x to 3.x
+#if CV_MAJOR_VERSION == 2
+                                            term_crit, flags);
+#else
+                                            flags, term_crit);
+#endif
 
   cv::Mat R1, R2, P1, P2, Q;
   cv::stereoRectify(camera_matrix_camera, dist_coeffs_camera, camera_matrix_dvs, dist_coeffs_dvs,
