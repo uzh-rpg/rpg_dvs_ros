@@ -387,7 +387,7 @@ void DavisRosDriver::readout()
 
             dvs_msgs::Event e;
             e.x = caerPolarityEventGetX(event);
-            e.y = davis_info_.dvsSizeY - 1 - caerPolarityEventGetY(event);
+            e.y = caerPolarityEventGetY(event);
             e.ts = reset_time_ + ros::Duration(caerPolarityEventGetTimestamp64(event, polarity) / 1.e6);
             e.polarity = caerPolarityEventGetPolarity(event);
 
@@ -494,7 +494,7 @@ void DavisRosDriver::readout()
           {
             for (int img_x=0; img_x<frame_width; img_x++)
             {
-              const uint16_t value = image[(frame_height - 1 - img_y)*frame_width + img_x];
+              const uint16_t value = image[img_y*frame_width + img_x];
               //msg.data.push_back(value & 0xff);
               msg.data.push_back(value >> 8);
             }
