@@ -133,7 +133,7 @@ void DavisRosDriver::caerConnect()
   }
 
   davis_info_ = caerDavisInfoGet(davis_handle_);
-  device_id_ = "DAVIS-" + std::string(davis_info_.deviceString).substr(18, 7);
+  device_id_ = "DAVIS-" + std::string(davis_info_.deviceString).substr(18, 8);
 
   ROS_INFO("%s --- ID: %d, Master: %d, DVS X: %d, DVS Y: %d, Logic: %d.\n", davis_info_.deviceString,
            davis_info_.deviceID, davis_info_.deviceIsMaster, davis_info_.dvsSizeX, davis_info_.dvsSizeY,
