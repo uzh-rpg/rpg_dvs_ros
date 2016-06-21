@@ -110,16 +110,16 @@ void DavisRosDriver::caerConnect()
 {
 
   // start driver
-  bool dvs_running = false;
-  while (!dvs_running)
+  bool device_is_running = false;
+  while (!device_is_running)
   {
     const char* serial_number_restrict = (device_id_ == "") ? NULL : device_id_.c_str();
     davis_handle_ = caerDeviceOpen(1, CAER_DEVICE_DAVIS_FX2, 0, 0, serial_number_restrict);
 
     // was opening successful?
-    dvs_running = !(davis_handle_ == NULL);
+    device_is_running = !(davis_handle_ == NULL);
 
-    if (!dvs_running)
+    if (!device_is_running)
     {
       ROS_WARN("Could not find DAVIS. Will retry every second.");
       ros::Duration(1.0).sleep();
