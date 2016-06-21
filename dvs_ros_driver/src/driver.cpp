@@ -21,28 +21,31 @@ DvsRosDriver::DvsRosDriver(ros::NodeHandle & nh, ros::NodeHandle nh_private) :
     nh_(nh), parameter_update_required_(false)
 {
   // load parameters
-  std::string dvs_serial_number;
-  nh_private.param<std::string>("serial_number", dvs_serial_number, "");
-  bool master;
-  nh_private.param<bool>("master", master, true);
+  nh_private.param<std::string>("serial_number", device_id_, "");
+  nh_private.param<bool>("master", master_, true);
   double reset_timestamps_delay;
   nh_private.param<double>("reset_timestamps_delay", reset_timestamps_delay, -1.0);
 
   // start driver
-  bool dvs_running = false;
-  while (!dvs_running)
+  bool device_is_running = false;
+  while (!device_is_running)
   {
-    //driver_ = new dvs::DvsDriver(dvs_serial_number, master);
-    dvs128_handle = caerDeviceOpen(1, CAER_DEVICE_DVS128, 0, 0, NULL);
+    const char* serial_number_restrict = (device_id_ == "") ? NULL : device_id_.c_str();
+    dvs128_handle = caerDeviceOpen(1, CAER_DEVICE_DVS128, 0, 0, serial_number_restrict);
 
     //dvs_running = driver_->isDeviceRunning();
-    dvs_running = !(dvs128_handle == NULL);
+    device_is_running = !(dvs128_handle == NULL);
 
-    if (!dvs_running)
+    if (!device_is_running)
     {
       ROS_WARN("Could not find DVS. Will retry every second.");
       ros::Duration(1.0).sleep();
       ros::spinOnce();
+    }
+    else
+    {
+      // configure as master or slave
+      caerDeviceConfigSet(dvs128_handle, DVS128_CONFIG_DVS, DVS128_CONFIG_DVS_TS_MASTER, master_);
     }
 
     if (!ros::ok())
@@ -80,7 +83,15 @@ DvsRosDriver::DvsRosDriver(ros::NodeHandle & nh, ros::NodeHandle nh_private) :
   parameter_thread_ = boost::shared_ptr< boost::thread >(new boost::thread(boost::bind(&DvsRosDriver::changeDvsParameters, this)));
   readout_thread_ = boost::shared_ptr< boost::thread >(new boost::thread(boost::bind(&DvsRosDriver::readout, this)));
 
-  reset_sub_ = nh_.subscribe((ns + "/reset_timestamps").c_str(), 1, &DvsRosDriver::resetTimestampsCallback, this);
+  // reset timestamps is publisher as master, subscriber as slave
+  if (master_)
+  {
+    reset_pub_ = nh_.advertise<std_msgs::Time>((ns + "/reset_timestamps").c_str(), 1);
+  }
+  else
+  {
+    reset_sub_ = nh_.subscribe((ns + "/reset_timestamps").c_str(), 1, &DvsRosDriver::resetTimestampsCallback, this);
+  }
 
   // Dynamic reconfigure
   dynamic_reconfigure_callback_ = boost::bind(&DvsRosDriver::callback, this, _1, _2);
@@ -88,7 +99,7 @@ DvsRosDriver::DvsRosDriver(ros::NodeHandle & nh, ros::NodeHandle nh_private) :
   server_->setCallback(dynamic_reconfigure_callback_);
 
   // start timer to reset timestamps for synchronization
-  if (reset_timestamps_delay > 0.0)
+  if (reset_timestamps_delay > 0.0 && master_)
   {
     timestamp_reset_timer_ = nh_.createTimer(ros::Duration(reset_timestamps_delay), &DvsRosDriver::resetTimerCallback, this);
     ROS_INFO("Started timer to reset timestamps on master DVS for synchronization (delay=%3.2fs).", reset_timestamps_delay);
@@ -115,6 +126,12 @@ void DvsRosDriver::resetTimestamps()
   {
     ROS_INFO("Reset timestamps on %s", device_id_.c_str());
     reset_time_ = ros::Time::now();
+
+    // if master, publish reset time to slaves
+    if (master_)
+    {
+      reset_pub_.publish(reset_time_);
+    }
   }
   else
   {
@@ -122,15 +139,25 @@ void DvsRosDriver::resetTimestamps()
   }
 }
 
-void DvsRosDriver::resetTimestampsCallback(std_msgs::Empty msg)
+void DvsRosDriver::resetTimestampsCallback(const std_msgs::Time::ConstPtr &msg)
 {
-  resetTimestamps();
+  // if slave, only adjust offset time
+  if (!dvs128_info_.deviceIsMaster)
+  {
+    ROS_INFO("Adapting reset time of master on slave %s.", device_id_.c_str());
+    reset_time_ = msg->data;
+  }
+  // if master, or not single camera configuration, just reset timestamps
+  else
+  {
+    resetTimestamps();
+  }
 }
 
 void DvsRosDriver::resetTimerCallback(const ros::TimerEvent& te)
 {
-  resetTimestamps();
   timestamp_reset_timer_.stop();
+  resetTimestamps();
 }
 
 void DvsRosDriver::changeDvsParameters()
