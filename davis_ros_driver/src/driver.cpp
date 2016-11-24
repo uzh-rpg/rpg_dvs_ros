@@ -511,12 +511,12 @@ void DavisRosDriver::readout()
             // NED -> ROS ENU Conversion:  (x y z) -> (x -y -z)
             // https://github.com/cra-ros-pkg/robot_localization/issues/22
             // convert from g's to m/s^2
-            msg.linear_acceleration.x = caerIMU6EventGetAccelX(event) * STANDARD_GRAVITY;
-            msg.linear_acceleration.y = -caerIMU6EventGetAccelY(event) * STANDARD_GRAVITY;
-            msg.linear_acceleration.z = -caerIMU6EventGetAccelZ(event) * STANDARD_GRAVITY;
+            msg.linear_acceleration.x = -caerIMU6EventGetAccelY(event) * STANDARD_GRAVITY;
+            msg.linear_acceleration.y = -caerIMU6EventGetAccelZ(event) * STANDARD_GRAVITY;
+            msg.linear_acceleration.z = -caerIMU6EventGetAccelX(event) * STANDARD_GRAVITY;
             // convert from deg/s to rad/s
-            msg.angular_velocity.x = caerIMU6EventGetGyroX(event) / 180.0 * M_PI;
-            msg.angular_velocity.y = -caerIMU6EventGetGyroY(event) / 180.0 * M_PI;
+            msg.angular_velocity.x = -caerIMU6EventGetGyroY(event) / 180.0 * M_PI;
+            msg.angular_velocity.y = -caerIMU6EventGetGyroX(event) / 180.0 * M_PI;
             msg.angular_velocity.z = -caerIMU6EventGetGyroZ(event) / 180.0 * M_PI;
 
             // no orientation estimate: http://docs.ros.org/api/sensor_msgs/html/msg/Imu.html
