@@ -1,0 +1,24 @@
+<launch>
+  <!-- camera driver -->
+  <node name="davis_ros_driver" pkg="davis_ros_driver" type="davis_ros_driver">
+    <param name="aps_enabled" value="false" />
+  </node>
+
+  <!-- visualization -->
+  <node name="dvs_renderer" pkg="dvs_renderer" type="dvs_renderer">
+    <!-- <param name="display_method" value="grayscale"/> -->
+    <param name="display_method" value="red-blue"/>
+    <remap from="events" to="/dvs/events" />
+    <remap from="image" to="/dvs/image_raw" />
+    <remap from="camera_info" to="/dvs/camera_info" />
+  </node>
+
+  <!-- display -->
+  <node name="image_view" pkg="image_view" type="image_view">
+  	<remap from="image" to="dvs_rendering"/>
+  </node>
+
+  <!-- configure -->
+  <!-- <node name="rqt_reconfigure" pkg="rqt_reconfigure" type="rqt_reconfigure" /> -->
+
+</launch>
