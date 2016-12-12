@@ -350,9 +350,7 @@ void DavisRosDriver::readout()
 
   boost::posix_time::ptime next_send_time = boost::posix_time::microsec_clock::local_time();
 
-  dvs_msgs::EventArrayPtr event_array_msg(new dvs_msgs::EventArray());
-  event_array_msg->height = davis_info_.dvsSizeY;
-  event_array_msg->width = davis_info_.dvsSizeX;
+  dvs_msgs::EventArrayPtr event_array_msg;
 
   while (running_)
   {
@@ -377,6 +375,13 @@ void DavisRosDriver::readout()
         // Packet 0 is always the special events packet for DVS128, while packet is the polarity events packet.
         if (i == POLARITY_EVENT)
         {
+          if (event_array_msg == false)
+          {
+            event_array_msg = dvs_msgs::EventArrayPtr(new dvs_msgs::EventArray());
+            event_array_msg->height = davis_info_.dvsSizeY;
+            event_array_msg->width = davis_info_.dvsSizeX;
+          }
+
           caerPolarityEventPacket polarity = (caerPolarityEventPacket) packetHeader;
 
           const int numEvents = caerEventPacketHeaderGetEventNumber(packetHeader);
@@ -401,7 +406,7 @@ void DavisRosDriver::readout()
              )
           {
             event_array_pub_.publish(event_array_msg);
-            event_array_msg->events.clear();
+            event_array_msg.reset();
             if (current_config_.streaming_rate > 0)
               next_send_time += delta_;
             if (current_config_.max_events != 0 && event_array_msg->events.size() > current_config_.max_events)
