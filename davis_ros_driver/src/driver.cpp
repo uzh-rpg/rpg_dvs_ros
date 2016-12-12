@@ -406,11 +406,13 @@ void DavisRosDriver::readout()
              )
           {
             event_array_pub_.publish(event_array_msg);
-            event_array_msg.reset();
+
             if (current_config_.streaming_rate > 0)
               next_send_time += delta_;
             if (current_config_.max_events != 0 && event_array_msg->events.size() > current_config_.max_events)
               next_send_time = boost::posix_time::microsec_clock::local_time() + delta_;
+
+            event_array_msg.reset();
           }
 
           if (camera_info_manager_->isCalibrated())
