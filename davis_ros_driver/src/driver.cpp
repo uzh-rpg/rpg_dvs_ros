@@ -375,7 +375,7 @@ void DavisRosDriver::readout()
         // Packet 0 is always the special events packet for DVS128, while packet is the polarity events packet.
         if (i == POLARITY_EVENT)
         {
-          if (event_array_msg == false)
+          if (!event_array_msg)
           {
             event_array_msg = dvs_msgs::EventArrayPtr(new dvs_msgs::EventArray());
             event_array_msg->height = davis_info_.dvsSizeY;
