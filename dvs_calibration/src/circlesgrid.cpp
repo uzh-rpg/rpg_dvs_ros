@@ -607,7 +607,7 @@ bool CirclesGridFinder::findHoles()
     }
 
     default:
-      CV_Error(Error::StsBadArg, "Unkown pattern type");
+      CV_Error(-5, "Unkown pattern type");
   }
   return (isDetectionCorrect());
   //CV_Error( 0, "Detection is not correct" );
