@@ -23,7 +23,6 @@ Authors: Elias Mueggler, Basil Huber, Luca Longinotti, Tobi Delbruck
 If you use this work in an academic context, please cite the following publications:
 
 * E. Mueggler, B. Huber, D. Scaramuzza: **Event-based, 6-DOF Pose Tracking for High-Speed Maneuvers**. IEEE/RSJ International Conference on Intelligent Robots and Systems (IROS), Chicago, 2014. ([PDF](http://rpg.ifi.uzh.ch/docs/IROS14_Mueggler.pdf))
-* A. Censi, J. Strubel, C. Brandli, T. Delbruck, D. Scaramuzza: **Low-latency localization by Active LED Markers tracking using a Dynamic Vision Sensor**. IEEE/RSJ International Conference on Intelligent Robots and Systems (IROS), Tokyo, 2013. ([PDF](http://rpg.ifi.uzh.ch/docs/IROS13_Censi.pdf))
 * P. Lichtsteiner, C. Posch, T. Delbruck: **A 128×128 120dB 15us Latency Asynchronous Temporal Contrast Vision Sensor**. IEEE Journal of Solid State Circuits, Feb. 2008, 43(2), 566-576. ([PDF](https://www.ini.uzh.ch/~tobi/wiki/lib/exe/fetch.php?media=lichtsteiner_dvs_jssc08.pdf))
 
 
@@ -31,13 +30,16 @@ If you use this work in an academic context, please cite the following publicati
 Make sure, libusb is installed on your system:  
 1. `$ sudo apt-get install libusb-1.0-0-dev`
 
+You need the `catkin_simple` package to build the packages that you can get from here:  
+2. https://github.com/catkin/catkin_simple
+
 Only a udev rule is needed to run the DVS driver. An install script is provided in the package dvs_driver.  
-2. `$ roscd libcaer_catkin`  
-3. `$ ./install.sh` (needs root privileges)
+3. `$ roscd libcaer_catkin`  
+4. `$ ./install.sh` (needs root privileges)
 
 You can test the installation by running a provided launch file. It starts the driver (DVS or DAVIS), the renderer, an image viewer, and the dynamic reconfigure GUI.   
-4. `$ roslaunch dvs_renderer dvs_mono.launch`  
-5. `$ roslaunch dvs_renderer davis_mono.launch`  
+5. `$ roslaunch dvs_renderer dvs_mono.launch`  
+6. `$ roslaunch dvs_renderer davis_mono.launch`  
 
 
 # DVS Calibration
@@ -59,7 +61,7 @@ Collect at least 30 samples before starting the calibration.
 **This can take up to a few minutes** and freezes your RQT GUI.
 Once done, the calibration parameters are shown and can be saved.
 The camera parameters will be stored in `~/.ros/camera_info`.
-When you plug that DVS again, this calibration file will be loaded and published as `/dvs/camera_info`. 
+When you plug that DVS again, this calibration file will be loaded and published as `/dvs/camera_info`.
 
 The image viewers below show the following:
 
@@ -71,11 +73,11 @@ The image viewers below show the following:
 # Stereo DVS Calibration
 
 ## Setup
-Connect the two DVS from OUT (master) to IN (slave). 
+Connect the two DVS from OUT (master) to IN (slave).
 GND must not be connected if both DVS are connected over USB to the same computer, to avoid ground loops.
 Time synchronization is performed automatically in the driver software.
-Since each DVS has a separate driver, the ROS messages might arrive at different times. 
-Hover, the timestamps within the messages are synchronized.
+Since each DVS has a separate driver, the ROS messages might arrive at different times.
+However, the timestamps within the messages are synchronized.
 
 ## Calibration
 1. Calibrate each DVS independently
@@ -86,7 +88,7 @@ Hover, the timestamps within the messages are synchronized.
 
 # Calibration Details and Parameters
 The calibration requires a board with a regular grid of blinking LEDs.
-In our case we have a 5x5 grid with a 0.05m distance between the LEDs. 
+In our case we have a 5x5 grid with a 0.05m distance between the LEDs.
 One of the rows can be turned off (to make a 5x4 grid) to avoid confusion in the stereo case.
 The following parameters can be tuned using ROS parameters:
 * `dots_w`, `dots_h` (default: 5) is the number of rows and columns in the grid of LEDs
@@ -102,7 +104,7 @@ If you have your own LED board with different LEDs or blinking frequencies, you 
 
 # Troubleshooting
 ## New dvs_msgs format
-If you recorded rosbags with a previous version of this package, they must be migrated. 
+If you recorded rosbags with a previous version of this package, they must be migrated.
 The format for the timestamps changed from uint64 to rostime.
 To convert an "old" bag file, use   
 `$ rosbag fix old.bag new.bag`.
