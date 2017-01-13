@@ -7,10 +7,11 @@
   <license>GNU GPL</license>
 
   <buildtool_depend>catkin</buildtool_depend>
+  <buildtool_depend>catkin_simple</buildtool_depend>
 
   <build_depend>roscpp</build_depend>
   <build_depend>dvs_msgs</build_depend>
-  
+
   <run_depend>roscpp</run_depend>
   <run_depend>dvs_msgs</run_depend>
 
