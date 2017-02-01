@@ -438,9 +438,7 @@ void DavisRosDriver::readout()
 
   boost::posix_time::ptime next_send_time = boost::posix_time::microsec_clock::local_time();
 
-  dvs_msgs::EventArrayPtr event_array_msg(new dvs_msgs::EventArray());
-  event_array_msg->height = davis_info_.dvsSizeY;
-  event_array_msg->width = davis_info_.dvsSizeX;
+  dvs_msgs::EventArrayPtr event_array_msg;
 
   while (running_)
   {
@@ -465,6 +463,13 @@ void DavisRosDriver::readout()
         // Packet 0 is always the special events packet for DVS128, while packet is the polarity events packet.
         if (i == POLARITY_EVENT)
         {
+          if (!event_array_msg)
+          {
+            event_array_msg = dvs_msgs::EventArrayPtr(new dvs_msgs::EventArray());
+            event_array_msg->height = davis_info_.dvsSizeY;
+            event_array_msg->width = davis_info_.dvsSizeX;
+          }
+
           caerPolarityEventPacket polarity = (caerPolarityEventPacket) packetHeader;
 
           const int numEvents = caerEventPacketHeaderGetEventNumber(packetHeader);
@@ -489,7 +494,7 @@ void DavisRosDriver::readout()
              )
           {
             event_array_pub_.publish(event_array_msg);
-            event_array_msg->events.clear();
+
             if (current_config_.streaming_rate > 0)
             {
               next_send_time += delta_;
@@ -497,7 +502,8 @@ void DavisRosDriver::readout()
             if (current_config_.max_events != 0 && event_array_msg->events.size() > current_config_.max_events)
             {
               next_send_time = boost::posix_time::microsec_clock::local_time() + delta_;
-            }
+
+            event_array_msg.reset();
           }
 
           if (camera_info_manager_->isCalibrated())
@@ -517,15 +523,13 @@ void DavisRosDriver::readout()
             caerIMU6Event event = caerIMU6EventPacketGetEvent(imu, j);
 
             sensor_msgs::Imu msg;
-            // NED -> ROS ENU Conversion:  (x y z) -> (x -y -z)
-            // https://github.com/cra-ros-pkg/robot_localization/issues/22
-            // convert from g's to m/s^2
-            msg.linear_acceleration.x = -caerIMU6EventGetAccelY(event) * STANDARD_GRAVITY;
-            msg.linear_acceleration.y = -caerIMU6EventGetAccelZ(event) * STANDARD_GRAVITY;
-            msg.linear_acceleration.z = -caerIMU6EventGetAccelX(event) * STANDARD_GRAVITY;
-            // convert from deg/s to rad/s
-            msg.angular_velocity.x = -caerIMU6EventGetGyroY(event) / 180.0 * M_PI;
-            msg.angular_velocity.y = -caerIMU6EventGetGyroX(event) / 180.0 * M_PI;
+            // convert from g's to m/s^2 and align axes with camera frame
+            msg.linear_acceleration.x = -caerIMU6EventGetAccelX(event) * STANDARD_GRAVITY;
+            msg.linear_acceleration.y = caerIMU6EventGetAccelY(event) * STANDARD_GRAVITY;
+            msg.linear_acceleration.z = -caerIMU6EventGetAccelZ(event) * STANDARD_GRAVITY;
+            // convert from deg/s to rad/s and align axes with camera frame
+            msg.angular_velocity.x = -caerIMU6EventGetGyroX(event) / 180.0 * M_PI;
+            msg.angular_velocity.y = caerIMU6EventGetGyroY(event) / 180.0 * M_PI;
             msg.angular_velocity.z = -caerIMU6EventGetGyroZ(event) / 180.0 * M_PI;
 
             // no orientation estimate: http://docs.ros.org/api/sensor_msgs/html/msg/Imu.html

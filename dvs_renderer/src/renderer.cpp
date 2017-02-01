@@ -128,7 +128,7 @@ void Renderer::eventsCallback(const dvs_msgs::EventArray::ConstPtr& msg)
       else
       {
         cv_image.image = cv::Mat(msg->height, msg->width, CV_8UC3);
-        cv_image.image = cv::Scalar(128, 128, 128);
+        cv_image.image = cv::Scalar(0,0,0);
       }
 
       for (int i = 0; i < msg->events.size(); ++i)
