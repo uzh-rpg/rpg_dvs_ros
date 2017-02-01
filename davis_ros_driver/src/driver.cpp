@@ -134,14 +134,18 @@ void DavisRosDriver::caerConnect()
 
   davis_info_ = caerDavisInfoGet(davis_handle_);
 
-  /*
-   * For some reason, davis_info_.deviceString sometimes returns NULL and crashes
-   */
-//  device_id_ = "DAVIS-" + std::string(davis_info_.deviceString).substr(18, 8);
-//
-//  ROS_INFO("%s --- ID: %d, Master: %d, DVS X: %d, DVS Y: %d, Logic: %d.\n", davis_info_.deviceString,
-//           davis_info_.deviceID, davis_info_.deviceIsMaster, davis_info_.dvsSizeX, davis_info_.dvsSizeY,
-//           davis_info_.logicVersion);
+  if (davis_info_.chipID == DAVIS_CHIP_DAVIS346B)
+  {
+    device_id_ = "DAVIS-346-" + std::string(davis_info_.deviceString).substr(21, 5);
+  }
+  else
+  {
+    device_id_ = "DAVIS-" + std::string(davis_info_.deviceString).substr(18, 8);
+  }
+
+  ROS_INFO("%s --- ID: %d, Master: %d, DVS X: %d, DVS Y: %d, Logic: %d.\n", davis_info_.deviceString,
+          davis_info_.deviceID, davis_info_.deviceIsMaster, davis_info_.dvsSizeX, davis_info_.dvsSizeY,
+          davis_info_.logicVersion);
 
   // Send the default configuration before using the device.
   // No configuration is sent automatically!
