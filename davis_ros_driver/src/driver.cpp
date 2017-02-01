@@ -502,6 +502,7 @@ void DavisRosDriver::readout()
             if (current_config_.max_events != 0 && event_array_msg->events.size() > current_config_.max_events)
             {
               next_send_time = boost::posix_time::microsec_clock::local_time() + delta_;
+            }
 
             event_array_msg.reset();
           }
@@ -566,7 +567,6 @@ void DavisRosDriver::readout()
             imu_pub_.publish(msg);
           }
         }
-
         else if (i == FRAME_EVENT)
         {
           caerFrameEventPacket frame = (caerFrameEventPacket) packetHeader;
