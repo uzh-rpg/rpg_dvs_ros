@@ -27,11 +27,11 @@
         .typeNormal = true, .currentLevelNormal = true }
 
 #define SHIFTSOURCE(REF, REG, OPMODE) (struct caer_bias_shiftedsource) \
-	{ .refValue = (uint8_t)(REF), .regValue = (uint8_t)(REG), \
-	  .operatingMode = (caer_bias_shiftedsource_operating_mode)(OPMODE), .voltageLevel = (caer_bias_shiftedsource_voltage_level)(SPLIT_GATE) }
+  { .refValue = (uint8_t)(REF), .regValue = (uint8_t)(REG), \
+    .operatingMode = (caer_bias_shiftedsource_operating_mode)(OPMODE), .voltageLevel = (caer_bias_shiftedsource_voltage_level)(SPLIT_GATE) }
 
 #define VDAC(VOLT, CURR) (struct caer_bias_vdac) \
-	{ .voltageValue = (uint8_t)(VOLT), .currentValue = (uint8_t)(CURR) }
+  { .voltageValue = (uint8_t)(VOLT), .currentValue = (uint8_t)(CURR) }
 
 
 namespace davis_ros_driver {
@@ -149,9 +149,10 @@ void DavisRosDriver::caerConnect()
   /*
    * Something with the default aps size is wrong with the DAVIS346B. Quickfix with sending hardcoded values
    */
-  if (davis_info_.chipID == DAVIS_CHIP_DAVIS346B) {
-  	caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_APS, DAVIS_CONFIG_APS_END_COLUMN_0, U16T(davis_info_.apsSizeX-1));
-  	caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_APS, DAVIS_CONFIG_APS_END_ROW_0, U16T(davis_info_.apsSizeY-1));
+  if (davis_info_.chipID == DAVIS_CHIP_DAVIS346B)
+  {
+    caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_APS, DAVIS_CONFIG_APS_END_COLUMN_0, U16T(davis_info_.apsSizeX-1));
+    caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_APS, DAVIS_CONFIG_APS_END_ROW_0, U16T(davis_info_.apsSizeY-1));
   }
 
   // Re-send params from param server if not first connection
@@ -160,7 +161,8 @@ void DavisRosDriver::caerConnect()
 
   // camera info handling
   ros::NodeHandle nh_ns(ns);
-  if(camera_info_manager_){
+  if (camera_info_manager_)
+  {
     delete camera_info_manager_;
   }
 
@@ -172,12 +174,13 @@ void DavisRosDriver::caerConnect()
 
   // spawn threads
   running_ = true;
-  parameter_thread_ = boost::shared_ptr< boost::thread >(new boost::thread(boost::bind(&DavisRosDriver::changeDvsParameters, this)));
-  readout_thread_ = boost::shared_ptr< boost::thread >(new boost::thread(boost::bind(&DavisRosDriver::readout, this)));
+  parameter_thread_ = boost::shared_ptr<boost::thread>(new boost::thread(boost::bind(&DavisRosDriver::changeDvsParameters, this)));
+  readout_thread_ = boost::shared_ptr<boost::thread>(new boost::thread(boost::bind(&DavisRosDriver::readout, this)));
 
 }
 
-void DavisRosDriver::onDisconnectUSB(void* driver){
+void DavisRosDriver::onDisconnectUSB(void* driver)
+{
   ROS_ERROR("USB connection lost with DVS !");
   static_cast<davis_ros_driver::DavisRosDriver*>(driver)->caerConnect();
 }
@@ -279,88 +282,90 @@ void DavisRosDriver::changeDvsParameters()
       /*
        * Set Sensor-dependent Biases
        */
-      if (davis_info_.chipID == DAVIS_CHIP_DAVIS346B) {
-      	// VDAC
-      	caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_BIAS, DAVIS346_CONFIG_BIAS_APSOVERFLOWLEVEL,
-      			caerBiasVDACGenerate(VDAC(27,6)));
-				caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_BIAS, DAVIS346_CONFIG_BIAS_APSCAS,
-						caerBiasVDACGenerate(VDAC(21,6)));
-				caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_BIAS, DAVIS346_CONFIG_BIAS_ADCREFHIGH,
-						caerBiasVDACGenerate(VDAC(30,7)));
-				caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_BIAS, DAVIS346_CONFIG_BIAS_ADCREFLOW,
-						caerBiasVDACGenerate(VDAC(1,7)));
-				caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_BIAS, DAVIS346_CONFIG_BIAS_ADCTESTVOLTAGE,
-						caerBiasVDACGenerate(VDAC(21,7)));
-				// CF Biases
-				caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_BIAS, DAVIS346_CONFIG_BIAS_LOCALBUFBN,
-						caerBiasCoarseFineGenerate(CF_N_TYPE(5, 164)));
-				caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_BIAS, DAVIS346_CONFIG_BIAS_PADFOLLBN,
-						caerBiasCoarseFineGenerate(CF_N_TYPE(7, 215)));
-				caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_BIAS, DAVIS346_CONFIG_BIAS_DIFFBN,
-						caerBiasCoarseFineGenerate(CF_N_TYPE(4, 39)));
-				caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_BIAS, DAVIS346_CONFIG_BIAS_ONBN,
-						caerBiasCoarseFineGenerate(CF_N_TYPE(6, 255)));
-				caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_BIAS, DAVIS346_CONFIG_BIAS_OFFBN,
-						caerBiasCoarseFineGenerate(CF_N_TYPE(4, 0)));
-				caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_BIAS, DAVIS346_CONFIG_BIAS_PIXINVBN,
-						caerBiasCoarseFineGenerate(CF_N_TYPE(5, 129)));
-				caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_BIAS, DAVIS346_CONFIG_BIAS_PRBP,
-						caerBiasCoarseFineGenerate(CF_P_TYPE(2, 255)));
-				caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_BIAS, DAVIS346_CONFIG_BIAS_PRSFBP,
-						caerBiasCoarseFineGenerate(CF_P_TYPE(1, 199)));
-				caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_BIAS, DAVIS346_CONFIG_BIAS_REFRBP,
-						caerBiasCoarseFineGenerate(CF_P_TYPE(3, 7)));
-				caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_BIAS, DAVIS346_CONFIG_BIAS_READOUTBUFBP,
-						caerBiasCoarseFineGenerate(CF_P_TYPE(6, 20)));
-				caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_BIAS, DAVIS346_CONFIG_BIAS_APSROSFBN,
-						caerBiasCoarseFineGenerate(CF_N_TYPE(6, 219)));
-				caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_BIAS, DAVIS346_CONFIG_BIAS_ADCCOMPBP,
-						caerBiasCoarseFineGenerate(CF_P_TYPE(5, 20)));
-				caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_BIAS, DAVIS346_CONFIG_BIAS_COLSELLOWBN,
-						caerBiasCoarseFineGenerate(CF_N_TYPE(0, 1)));
-				caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_BIAS, DAVIS346_CONFIG_BIAS_DACBUFBP,
-						caerBiasCoarseFineGenerate(CF_P_TYPE(6, 60)));
-				caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_BIAS, DAVIS346_CONFIG_BIAS_LCOLTIMEOUTBN,
-						caerBiasCoarseFineGenerate(CF_N_TYPE(5, 49)));;
-				caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_BIAS, DAVIS346_CONFIG_BIAS_AEPDBN,
-						caerBiasCoarseFineGenerate(CF_N_TYPE(6, 91)));
-				caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_BIAS, DAVIS346_CONFIG_BIAS_AEPUXBP,
-						caerBiasCoarseFineGenerate(CF_P_TYPE(4, 80)));
-				caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_BIAS, DAVIS346_CONFIG_BIAS_AEPUYBP,
-						caerBiasCoarseFineGenerate(CF_P_TYPE(7, 152)));
-				caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_BIAS, DAVIS346_CONFIG_BIAS_IFREFRBN,
-						caerBiasCoarseFineGenerate(CF_N_TYPE(5, 255)));
-				caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_BIAS, DAVIS346_CONFIG_BIAS_IFTHRBN,
-						caerBiasCoarseFineGenerate(CF_N_TYPE(5, 255)));
-				caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_BIAS, DAVIS346_CONFIG_BIAS_BIASBUFFER,
-					caerBiasCoarseFineGenerate(CF_N_TYPE(5, 254)));
-				// Special Biases
-				caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_BIAS, DAVIS346_CONFIG_BIAS_SSP,
-						caerBiasShiftedSourceGenerate(SHIFTSOURCE(1,33,SHIFTED_SOURCE)));
-				caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_BIAS, DAVIS346_CONFIG_BIAS_SSN,
-						caerBiasShiftedSourceGenerate(SHIFTSOURCE(1,33,SHIFTED_SOURCE)));
+      if (davis_info_.chipID == DAVIS_CHIP_DAVIS346B)
+      {
+        // VDAC
+        caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_BIAS, DAVIS346_CONFIG_BIAS_APSOVERFLOWLEVEL,
+            caerBiasVDACGenerate(VDAC(27,6)));
+        caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_BIAS, DAVIS346_CONFIG_BIAS_APSCAS,
+            caerBiasVDACGenerate(VDAC(21,6)));
+        caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_BIAS, DAVIS346_CONFIG_BIAS_ADCREFHIGH,
+            caerBiasVDACGenerate(VDAC(30,7)));
+        caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_BIAS, DAVIS346_CONFIG_BIAS_ADCREFLOW,
+            caerBiasVDACGenerate(VDAC(1,7)));
+        caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_BIAS, DAVIS346_CONFIG_BIAS_ADCTESTVOLTAGE,
+            caerBiasVDACGenerate(VDAC(21,7)));
+        // CF Biases
+        caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_BIAS, DAVIS346_CONFIG_BIAS_LOCALBUFBN,
+            caerBiasCoarseFineGenerate(CF_N_TYPE(5, 164)));
+        caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_BIAS, DAVIS346_CONFIG_BIAS_PADFOLLBN,
+            caerBiasCoarseFineGenerate(CF_N_TYPE(7, 215)));
+        caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_BIAS, DAVIS346_CONFIG_BIAS_DIFFBN,
+            caerBiasCoarseFineGenerate(CF_N_TYPE(4, 39)));
+        caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_BIAS, DAVIS346_CONFIG_BIAS_ONBN,
+            caerBiasCoarseFineGenerate(CF_N_TYPE(6, 255)));
+        caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_BIAS, DAVIS346_CONFIG_BIAS_OFFBN,
+            caerBiasCoarseFineGenerate(CF_N_TYPE(4, 0)));
+        caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_BIAS, DAVIS346_CONFIG_BIAS_PIXINVBN,
+            caerBiasCoarseFineGenerate(CF_N_TYPE(5, 129)));
+        caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_BIAS, DAVIS346_CONFIG_BIAS_PRBP,
+            caerBiasCoarseFineGenerate(CF_P_TYPE(2, 255)));
+        caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_BIAS, DAVIS346_CONFIG_BIAS_PRSFBP,
+            caerBiasCoarseFineGenerate(CF_P_TYPE(1, 199)));
+        caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_BIAS, DAVIS346_CONFIG_BIAS_REFRBP,
+            caerBiasCoarseFineGenerate(CF_P_TYPE(3, 7)));
+        caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_BIAS, DAVIS346_CONFIG_BIAS_READOUTBUFBP,
+            caerBiasCoarseFineGenerate(CF_P_TYPE(6, 20)));
+        caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_BIAS, DAVIS346_CONFIG_BIAS_APSROSFBN,
+            caerBiasCoarseFineGenerate(CF_N_TYPE(6, 219)));
+        caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_BIAS, DAVIS346_CONFIG_BIAS_ADCCOMPBP,
+            caerBiasCoarseFineGenerate(CF_P_TYPE(5, 20)));
+        caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_BIAS, DAVIS346_CONFIG_BIAS_COLSELLOWBN,
+            caerBiasCoarseFineGenerate(CF_N_TYPE(0, 1)));
+        caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_BIAS, DAVIS346_CONFIG_BIAS_DACBUFBP,
+            caerBiasCoarseFineGenerate(CF_P_TYPE(6, 60)));
+        caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_BIAS, DAVIS346_CONFIG_BIAS_LCOLTIMEOUTBN,
+            caerBiasCoarseFineGenerate(CF_N_TYPE(5, 49)));;
+        caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_BIAS, DAVIS346_CONFIG_BIAS_AEPDBN,
+            caerBiasCoarseFineGenerate(CF_N_TYPE(6, 91)));
+        caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_BIAS, DAVIS346_CONFIG_BIAS_AEPUXBP,
+            caerBiasCoarseFineGenerate(CF_P_TYPE(4, 80)));
+        caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_BIAS, DAVIS346_CONFIG_BIAS_AEPUYBP,
+            caerBiasCoarseFineGenerate(CF_P_TYPE(7, 152)));
+        caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_BIAS, DAVIS346_CONFIG_BIAS_IFREFRBN,
+            caerBiasCoarseFineGenerate(CF_N_TYPE(5, 255)));
+        caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_BIAS, DAVIS346_CONFIG_BIAS_IFTHRBN,
+            caerBiasCoarseFineGenerate(CF_N_TYPE(5, 255)));
+        caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_BIAS, DAVIS346_CONFIG_BIAS_BIASBUFFER,
+          caerBiasCoarseFineGenerate(CF_N_TYPE(5, 254)));
+        // Special Biases
+        caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_BIAS, DAVIS346_CONFIG_BIAS_SSP,
+            caerBiasShiftedSourceGenerate(SHIFTSOURCE(1,33,SHIFTED_SOURCE)));
+        caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_BIAS, DAVIS346_CONFIG_BIAS_SSN,
+            caerBiasShiftedSourceGenerate(SHIFTSOURCE(1,33,SHIFTED_SOURCE)));
       }
-      else {
-				// BIAS changes for DAVIS240
-				if (parameter_bias_update_required_)
-				{
-					parameter_bias_update_required_ = false;
-					caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_BIAS, DAVIS240_CONFIG_BIAS_PRBP,
-							caerBiasCoarseFineGenerate(CF_P_TYPE(current_config_.PrBp_coarse, current_config_.PrBp_fine)));
-					caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_BIAS, DAVIS240_CONFIG_BIAS_PRSFBP,
-							caerBiasCoarseFineGenerate(CF_P_TYPE(current_config_.PrSFBp_coarse, current_config_.PrSFBp_fine)));
+      else
+      {
+        // BIAS changes for DAVIS240
+        if (parameter_bias_update_required_)
+        {
+          parameter_bias_update_required_ = false;
+          caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_BIAS, DAVIS240_CONFIG_BIAS_PRBP,
+              caerBiasCoarseFineGenerate(CF_P_TYPE(current_config_.PrBp_coarse, current_config_.PrBp_fine)));
+          caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_BIAS, DAVIS240_CONFIG_BIAS_PRSFBP,
+              caerBiasCoarseFineGenerate(CF_P_TYPE(current_config_.PrSFBp_coarse, current_config_.PrSFBp_fine)));
 
-					caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_BIAS, DAVIS240_CONFIG_BIAS_DIFFBN,
-							caerBiasCoarseFineGenerate(CF_N_TYPE(current_config_.DiffBn_coarse, current_config_.DiffBn_fine)));
-					caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_BIAS, DAVIS240_CONFIG_BIAS_ONBN,
-							caerBiasCoarseFineGenerate(CF_N_TYPE(current_config_.ONBn_coarse, current_config_.ONBn_fine)));
-					caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_BIAS, DAVIS240_CONFIG_BIAS_OFFBN,
-							caerBiasCoarseFineGenerate(CF_N_TYPE(current_config_.OFFBn_coarse, current_config_.OFFBn_fine)));
+          caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_BIAS, DAVIS240_CONFIG_BIAS_DIFFBN,
+              caerBiasCoarseFineGenerate(CF_N_TYPE(current_config_.DiffBn_coarse, current_config_.DiffBn_fine)));
+          caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_BIAS, DAVIS240_CONFIG_BIAS_ONBN,
+              caerBiasCoarseFineGenerate(CF_N_TYPE(current_config_.ONBn_coarse, current_config_.ONBn_fine)));
+          caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_BIAS, DAVIS240_CONFIG_BIAS_OFFBN,
+              caerBiasCoarseFineGenerate(CF_N_TYPE(current_config_.OFFBn_coarse, current_config_.OFFBn_fine)));
 
-					caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_BIAS, DAVIS240_CONFIG_BIAS_REFRBP,
-							caerBiasCoarseFineGenerate(CF_P_TYPE(current_config_.RefrBp_coarse, current_config_.RefrBp_fine)));
+          caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_BIAS, DAVIS240_CONFIG_BIAS_REFRBP,
+              caerBiasCoarseFineGenerate(CF_P_TYPE(current_config_.RefrBp_coarse, current_config_.RefrBp_fine)));
 
-				}
+        }
       }
 
       boost::this_thread::sleep(boost::posix_time::milliseconds(100));
@@ -486,9 +491,13 @@ void DavisRosDriver::readout()
             event_array_pub_.publish(event_array_msg);
             event_array_msg->events.clear();
             if (current_config_.streaming_rate > 0)
+            {
               next_send_time += delta_;
+            }
             if (current_config_.max_events != 0 && event_array_msg->events.size() > current_config_.max_events)
+            {
               next_send_time = boost::posix_time::microsec_clock::local_time() + delta_;
+            }
           }
 
           if (camera_info_manager_->isCalibrated())
