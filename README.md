@@ -3,7 +3,7 @@ rpg_dvs_ros
 
 # Disclaimer and License
 
-The RPG ROS DVS package has been tested under ROS Indigo and Ubuntu 14.04.
+The RPG ROS DVS package has been tested under ROS Indigo (Ubuntu 14.04) and ROS Kinetic (Ubuntu 16.04).
 
 This is research code, expect that it changes often and any fitness for a particular purpose is disclaimed.
 
@@ -12,18 +12,21 @@ The source code is released under a **GNU General Public License (GPL)**.
 
 # Package Overview
 
-The ROS DVS package provides a C++ driver for the Dynamic Vision Sensor (DVS).
+The ROS DVS package provides C++ drivers for the [Dynamic Vision Sensor (DVS)](https://inilabs.com/products/dynamic-vision-sensors/) and the [Dynamic and Active-pixel Vision Sensor (DAVIS)](https://inilabs.com/products/dynamic-and-active-pixel-vision-sensor/).
 It also provides a calibration tool for both intrinsic and stereo calibration.
-To find out more about the DVS, visit the website of the [Institute of Neuroinformatics](http://siliconretina.ini.uzh.ch/wiki/index.php).
+To find out more about event cameras, visit the website of the [Institute of Neuroinformatics](http://siliconretina.ini.uzh.ch/wiki/index.php).
+The package is based on [libcaer](https://github.com/inilabs/libcaer).
 
 Authors: Elias Mueggler, Basil Huber, Luca Longinotti, Tobi Delbruck
+
 
 ## Publications
 
 If you use this work in an academic context, please cite the following publications:
 
 * E. Mueggler, B. Huber, D. Scaramuzza: **Event-based, 6-DOF Pose Tracking for High-Speed Maneuvers**. IEEE/RSJ International Conference on Intelligent Robots and Systems (IROS), Chicago, 2014. ([PDF](http://rpg.ifi.uzh.ch/docs/IROS14_Mueggler.pdf))
-* P. Lichtsteiner, C. Posch, T. Delbruck: **A 128×128 120dB 15us Latency Asynchronous Temporal Contrast Vision Sensor**. IEEE Journal of Solid State Circuits, Feb. 2008, 43(2), 566-576. ([PDF](https://www.ini.uzh.ch/~tobi/wiki/lib/exe/fetch.php?media=lichtsteiner_dvs_jssc08.pdf))
+* P. Lichtsteiner, C. Posch, T. Delbruck: **A 128×128 120dB 15us Latency Asynchronous Temporal Contrast Vision Sensor**. IEEE Journal of Solid State Circuits, Feb. 2008, 43(2), pp. 566-576. ([PDF](https://www.ini.uzh.ch/~tobi/wiki/lib/exe/fetch.php?media=lichtsteiner_dvs_jssc08.pdf))
+* C. Brandli, R. Berner, M. Yang, S. C. Liu and T. Delbruck: **A 240 × 180 130 dB 3 us Latency Global Shutter Spatiotemporal Vision Sensor**. IEEE Journal of Solid-State Circuits, Oct. 2014, 49(10), pp. 2333-2341. ([Link](ieeexplore.ieee.org/document/6889103))
 
 
 # Driver Installation
@@ -43,7 +46,9 @@ You can test the installation by running a provided launch file. It starts the d
 
 
 # DVS Calibration
-The calibration of a DVS is a two-stage procedure. First, the focus must be adjusted. Then, the intrinsic camera parameters are estimated.   
+The calibration of a DVS is a two-stage procedure.
+First, the focus must be adjusted.
+Then, the intrinsic camera parameters are estimated.
 
 ## Focus Adjustment
 Adjust the focus of the DVS. One way of achieving this is using a special pattern, e.g. the [Back Focus Pattern](https://github.com/uzh-rpg/rpg_dvs_ros/blob/master/dvs_calibration/pdf/backfocus.pdf).
@@ -52,8 +57,6 @@ Adjust the focus of the DVS. One way of achieving this is using a special patter
 To run the intrinsic camera calibration, we use a 5x5 LED board that is blinking at 500Hz.
 The calibration procedure is then started using  
 `$ roslaunch dvs_calibration dvs_intrinsic.launch`  
-or, for the DAVIS,  
-`$ roslaunch dvs_calibration davis_intrinsic.launch`  
 You will see an RQT interface with all necessary information.
 Top left is the calibration GUI, which displays the amount of detected patterns.
 **Currently, pattern detection does not seem to work indoors. Try close to a window.**
@@ -101,6 +104,12 @@ If you have your own LED board with different LEDs or blinking frequencies, you 
 * `minimum_transitions_threshold` (default: 10) is the minimum number of transitions required to be considered in the LED search
 * `minimum_led_mass` (default: 50) is the minimum "mass" of an LED blob, i.e., the sum of transitions in this blop
 * `pattern_search_timeout` (default: 2.0) is the timeout in **seconds** when the transition map is reset (it is also reset when the LED grid was found)
+
+
+# DAVIS Calibration
+We recommend to use the frames for intrinsic calibration for the DAVIS.
+More details can be found here for [monocular](http://wiki.ros.org/camera_calibration/Tutorials/MonocularCalibration) and [stereo](http://wiki.ros.org/camera_calibration/Tutorials/StereoCalibration).
+
 
 # Troubleshooting
 ## New dvs_msgs format
