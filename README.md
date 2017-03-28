@@ -36,13 +36,19 @@ Make sure, libusb is installed on your system:
 You need the `catkin_simple` package to build the packages that you can get from here:  
 2. https://github.com/catkin/catkin_simple
 
+3. Build the packages:  
+  * `$ catkin build dvs_ros_driver`  (if you are using the DVS)  
+  * `$ catkin build davis_ros_driver`  (if you are using the DAVIS)  
+
 Only a udev rule is needed to run the DVS driver. An install script is provided in the package dvs_driver.  
-3. `$ roscd libcaer_catkin`  
-4. `$ ./install.sh` (needs root privileges)
+4. `$ roscd libcaer_catkin`  (need to source your setup.bash file first, or just do `$ cd libcaer_catkin`)  
+5. `$ ./install.sh` (needs root privileges)
 
 You can test the installation by running a provided launch file. It starts the driver (DVS or DAVIS), the renderer, an image viewer, and the dynamic reconfigure GUI.   
-5. `$ roslaunch dvs_renderer dvs_mono.launch`  
-6. `$ roslaunch dvs_renderer davis_mono.launch`  
+6. `$ catkin build dvs_renderer`  (to build the renderer; then source your setup.bash file)  
+7. Launch the example:
+  * `$ roslaunch dvs_renderer dvs_mono.launch`  (if you are using the DVS)
+  * `$ roslaunch dvs_renderer davis_mono.launch` (if you are using the DAVIS)  
 
 
 # DVS Calibration
