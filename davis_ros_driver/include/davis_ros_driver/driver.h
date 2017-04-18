@@ -95,7 +95,7 @@ private:
   boost::posix_time::time_duration delta_;
 
   davis_ros_driver::DAVIS_ROS_DriverConfig current_config_;
-  camera_info_manager::CameraInfoManager* camera_info_manager_;
+  std::shared_ptr<camera_info_manager::CameraInfoManager> camera_info_manager_;
 
   struct caer_davis_info davis_info_;
   std::string device_id_;

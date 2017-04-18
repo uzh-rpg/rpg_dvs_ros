@@ -165,12 +165,7 @@ void DavisRosDriver::caerConnect()
 
   // camera info handling
   ros::NodeHandle nh_ns(ns);
-  if (camera_info_manager_)
-  {
-    delete camera_info_manager_;
-  }
-
-  camera_info_manager_ = new camera_info_manager::CameraInfoManager(nh_ns, device_id_);
+  camera_info_manager_.reset(new camera_info_manager::CameraInfoManager(nh_ns, device_id_));
 
   // initialize timestamps
   resetTimestamps();
