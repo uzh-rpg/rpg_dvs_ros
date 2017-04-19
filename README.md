@@ -47,23 +47,23 @@ If you use this work in an academic context, please cite the following publicati
    `$ cd catkin_ws`  
    `$ catkin config --init --mkdirs --extend /opt/ros/kinetic --merge-devel --cmake-args -DCMAKE_BUILD_TYPE=Release`  
 
-4. Clone the `catkin_simple` package (https://github.com/catkin/catkin_simple), which will be used to build the DVS/DAVIS driver packages:  
+5. Clone the `catkin_simple` package (https://github.com/catkin/catkin_simple), which will be used to build the DVS/DAVIS driver packages:  
    `$ cd ~/catkin_ws/src`  
    `$ git clone https://github.com/catkin/catkin_simple.git`  
 
-5. Clone this repository:  
+6. Clone this repository:  
    `$ cd ~/catkin_ws/src`  
    `$ git clone https://github.com/uzh-rpg/rpg_dvs_ros.git`  
 
-6. Build the packages:  
+7. Build the packages:  
   * `$ catkin build dvs_ros_driver`  (if you are using the DVS)  
   * `$ catkin build davis_ros_driver`  (if you are using the DAVIS)  
 
-7. Only a udev rule is needed to run the DVS driver. An installation script is provided in the package `libcaer_catkin`.  
+8. Only a udev rule is needed to run the DVS driver. An installation script is provided in the package `libcaer_catkin`.  
   `$ roscd libcaer_catkin`  (need to source your setup.bash file first, or just do `$ cd libcaer_catkin`)  
   `$ sudo ./install.sh`
   
-8. You can test the installation by running a provided launch file. It starts the driver (DVS or DAVIS) and the renderer (an image viewer).  
+9. You can test the installation by running a provided launch file. It starts the driver (DVS or DAVIS) and the renderer (an image viewer).  
   First, build the renderer:  
     `$ catkin build dvs_renderer`  
     `$ source ~/catkin_ws/devel/setup.bash`  
@@ -74,7 +74,7 @@ If you use this work in an academic context, please cite the following publicati
 
 ![dvs_rendering_screenshot_19 04 2017](https://cloud.githubusercontent.com/assets/8024432/25172262/b96baaa0-24f0-11e7-9c3e-e33f6d398a4a.png)
 
-9. Optional: adjust the DVS/DAVIS parameters to your needs using the dynamic reconfigure GUI. Run  
+10. Optional: adjust the DVS/DAVIS parameters to your needs using the dynamic reconfigure GUI. Run  
    `$ rosrun rqt_reconfigure rqt_reconfigure`  
    and a window will appear. Select the `davis_ros_driver` (on the left panel) and you should get the following GUI that allows you to modify the parameters of the sensor.
    
