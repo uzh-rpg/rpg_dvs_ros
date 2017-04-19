@@ -99,6 +99,7 @@ private:
 
   struct caer_davis_info davis_info_;
   std::string device_id_;
+  uint16_t device_type_;
 
   ros::Time reset_time_;
 
