@@ -71,6 +71,11 @@ DavisRosDriver::DavisRosDriver(ros::NodeHandle & nh, ros::NodeHandle nh_private)
   imu_pub_ = nh_.advertise<sensor_msgs::Imu>(ns + "/imu", 10);
   image_pub_ = nh_.advertise<sensor_msgs::Image>(ns + "/image_raw", 1);
 
+  device_type_ = CAER_DEVICE_DAVIS_FX2;
+  std::string model = nh_private.param("model", std::string("DAVIS_FX2"));
+  if (model == "DAVIS_FX3")
+    device_type_ = CAER_DEVICE_DAVIS_FX3;
+
   caerConnect();
   current_config_.streaming_rate = 30;
   delta_ = boost::posix_time::microseconds(1e6/current_config_.streaming_rate);
@@ -114,7 +119,7 @@ void DavisRosDriver::caerConnect()
   while (!dvs_running)
   {
     //driver_ = new dvs::DvsDriver(dvs_serial_number, master);
-    davis_handle_ = caerDeviceOpen(1, CAER_DEVICE_DAVIS_FX3, 0, 0, NULL);
+    davis_handle_ = caerDeviceOpen(1, device_type_, 0, 0, NULL);
 
     //dvs_running = driver_->isDeviceRunning();
     dvs_running = !(davis_handle_ == NULL);
