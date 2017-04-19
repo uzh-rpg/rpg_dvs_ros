@@ -30,26 +30,57 @@ If you use this work in an academic context, please cite the following publicati
 
 
 # Driver Installation
-Make sure, libusb is installed on your system:  
-1. `$ sudo apt-get install libusb-1.0-0-dev`
 
-You need the `catkin_simple` package to build the packages that you can get from here:  
-2. https://github.com/catkin/catkin_simple
+1. Make sure, libusb is installed on your system:  
+   `$ sudo apt-get install libusb-1.0-0-dev`
 
-3. Build the packages:  
+2. Install ROS dependencies:  
+   `$ sudo apt-get install ros-kinetic-camera-info-manager`  
+   `$ sudo apt-get install ros-kinetic-image-view`  
+
+3. Install catkin tools:  
+   `$ sudo apt-get install python-catkin-tools`
+
+4. Create a catkin workspace (if you have not done it yet):  
+   `$ cd`  
+   `$ mkdir -p catkin_ws/src`  
+   `$ cd catkin_ws`  
+   `$ catkin config --init --mkdirs --extend /opt/ros/kinetic --merge-devel --cmake-args -DCMAKE_BUILD_TYPE=Release`  
+
+4. Clone the `catkin_simple` package (https://github.com/catkin/catkin_simple), which will be used to build the DVS/DAVIS driver packages:  
+   `$ cd ~/catkin_ws/src`  
+   `$ git clone https://github.com/catkin/catkin_simple.git`  
+
+5. Clone this repository:  
+   `$ cd ~/catkin_ws/src`  
+   `$ git clone https://github.com/uzh-rpg/rpg_dvs_ros.git`  
+
+6. Build the packages:  
   * `$ catkin build dvs_ros_driver`  (if you are using the DVS)  
   * `$ catkin build davis_ros_driver`  (if you are using the DAVIS)  
 
-Only a udev rule is needed to run the DVS driver. An install script is provided in the package dvs_driver.  
-4. `$ roscd libcaer_catkin`  (need to source your setup.bash file first, or just do `$ cd libcaer_catkin`)  
-5. `$ ./install.sh` (needs root privileges)
-
-You can test the installation by running a provided launch file. It starts the driver (DVS or DAVIS), the renderer, an image viewer, and the dynamic reconfigure GUI.   
-6. `$ catkin build dvs_renderer`  (to build the renderer; then source your setup.bash file)  
-7. Launch the example:
+7. Only a udev rule is needed to run the DVS driver. An installation script is provided in the package `libcaer_catkin`.  
+  `$ roscd libcaer_catkin`  (need to source your setup.bash file first, or just do `$ cd libcaer_catkin`)  
+  `$ sudo ./install.sh`
+  
+8. You can test the installation by running a provided launch file. It starts the driver (DVS or DAVIS) and the renderer (an image viewer).  
+  First, build the renderer:  
+    `$ catkin build dvs_renderer`  
+    `$ source ~/catkin_ws/devel/setup.bash`  
+  Then, launch the example:  
   * `$ roslaunch dvs_renderer dvs_mono.launch`  (if you are using the DVS)
   * `$ roslaunch dvs_renderer davis_mono.launch` (if you are using the DAVIS)  
+  You should get an image like this:
 
+![dvs_rendering_screenshot_19 04 2017](https://cloud.githubusercontent.com/assets/8024432/25172262/b96baaa0-24f0-11e7-9c3e-e33f6d398a4a.png)
+
+9. Optional: adjust the DVS/DAVIS parameters to your needs using the dynamic reconfigure GUI. Run  
+   `$ rosrun rqt_reconfigure rqt_reconfigure`  
+   and a window will appear. Select the `davis_ros_driver` (on the left panel) and you should get the following GUI that allows you to modify the parameters of the sensor.
+   
+   ![davis_ros_driver_rqt_reconfigure](https://cloud.githubusercontent.com/assets/8024432/25172274/c1267b8a-24f0-11e7-8130-af551a8a958d.png)
+   
+   A guide on how to modify the parameters in the bottom half of the GUI (biases) can be found here: https://inilabs.com/support/hardware/biasing/
 
 # DVS Calibration
 The calibration of a DVS is a two-stage procedure.
