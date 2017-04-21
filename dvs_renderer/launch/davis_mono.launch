@@ -1,6 +1,8 @@
 <launch>
   <!-- camera driver -->
-  <node name="davis_ros_driver" pkg="davis_ros_driver" type="davis_ros_driver" />
+  <node name="davis_ros_driver" pkg="davis_ros_driver" type="davis_ros_driver">
+    <rosparam command="load" file="$(find davis_ros_driver)/config/indoors.yaml" />
+  </node>
 
   <!-- visualization -->
   <node name="dvs_renderer" pkg="dvs_renderer" type="dvs_renderer">

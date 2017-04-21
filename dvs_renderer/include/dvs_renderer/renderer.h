@@ -32,6 +32,8 @@
 #include <dvs_msgs/Event.h>
 #include <dvs_msgs/EventArray.h>
 
+#include <deque>
+
 namespace dvs_renderer
 {
 
@@ -62,6 +64,9 @@ private:
   cv::Mat last_image_;
   bool used_last_image_;
 
+  int num_event_msgs_;
+  std::deque<dvs_msgs::EventArray> event_array_buffer_;
+
   struct EventStats {
     ros::Publisher events_mean_[2]; /**< event stats output */
     int events_counter_[2]; /**< event counters for on/off events */
@@ -72,7 +77,7 @@ private:
 
   enum DisplayMethod
   {
-    GRAYSCALE, RED_BLUE
+    GRAYSCALE, RED_BLUE, GREEN_RED
   } display_method_;
 
   ImageTracking image_tracking_;

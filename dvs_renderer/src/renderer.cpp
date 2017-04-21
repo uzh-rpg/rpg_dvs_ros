@@ -26,7 +26,24 @@ Renderer::Renderer(ros::NodeHandle & nh, ros::NodeHandle nh_private) : nh_(nh),
   // get parameters of display method
   std::string display_method_str;
   nh_private.param<std::string>("display_method", display_method_str, "");
-  display_method_ = (display_method_str == std::string("grayscale")) ? GRAYSCALE : RED_BLUE;
+  if (display_method_str == "grayscale")
+  {
+    display_method_ = GRAYSCALE;
+  }
+  else if (display_method_str == "red-blue")
+  {
+    display_method_ = RED_BLUE;
+  }
+  else
+  {
+    display_method_ = GREEN_RED;
+  }
+
+  nh_private.param<int>("num_event_msgs", num_event_msgs_, 1);
+  if (num_event_msgs_ < 1)
+  {
+    num_event_msgs_ = 1;
+  }
 
   // setup subscribers and publishers
   event_sub_ = nh_.subscribe("events", 1, &Renderer::eventsCallback, this);
@@ -111,12 +128,19 @@ void Renderer::eventsCallback(const dvs_msgs::EventArray::ConstPtr& msg)
   publishStats();
   image_tracking_.eventsCallback(msg);
 
+  const int event_color_step = 255/(2*num_event_msgs_);
+  event_array_buffer_.push_front(*msg);
+  while (event_array_buffer_.size() > num_event_msgs_)
+  {
+    event_array_buffer_.pop_back();
+  }
+
   // only create image if at least one subscriber
   if (image_pub_.getNumSubscribers() > 0)
   {
     cv_bridge::CvImage cv_image;
 
-    if (display_method_ == RED_BLUE)
+    if (display_method_ == RED_BLUE || display_method_ == GREEN_RED)
     {
       cv_image.encoding = "bgr8";
 
@@ -131,13 +155,24 @@ void Renderer::eventsCallback(const dvs_msgs::EventArray::ConstPtr& msg)
         cv_image.image = cv::Scalar(0,0,0);
       }
 
-      for (int i = 0; i < msg->events.size(); ++i)
+      for (int j = 0; j<event_array_buffer_.size(); j++)
       {
-        const int x = msg->events[i].x;
-        const int y = msg->events[i].y;
+        for (int i = 0; i < event_array_buffer_[j].events.size(); ++i)
+        {
+          const int x = event_array_buffer_[j].events[i].x;
+          const int y = event_array_buffer_[j].events[i].y;
 
-        cv_image.image.at<cv::Vec3b>(cv::Point(x, y)) = (
-            msg->events[i].polarity == true ? cv::Vec3b(255, 0, 0) : cv::Vec3b(0, 0, 255));
+          if (display_method_ == RED_BLUE)
+          {
+            cv_image.image.at<cv::Vec3b>(cv::Point(x, y)) = (
+                event_array_buffer_[j].events[i].polarity == true ? cv::Vec3b(255, 0, 0) : cv::Vec3b(0, 0, 255));
+          }
+          else
+          {
+            cv_image.image.at<cv::Vec3b>(cv::Point(x, y)) = (
+                event_array_buffer_[j].events[i].polarity == true ? cv::Vec3b(0, 255-j*event_color_step, 0) : cv::Vec3b(0, 0, 255-j*event_color_step));
+          }
+        }
       }
     }
     else
