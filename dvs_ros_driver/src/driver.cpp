@@ -75,14 +75,6 @@ DvsRosDriver::DvsRosDriver(ros::NodeHandle & nh, ros::NodeHandle nh_private) :
   ros::NodeHandle nh_ns(ns);
   camera_info_manager_ = new camera_info_manager::CameraInfoManager(nh_ns, device_id_);
 
-  // initialize timestamps
-  resetTimestamps();
-
-  // spawn threads
-  running_ = true;
-  parameter_thread_ = boost::shared_ptr< boost::thread >(new boost::thread(boost::bind(&DvsRosDriver::changeDvsParameters, this)));
-  readout_thread_ = boost::shared_ptr< boost::thread >(new boost::thread(boost::bind(&DvsRosDriver::readout, this)));
-
   // reset timestamps is publisher as master, subscriber as slave
   if (master_)
   {
@@ -92,6 +84,14 @@ DvsRosDriver::DvsRosDriver(ros::NodeHandle & nh, ros::NodeHandle nh_private) :
   {
     reset_sub_ = nh_.subscribe((ns + "/reset_timestamps").c_str(), 1, &DvsRosDriver::resetTimestampsCallback, this);
   }
+
+  // initialize timestamps
+  resetTimestamps();
+
+  // spawn threads
+  running_ = true;
+  parameter_thread_ = boost::shared_ptr< boost::thread >(new boost::thread(boost::bind(&DvsRosDriver::changeDvsParameters, this)));
+  readout_thread_ = boost::shared_ptr< boost::thread >(new boost::thread(boost::bind(&DvsRosDriver::readout, this)));
 
   // Dynamic reconfigure
   dynamic_reconfigure_callback_ = boost::bind(&DvsRosDriver::callback, this, _1, _2);

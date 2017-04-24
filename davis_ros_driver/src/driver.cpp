@@ -62,13 +62,6 @@ DavisRosDriver::DavisRosDriver(ros::NodeHandle & nh, ros::NodeHandle nh_private)
   imu_pub_ = nh_.advertise<sensor_msgs::Imu>(ns + "/imu", 10);
   image_pub_ = nh_.advertise<sensor_msgs::Image>(ns + "/image_raw", 1);
 
-  caerConnect();
-  current_config_.streaming_rate = 30;
-  delta_ = boost::posix_time::microseconds(1e6/current_config_.streaming_rate);
-
-  imu_calibration_sub_ = nh_.subscribe((ns + "/calibrate_imu").c_str(), 1, &DavisRosDriver::imuCalibrationCallback, this);
-  snapshot_sub_ = nh_.subscribe((ns + "/trigger_snapshot").c_str(), 1, &DavisRosDriver::snapshotCallback, this);
-
   // reset timestamps is publisher as master, subscriber as slave
   if (master_)
   {
@@ -78,6 +71,13 @@ DavisRosDriver::DavisRosDriver(ros::NodeHandle & nh, ros::NodeHandle nh_private)
   {
     reset_sub_ = nh_.subscribe((ns + "/reset_timestamps").c_str(), 1, &DavisRosDriver::resetTimestampsCallback, this);
   }
+
+  caerConnect();
+  current_config_.streaming_rate = 30;
+  delta_ = boost::posix_time::microseconds(1e6/current_config_.streaming_rate);
+
+  imu_calibration_sub_ = nh_.subscribe((ns + "/calibrate_imu").c_str(), 1, &DavisRosDriver::imuCalibrationCallback, this);
+  snapshot_sub_ = nh_.subscribe((ns + "/trigger_snapshot").c_str(), 1, &DavisRosDriver::snapshotCallback, this);
 
   // Dynamic reconfigure
   dynamic_reconfigure_callback_ = boost::bind(&DavisRosDriver::callback, this, _1, _2);
