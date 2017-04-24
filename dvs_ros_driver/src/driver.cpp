@@ -130,7 +130,9 @@ void DvsRosDriver::resetTimestamps()
     // if master, publish reset time to slaves
     if (master_)
     {
-      reset_pub_.publish(reset_time_);
+      std_msgs::Time reset_msg;
+      reset_msg.data = reset_time_;
+      reset_pub_.publish(reset_msg);
     }
   }
   else
@@ -184,7 +186,7 @@ void DvsRosDriver::changeDvsParameters()
       }
 
       boost::this_thread::sleep(boost::posix_time::milliseconds(100));
-    } 
+    }
     catch(boost::thread_interrupted&)
     {
       return;
