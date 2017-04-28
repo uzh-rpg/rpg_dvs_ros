@@ -27,6 +27,7 @@
 #include <dvs_msgs/Event.h>
 #include <dvs_msgs/EventArray.h>
 #include <std_msgs/Empty.h>
+#include <std_msgs/Time.h>
 
 // DVS driver
 #include <libcaer/libcaer.h>
@@ -64,7 +65,8 @@ private:
   dynamic_reconfigure::Server<dvs_ros_driver::DVS_ROS_DriverConfig>::CallbackType dynamic_reconfigure_callback_;
 
   ros::Subscriber reset_sub_;
-  void resetTimestampsCallback(std_msgs::Empty msg);
+  ros::Publisher reset_pub_;
+  void resetTimestampsCallback(const std_msgs::Time::ConstPtr &msg);
 
   boost::shared_ptr<boost::thread> parameter_thread_;
   boost::shared_ptr<boost::thread> readout_thread_;
@@ -75,6 +77,7 @@ private:
   camera_info_manager::CameraInfoManager* camera_info_manager_;
 
   struct caer_dvs128_info dvs128_info_;
+  bool master_;
   std::string device_id_;
 
   ros::Time reset_time_;

@@ -44,10 +44,8 @@ DavisRosDriver::DavisRosDriver(ros::NodeHandle & nh, ros::NodeHandle nh_private)
 {
 
   // load parameters
-  std::string dvs_serial_number;
-  nh_private.param<std::string>("serial_number", dvs_serial_number, "");
-  bool master;
-  nh_private.param<bool>("master", master, true);
+  nh_private.param<std::string>("serial_number", device_id_, "");
+  nh_private.param<bool>("master", master_, true);
   double reset_timestamps_delay;
   nh_private.param<double>("reset_timestamps_delay", reset_timestamps_delay, -1.0);
   nh_private.param<int>("imu_calibration_sample_size", imu_calibration_sample_size_, 1000);
@@ -71,11 +69,20 @@ DavisRosDriver::DavisRosDriver(ros::NodeHandle & nh, ros::NodeHandle nh_private)
   imu_pub_ = nh_.advertise<sensor_msgs::Imu>(ns + "/imu", 10);
   image_pub_ = nh_.advertise<sensor_msgs::Image>(ns + "/image_raw", 1);
 
+  // reset timestamps is publisher as master, subscriber as slave
+  if (master_)
+  {
+    reset_pub_ = nh_.advertise<std_msgs::Time>((ns + "/reset_timestamps").c_str(), 1);
+  }
+  else
+  {
+    reset_sub_ = nh_.subscribe((ns + "/reset_timestamps").c_str(), 1, &DavisRosDriver::resetTimestampsCallback, this);
+  }
+
   caerConnect();
   current_config_.streaming_rate = 30;
   delta_ = boost::posix_time::microseconds(1e6/current_config_.streaming_rate);
 
-  reset_sub_ = nh_.subscribe((ns + "/reset_timestamps").c_str(), 1, &DavisRosDriver::resetTimestampsCallback, this);
   imu_calibration_sub_ = nh_.subscribe((ns + "/calibrate_imu").c_str(), 1, &DavisRosDriver::imuCalibrationCallback, this);
   snapshot_sub_ = nh_.subscribe((ns + "/trigger_snapshot").c_str(), 1, &DavisRosDriver::snapshotCallback, this);
 
@@ -85,10 +92,10 @@ DavisRosDriver::DavisRosDriver(ros::NodeHandle & nh, ros::NodeHandle nh_private)
   server_->setCallback(dynamic_reconfigure_callback_);
 
   // start timer to reset timestamps for synchronization
-  if (reset_timestamps_delay > 0.0)
+  if (reset_timestamps_delay > 0.0 && master_)
   {
     timestamp_reset_timer_ = nh_.createTimer(ros::Duration(reset_timestamps_delay), &DavisRosDriver::resetTimerCallback, this);
-    ROS_INFO("Started timer to reset timestamps on master DVS for synchronization (delay=%3.2fs).", reset_timestamps_delay);
+    ROS_INFO("Started timer to reset timestamps on master DAVIS for synchronization (delay=%3.2fs).", reset_timestamps_delay);
   }
 }
 
@@ -110,18 +117,18 @@ void DavisRosDriver::caerConnect()
 {
 
   // start driver
-  bool dvs_running = false;
-  while (!dvs_running)
+  bool device_is_running = false;
+  while (!device_is_running)
   {
-    //driver_ = new dvs::DvsDriver(dvs_serial_number, master);
-    davis_handle_ = caerDeviceOpen(1, CAER_DEVICE_DAVIS_FX2, 0, 0, NULL);
+    const char* serial_number_restrict = (device_id_ == "") ? NULL : device_id_.c_str();
+    davis_handle_ = caerDeviceOpen(1, CAER_DEVICE_DAVIS_FX2, 0, 0, serial_number_restrict);
 
-    //dvs_running = driver_->isDeviceRunning();
-    dvs_running = !(davis_handle_ == NULL);
+    // was opening successful?
+    device_is_running = !(davis_handle_ == NULL);
 
-    if (!dvs_running)
+    if (!device_is_running)
     {
-      ROS_WARN("Could not find DVS. Will retry every second.");
+      ROS_WARN("Could not find DAVIS. Will retry every second.");
       ros::Duration(1.0).sleep();
       ros::spinOnce();
     }
@@ -147,6 +154,12 @@ void DavisRosDriver::caerConnect()
           davis_info_.deviceID, davis_info_.deviceIsMaster, davis_info_.dvsSizeX, davis_info_.dvsSizeY,
           davis_info_.logicVersion);
 
+  if (master_ && !davis_info_.deviceIsMaster)
+  {
+    ROS_WARN("Device %s should be master, but is not!", device_id_.c_str());
+  }
+
+
   // Send the default configuration before using the device.
   // No configuration is sent automatically!
   caerDeviceSendDefaultConfig(davis_handle_);
@@ -169,7 +182,6 @@ void DavisRosDriver::caerConnect()
 
   // initialize timestamps
   resetTimestamps();
-  reset_time_ = ros::Time::now();
 
   // spawn threads
   running_ = true;
@@ -186,13 +198,33 @@ void DavisRosDriver::onDisconnectUSB(void* driver)
 
 void DavisRosDriver::resetTimestamps()
 {
-  ROS_INFO("Reset timestamps on %s", device_id_.c_str());
   caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_MUX, DAVIS_CONFIG_MUX_TIMESTAMP_RESET, 1);
+  reset_time_ = ros::Time::now();
+
+  ROS_INFO("Reset timestamps on %s to %.9f.", device_id_.c_str(), reset_time_.toSec());
+
+  // if master, publish reset time to slaves
+  if (master_)
+  {
+    std_msgs::Time reset_msg;
+    reset_msg.data = reset_time_;
+    reset_pub_.publish(reset_msg);
+  }
 }
 
-void DavisRosDriver::resetTimestampsCallback(const std_msgs::Empty::ConstPtr& msg)
+void DavisRosDriver::resetTimestampsCallback(const std_msgs::Time::ConstPtr& msg)
 {
-  resetTimestamps();
+  // if slave, only adjust offset time
+  if (!davis_info_.deviceIsMaster)
+  {
+    ROS_INFO("Adapting reset time of master on slave %s.", device_id_.c_str());
+    reset_time_ = msg->data;
+  }
+  // if master, or not single camera configuration, just reset timestamps
+  else
+  {
+    resetTimestamps();
+  }
 }
 
 void DavisRosDriver::imuCalibrationCallback(const std_msgs::Empty::ConstPtr &msg)
@@ -252,8 +284,8 @@ void DavisRosDriver::snapshotCallback(const std_msgs::Empty::ConstPtr& msg)
 
 void DavisRosDriver::resetTimerCallback(const ros::TimerEvent& te)
 {
-  resetTimestamps();
   timestamp_reset_timer_.stop();
+  resetTimestamps();
 }
 
 void DavisRosDriver::changeDvsParameters()
