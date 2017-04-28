@@ -25,14 +25,12 @@ cs_add_library(davis_ros_driver_nodelet
 target_link_libraries(davis_ros_driver
   ${catkin_LIBRARIES}
   ${Boost_LIBRARIES}
-  ${CATKIN_DEVEL_PREFIX}/lib/libcaer${CMAKE_SHARED_LIBRARY_SUFFIX}
 )
 
 # link the executable to the necesarry libs
 target_link_libraries(davis_ros_driver_nodelet
   ${catkin_LIBRARIES}
   ${Boost_LIBRARIES}
-  ${CATKIN_DEVEL_PREFIX}/lib/libcaer${CMAKE_SHARED_LIBRARY_SUFFIX}
 )
 
 # Install the nodelet library
