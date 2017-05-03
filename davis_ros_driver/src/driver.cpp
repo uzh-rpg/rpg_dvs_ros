@@ -167,15 +167,16 @@ void DavisRosDriver::caerConnect()
   ros::NodeHandle nh_ns(ns);
   camera_info_manager_.reset(new camera_info_manager::CameraInfoManager(nh_ns, device_id_));
 
-  // initialize timestamps
-  resetTimestamps();
-  reset_time_ = ros::Time::now();
-
   // spawn threads
   running_ = true;
   parameter_thread_ = boost::shared_ptr<boost::thread>(new boost::thread(boost::bind(&DavisRosDriver::changeDvsParameters, this)));
   readout_thread_ = boost::shared_ptr<boost::thread>(new boost::thread(boost::bind(&DavisRosDriver::readout, this)));
 
+  // wait for driver to be ready
+  ros::Duration(0.5).sleep();
+
+  // initialize timestamps
+  resetTimestamps();
 }
 
 void DavisRosDriver::onDisconnectUSB(void* driver)
@@ -188,6 +189,7 @@ void DavisRosDriver::resetTimestamps()
 {
   ROS_INFO("Reset timestamps on %s", device_id_.c_str());
   caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_MUX, DAVIS_CONFIG_MUX_TIMESTAMP_RESET, 1);
+  reset_time_ = ros::Time::now();
 }
 
 void DavisRosDriver::resetTimestampsCallback(const std_msgs::Empty::ConstPtr& msg)
