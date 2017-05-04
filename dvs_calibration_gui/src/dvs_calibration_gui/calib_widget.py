@@ -4,7 +4,7 @@ import rospy
 import rospkg
 import numpy as np
 from python_qt_binding import loadUi
-from python_qt_binding.QtGui import QWidget
+from python_qt_binding.QtWidgets import QWidget
 from python_qt_binding.QtCore import QTimer, Slot
 from python_qt_binding.QtCore import pyqtSlot
 from std_msgs.msg import Int32
