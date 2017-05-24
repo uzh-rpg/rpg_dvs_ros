@@ -115,7 +115,10 @@ void Renderer::eventsCallback(const dvs_msgs::EventArray::ConstPtr& msg)
   if (image_pub_.getNumSubscribers() > 0)
   {
     cv_bridge::CvImage cv_image;
-    cv_image.header.stamp = msg->events[msg->events.size()/2].ts;
+    if (msg->events.size() > 0)
+    {
+      cv_image.header.stamp = msg->events[msg->events.size()/2].ts;
+    }
 
     if (display_method_ == RED_BLUE)
     {
