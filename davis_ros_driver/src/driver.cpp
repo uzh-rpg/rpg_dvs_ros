@@ -150,6 +150,10 @@ void DavisRosDriver::caerConnect()
   // Send the default configuration before using the device.
   // No configuration is sent automatically!
   caerDeviceSendDefaultConfig(davis_handle_);
+
+  // Disable IMU low-pass filter
+  caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_IMU, DAVIS_CONFIG_IMU_DIGITAL_LOW_PASS_FILTER, 0);
+
   /*
    * Something with the default aps size is wrong with the DAVIS346B. Quickfix with sending hardcoded values
    */
