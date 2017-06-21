@@ -107,7 +107,7 @@ DavisRosDriver::~DavisRosDriver()
   }
 }
 
-void DavisRosDriver::DataStop()
+void DavisRosDriver::dataStop()
 {
     caerLog(CAER_LOG_INFO, "Exiting from driver node",  "executing data stop");
     ROS_INFO("Exiting from driver node, executing data stop");
@@ -159,14 +159,6 @@ void DavisRosDriver::caerConnect()
   // Send the default configuration before using the device.
   // No configuration is sent automatically!
   caerDeviceSendDefaultConfig(davis_handle_);
-  /*
-   * Something with the default aps size is wrong with the DAVIS346B. Quickfix with sending hardcoded values
-   */
-  /*if (davis_info_.chipID == DAVIS_CHIP_DAVIS346B)
-  {
-    caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_APS, DAVIS_CONFIG_APS_END_COLUMN_0, U16T(davis_info_.apsSizeX-1));
-    caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_APS, DAVIS_CONFIG_APS_END_ROW_0, U16T(davis_info_.apsSizeY-1));
-  }*/
 
   // Re-send params from param server if not first connection
   parameter_bias_update_required_ = true;
@@ -470,7 +462,7 @@ void DavisRosDriver::readout()
           continue; // Skip if nothing there.
         }
 
-	int type = caerEventPacketHeaderGetEventType(packetHeader);
+	const int type = caerEventPacketHeaderGetEventType(packetHeader);
 
         // Packet 0 is always the special events packet for DVS128, while packet is the polarity events packet.
         if (type == POLARITY_EVENT)
