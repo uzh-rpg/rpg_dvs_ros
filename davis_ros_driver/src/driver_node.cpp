@@ -27,5 +27,6 @@ int main(int argc, char* argv[])
   davis_ros_driver::DavisRosDriver* driver = new davis_ros_driver::DavisRosDriver(nh, nh_private);
 
   ros::spin();
+  driver->DataStop();
   return 0;
 }
