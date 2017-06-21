@@ -101,9 +101,18 @@ DavisRosDriver::~DavisRosDriver()
     parameter_thread_->join();
     readout_thread_->join();
     ROS_INFO("threads stopped");
-
+    caerLog(CAER_LOG_ERROR, "destructor",  "data stop now");
+    caerDeviceDataStop(davis_handle_);
     caerDeviceClose(&davis_handle_);
   }
+}
+
+void DavisRosDriver::dataStop()
+{
+    caerLog(CAER_LOG_INFO, "Exiting from driver node",  "executing data stop");
+    ROS_INFO("Exiting from driver node, executing data stop");
+    caerDeviceDataStop(davis_handle_);
+    caerDeviceClose(&davis_handle_);
 }
 
 void DavisRosDriver::caerConnect()
@@ -114,7 +123,7 @@ void DavisRosDriver::caerConnect()
   while (!dvs_running)
   {
     //driver_ = new dvs::DvsDriver(dvs_serial_number, master);
-    davis_handle_ = caerDeviceOpen(1, CAER_DEVICE_DAVIS_FX2, 0, 0, NULL);
+    davis_handle_ = caerDeviceOpen(1, CAER_DEVICE_DAVIS, 0, 0, NULL);
 
     //dvs_running = driver_->isDeviceRunning();
     dvs_running = !(davis_handle_ == NULL);
@@ -150,14 +159,6 @@ void DavisRosDriver::caerConnect()
   // Send the default configuration before using the device.
   // No configuration is sent automatically!
   caerDeviceSendDefaultConfig(davis_handle_);
-  /*
-   * Something with the default aps size is wrong with the DAVIS346B. Quickfix with sending hardcoded values
-   */
-  if (davis_info_.chipID == DAVIS_CHIP_DAVIS346B)
-  {
-    caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_APS, DAVIS_CONFIG_APS_END_COLUMN_0, U16T(davis_info_.apsSizeX-1));
-    caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_APS, DAVIS_CONFIG_APS_END_ROW_0, U16T(davis_info_.apsSizeY-1));
-  }
 
   // Re-send params from param server if not first connection
   parameter_bias_update_required_ = true;
@@ -434,9 +435,9 @@ void DavisRosDriver::readout()
 
   //std::vector<dvs::Event> events;
 
-  caerDeviceDataStart(davis_handle_, NULL, NULL, NULL, &DavisRosDriver::onDisconnectUSB, this);
   caerDeviceConfigSet(davis_handle_, CAER_HOST_CONFIG_DATAEXCHANGE, CAER_HOST_CONFIG_DATAEXCHANGE_BLOCKING, true);
-
+  caerDeviceDataStart(davis_handle_, NULL, NULL, NULL, &DavisRosDriver::onDisconnectUSB, this);
+  
   boost::posix_time::ptime next_send_time = boost::posix_time::microsec_clock::local_time();
 
   dvs_msgs::EventArrayPtr event_array_msg;
@@ -461,8 +462,10 @@ void DavisRosDriver::readout()
           continue; // Skip if nothing there.
         }
 
+	const int type = caerEventPacketHeaderGetEventType(packetHeader);
+
         // Packet 0 is always the special events packet for DVS128, while packet is the polarity events packet.
-        if (i == POLARITY_EVENT)
+        if (type == POLARITY_EVENT)
         {
           if (!event_array_msg)
           {
@@ -514,7 +517,7 @@ void DavisRosDriver::readout()
             camera_info_pub_.publish(camera_info_msg);
           }
         }
-        else if (i == IMU6_EVENT)
+        else if (type == IMU6_EVENT)
         {
           caerIMU6EventPacket imu = (caerIMU6EventPacket) packetHeader;
 
@@ -582,7 +585,7 @@ void DavisRosDriver::readout()
             imu_pub_.publish(msg);
           }
         }
-        else if (i == FRAME_EVENT)
+        else if (type == FRAME_EVENT)
         {
           caerFrameEventPacket frame = (caerFrameEventPacket) packetHeader;
           caerFrameEvent event = caerFrameEventPacketGetEvent(frame, 0);
@@ -622,13 +625,14 @@ void DavisRosDriver::readout()
 
       ros::spinOnce();
     }
-    catch (boost::thread_interrupted&)
+    catch(boost::thread_interrupted&)
     {
       return;
     }
   }
-
+    
   caerDeviceDataStop(davis_handle_);
+
 }
 
 } // namespace

@@ -48,6 +48,7 @@ class DavisRosDriver {
 public:
   DavisRosDriver(ros::NodeHandle & nh, ros::NodeHandle nh_private);
   ~DavisRosDriver();
+  void dataStop();
 
   static void onDisconnectUSB(void*);   
   
