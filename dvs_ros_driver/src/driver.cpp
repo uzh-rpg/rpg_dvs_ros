@@ -247,7 +247,8 @@ void DvsRosDriver::readout()
             dvs_msgs::Event e;
             e.x = caerPolarityEventGetX(event);
             e.y = caerPolarityEventGetY(event);
-            e.ts = reset_time_ + ros::Duration(caerPolarityEventGetTimestamp64(event, polarity) / 1.e6);
+            e.ts = reset_time_ +
+              ros::Duration().fromNSec(caerPolarityEventGetTimestamp64(event, polarity) * 1000);
             e.polarity = caerPolarityEventGetPolarity(event);
 
             event_array_msg->events.push_back(e);

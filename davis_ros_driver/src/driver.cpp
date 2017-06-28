@@ -485,7 +485,8 @@ void DavisRosDriver::readout()
             dvs_msgs::Event e;
             e.x = caerPolarityEventGetX(event);
             e.y = caerPolarityEventGetY(event);
-            e.ts = reset_time_ + ros::Duration(caerPolarityEventGetTimestamp64(event, polarity) / 1.e6);
+            e.ts = reset_time_ +
+                ros::Duration().fromNSec(caerPolarityEventGetTimestamp64(event, polarity) * 1000);
             e.polarity = caerPolarityEventGetPolarity(event);
 
             event_array_msg->events.push_back(e);
@@ -555,7 +556,8 @@ void DavisRosDriver::readout()
             msg.orientation_covariance[0] = -1.0;
 
             // time
-            msg.header.stamp = reset_time_ + ros::Duration(caerIMU6EventGetTimestamp64(event, imu) / 1.e6);
+            msg.header.stamp = reset_time_ +
+                ros::Duration().fromNSec(caerIMU6EventGetTimestamp64(event, imu) * 1000);
 
             // frame
             msg.header.frame_id = "base_link";
@@ -615,7 +617,8 @@ void DavisRosDriver::readout()
           }
 
           // time
-          msg.header.stamp = reset_time_ + ros::Duration(caerFrameEventGetTimestamp64(event, frame) / 1.e6);
+          msg.header.stamp = reset_time_ +
+              ros::Duration().fromNSec(caerFrameEventGetTimestamp64(event, frame) * 1000);
 
           image_pub_.publish(msg);
         }
