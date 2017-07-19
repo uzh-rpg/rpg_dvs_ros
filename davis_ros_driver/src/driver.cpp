@@ -14,6 +14,7 @@
 // along with DVS-ROS.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "davis_ros_driver/driver.h"
+#include "davis_ros_driver/driver_utils.h"
 #include <std_msgs/Float32.h>
 
 //DAVIS Bias types
@@ -61,10 +62,6 @@ DavisRosDriver::DavisRosDriver(ros::NodeHandle & nh, ros::NodeHandle nh_private)
     bias.angular_velocity.y = 0.0;
     bias.angular_velocity.z = 0.0;
 
-    // auto-exposure parameters
-    Kp_ = nh_private.param<float>("Kp", 4.f);
-    ROS_INFO("Kp = %f", Kp_);
-
     // set namespace
     ns = ros::this_node::getNamespace();
     if (ns == "/")
@@ -74,6 +71,7 @@ DavisRosDriver::DavisRosDriver(ros::NodeHandle & nh, ros::NodeHandle nh_private)
     camera_info_pub_ = nh_.advertise<sensor_msgs::CameraInfo>(ns + "/camera_info", 1);
     imu_pub_ = nh_.advertise<sensor_msgs::Imu>(ns + "/imu", 10);
     image_pub_ = nh_.advertise<sensor_msgs::Image>(ns + "/image_raw", 1);
+    exposure_pub_ = nh_.advertise<std_msgs::Float32>(ns + "/exposure", 10);
 
     caerConnect();
     current_config_.streaming_rate = 30;
@@ -272,7 +270,11 @@ void DavisRosDriver::changeDvsParameters()
             if (parameter_update_required_)
             {
                 parameter_update_required_ = false;
-                //caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_APS, DAVIS_CONFIG_APS_EXPOSURE, current_config_.exposure);
+
+                if(!current_config_.autoexposure_enabled) {
+                    caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_APS, DAVIS_CONFIG_APS_EXPOSURE, current_config_.exposure);
+                }
+
                 caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_APS, DAVIS_CONFIG_APS_FRAME_DELAY, current_config_.frame_delay);
 
                 caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_APS, DAVIS_CONFIG_APS_RUN, current_config_.aps_enabled);
@@ -387,12 +389,16 @@ void DavisRosDriver::callback(davis_ros_driver::DAVIS_ROS_DriverConfig &config, 
 {
     // did any DVS bias setting change?
     if (current_config_.exposure != config.exposure || current_config_.frame_delay != config.frame_delay ||
+            current_config_.autoexposure_enabled != config.autoexposure_enabled || current_config_.autoexposure_gain != config.autoexposure_gain ||
             current_config_.aps_enabled != config.aps_enabled || current_config_.dvs_enabled != config.dvs_enabled ||
             current_config_.imu_enabled != config.imu_enabled || current_config_.imu_acc_scale != config.imu_acc_scale ||
             current_config_.imu_gyro_scale != config.imu_gyro_scale || current_config_.max_events != config.max_events)
     {
         current_config_.exposure = config.exposure;
         current_config_.frame_delay = config.frame_delay;
+
+        current_config_.autoexposure_enabled = config.autoexposure_enabled;
+        current_config_.autoexposure_gain = config.autoexposure_gain;
 
         current_config_.aps_enabled = config.aps_enabled;
         current_config_.dvs_enabled = config.dvs_enabled;
@@ -432,62 +438,6 @@ void DavisRosDriver::callback(davis_ros_driver::DAVIS_ROS_DriverConfig &config, 
             delta_ = boost::posix_time::microseconds(1e6/current_config_.streaming_rate);
         }
     }
-}
-
-int clip(int n, int lower, int upper) {
-    return std::max(lower, std::min(n, upper));
-}
-
-float mean(const std::vector<uint8_t>& v)
-{
-    if(v.empty())
-        return 0.f;
-
-    float sum = (float) std::accumulate(v.begin(), v.end(), 0.0);
-    float mean = sum / v.size();
-    return mean;
-}
-
-float median(const std::vector<uint8_t>& v_original)
-{
-    std::vector<uint8_t> v(v_original);
-    if(v.empty())
-        return 0.f;
-
-    float median;
-    size_t size = v.size();
-
-    std::sort(v.begin(), v.end());
-
-    if (size  % 2 == 0)
-    {
-        median = ((float) v[size / 2 - 1] + (float) v[size / 2]) / 2.f;
-    }
-    else
-    {
-        median = (float) v[size / 2];
-    }
-
-    return median;
-}
-
-float trim_mean(const std::vector<uint8_t>& v_original, const float proportion_to_cut)
-{
-    if(v_original.empty())
-    {
-        return 0.f;
-    }
-
-    std::vector<uint8_t> v(v_original);
-    std::sort(v.begin(), v.end());
-
-    const size_t size = v.size();
-    const size_t num_values_to_cut = (int) (size * proportion_to_cut);
-    const size_t start_index = num_values_to_cut - 1;
-    const size_t end_index = size - num_values_to_cut - 1;
-
-    std::vector<uint8_t> trimmed_vec(v.begin() + start_index, v.begin() + end_index);
-    return mean(trimmed_vec);
 }
 
 void DavisRosDriver::readout()
@@ -683,49 +633,20 @@ void DavisRosDriver::readout()
 
                     image_pub_.publish(msg);
 
-                    // exposure control
-                    constexpr float desired_intensity = 128;
-                    constexpr int min_exposure = 10;
-                    constexpr int max_exposure = 150000;
+                    // auto-exposure algorithm
+                    if(current_config_.autoexposure_enabled)
+                    {
+                        uint32_t current_exposure;
+                        caerDeviceConfigGet(davis_handle_, DAVIS_CONFIG_APS, DAVIS_CONFIG_APS_EXPOSURE, &current_exposure);
 
-                    //const float current_intensity = mean(msg.data);
-                    const float current_intensity = trim_mean(msg.data, 0.25f);
-                    //const float current_intensity = median(msg.data);
+                        const int new_exposure = computeNewExposure(msg.data, current_exposure);
+                        caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_APS, DAVIS_CONFIG_APS_EXPOSURE, new_exposure);
 
-                    uint32_t current_exposure;
-                    caerDeviceConfigGet(davis_handle_, DAVIS_CONFIG_APS, DAVIS_CONFIG_APS_EXPOSURE, &current_exposure);
-
-                    float err = desired_intensity - current_intensity;
-                    float delta_exposure = (float) current_exposure * Kp_ / 1000.f * err;
-
-                    int new_exposure = static_cast<int> (static_cast<float>(current_exposure) + delta_exposure + 0.5f);
-
-                    new_exposure = clip(new_exposure, min_exposure, max_exposure);
-
-                    // Debug stuff
-
-                    // std::cout << "current intensity: " << current_intensity << std::endl;
-                    // std::cout << "cur exposure: " << current_exposure << std::endl;
-                    // std::cout << "delta exposure: " << delta_exposure << std::endl;
-                    // std::cout << "new exposure: " << new_exposure << std::endl;
-
-                    static const ros::Publisher exposure_pub = nh_.advertise<std_msgs::Float32>(ns + "/exposure", 1000);
-                    // static const ros::Publisher intensity_pub = nh_.advertise<std_msgs::Float32>("intensity", 1000);
-                    // static const ros::Publisher err_pub = nh_.advertise<std_msgs::Float32>("err", 1000);
-
-                    std_msgs::Float32 exposure_msg;
-                    exposure_msg.data = (float) new_exposure;
-                    exposure_pub.publish(exposure_msg);
-
-                    // std_msgs::Float32 intensity_msg;
-                    // intensity_msg.data = (float) current_intensity;
-                    // intensity_pub.publish(intensity_msg);
-
-                    // std_msgs::Float32 err_msg;
-                    // err_msg.data = (float) err;
-                    // err_pub.publish(err_msg);
-
-                    caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_APS, DAVIS_CONFIG_APS_EXPOSURE, new_exposure);
+                        // Publish the new exposure
+                        std_msgs::Float32 exposure_msg;
+                        exposure_msg.data = (float) new_exposure;
+                        exposure_pub_.publish(exposure_msg);
+                    }
                 }
             }
 
@@ -741,6 +662,23 @@ void DavisRosDriver::readout()
     
     caerDeviceDataStop(davis_handle_);
 
+}
+
+int DavisRosDriver::computeNewExposure(const std::vector<uint8_t>& img_data, const uint32_t current_exposure) const
+{
+    constexpr float desired_intensity = 128;
+    constexpr int min_exposure = 10;
+    constexpr int max_exposure = 150000;
+    constexpr float proportion_to_cut = 0.25f;
+
+    const float current_intensity = trim_mean(img_data, proportion_to_cut);
+
+    const float err = desired_intensity - current_intensity;
+    const float delta_exposure = static_cast<float>(current_exposure) * static_cast<float>(current_config_.autoexposure_gain) / 1000.f * err;
+
+    const int new_exposure = static_cast<int> (static_cast<float>(current_exposure) + delta_exposure + 0.5f);
+
+    return clip(new_exposure, min_exposure, max_exposure);
 }
 
 } // namespace
