@@ -14,24 +14,25 @@
 // along with DVS-ROS.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "davis_ros_driver/driver.h"
+#include <std_msgs/Float32.h>
 
 //DAVIS Bias types
 #define CF_N_TYPE(COARSE, FINE) (struct caer_bias_coarsefine) \
-        { .coarseValue = (uint8_t)(COARSE), .fineValue = (uint8_t)(FINE), \
-        .enabled = true, .sexN = true, \
-        .typeNormal = true, .currentLevelNormal = true }
+{ .coarseValue = (uint8_t)(COARSE), .fineValue = (uint8_t)(FINE), \
+    .enabled = true, .sexN = true, \
+    .typeNormal = true, .currentLevelNormal = true }
 
 #define CF_P_TYPE(COARSE, FINE) (struct caer_bias_coarsefine) \
-        { .coarseValue = (uint8_t)(COARSE), .fineValue = (uint8_t)(FINE), \
-        .enabled = true, .sexN = false, \
-        .typeNormal = true, .currentLevelNormal = true }
+{ .coarseValue = (uint8_t)(COARSE), .fineValue = (uint8_t)(FINE), \
+    .enabled = true, .sexN = false, \
+    .typeNormal = true, .currentLevelNormal = true }
 
 #define SHIFTSOURCE(REF, REG, OPMODE) (struct caer_bias_shiftedsource) \
-  { .refValue = (uint8_t)(REF), .regValue = (uint8_t)(REG), \
+{ .refValue = (uint8_t)(REF), .regValue = (uint8_t)(REG), \
     .operatingMode = (caer_bias_shiftedsource_operating_mode)(OPMODE), .voltageLevel = (caer_bias_shiftedsource_voltage_level)(SPLIT_GATE) }
 
 #define VDAC(VOLT, CURR) (struct caer_bias_vdac) \
-  { .voltageValue = (uint8_t)(VOLT), .currentValue = (uint8_t)(CURR) }
+{ .voltageValue = (uint8_t)(VOLT), .currentValue = (uint8_t)(CURR) }
 
 
 namespace davis_ros_driver {
@@ -43,68 +44,71 @@ DavisRosDriver::DavisRosDriver(ros::NodeHandle & nh, ros::NodeHandle nh_private)
     imu_calibration_running_(false)
 {
 
-  // load parameters
-  std::string dvs_serial_number;
-  nh_private.param<std::string>("serial_number", dvs_serial_number, "");
-  bool master;
-  nh_private.param<bool>("master", master, true);
-  double reset_timestamps_delay;
-  nh_private.param<double>("reset_timestamps_delay", reset_timestamps_delay, -1.0);
-  nh_private.param<int>("imu_calibration_sample_size", imu_calibration_sample_size_, 1000);
+    // load parameters
+    std::string dvs_serial_number;
+    nh_private.param<std::string>("serial_number", dvs_serial_number, "");
+    bool master;
+    nh_private.param<bool>("master", master, true);
+    double reset_timestamps_delay;
+    nh_private.param<double>("reset_timestamps_delay", reset_timestamps_delay, -1.0);
+    nh_private.param<int>("imu_calibration_sample_size", imu_calibration_sample_size_, 1000);
 
-  // initialize bias
-  bias.linear_acceleration.x = 0.0;
-  bias.linear_acceleration.y = 0.0;
-  bias.linear_acceleration.z = 0.0;
-  bias.angular_velocity.x = 0.0;
-  bias.angular_velocity.y = 0.0;
-  bias.angular_velocity.z = 0.0;
+    // initialize bias
+    bias.linear_acceleration.x = 0.0;
+    bias.linear_acceleration.y = 0.0;
+    bias.linear_acceleration.z = 0.0;
+    bias.angular_velocity.x = 0.0;
+    bias.angular_velocity.y = 0.0;
+    bias.angular_velocity.z = 0.0;
 
+    // auto-exposure parameters
+    Kp_ = nh_private.param<float>("Kp", 4.f);
+    ROS_INFO("Kp = %f", Kp_);
 
-  // set namespace
-  ns = ros::this_node::getNamespace();
-  if (ns == "/")
-    ns = "/dvs";
+    // set namespace
+    ns = ros::this_node::getNamespace();
+    if (ns == "/")
+        ns = "/dvs";
 
-  event_array_pub_ = nh_.advertise<dvs_msgs::EventArray>(ns + "/events", 10);
-  camera_info_pub_ = nh_.advertise<sensor_msgs::CameraInfo>(ns + "/camera_info", 1);
-  imu_pub_ = nh_.advertise<sensor_msgs::Imu>(ns + "/imu", 10);
-  image_pub_ = nh_.advertise<sensor_msgs::Image>(ns + "/image_raw", 1);
+    event_array_pub_ = nh_.advertise<dvs_msgs::EventArray>(ns + "/events", 10);
+    camera_info_pub_ = nh_.advertise<sensor_msgs::CameraInfo>(ns + "/camera_info", 1);
+    imu_pub_ = nh_.advertise<sensor_msgs::Imu>(ns + "/imu", 10);
+    image_pub_ = nh_.advertise<sensor_msgs::Image>(ns + "/image_raw", 1);
 
-  caerConnect();
-  current_config_.streaming_rate = 30;
-  delta_ = boost::posix_time::microseconds(1e6/current_config_.streaming_rate);
+    caerConnect();
+    current_config_.streaming_rate = 30;
+    delta_ = boost::posix_time::microseconds(1e6/current_config_.streaming_rate);
 
-  reset_sub_ = nh_.subscribe((ns + "/reset_timestamps").c_str(), 1, &DavisRosDriver::resetTimestampsCallback, this);
-  imu_calibration_sub_ = nh_.subscribe((ns + "/calibrate_imu").c_str(), 1, &DavisRosDriver::imuCalibrationCallback, this);
-  snapshot_sub_ = nh_.subscribe((ns + "/trigger_snapshot").c_str(), 1, &DavisRosDriver::snapshotCallback, this);
+    reset_sub_ = nh_.subscribe((ns + "/reset_timestamps").c_str(), 1, &DavisRosDriver::resetTimestampsCallback, this);
+    imu_calibration_sub_ = nh_.subscribe((ns + "/calibrate_imu").c_str(), 1, &DavisRosDriver::imuCalibrationCallback, this);
+    snapshot_sub_ = nh_.subscribe((ns + "/trigger_snapshot").c_str(), 1, &DavisRosDriver::snapshotCallback, this);
 
-  // Dynamic reconfigure
-  dynamic_reconfigure_callback_ = boost::bind(&DavisRosDriver::callback, this, _1, _2);
-  server_.reset(new dynamic_reconfigure::Server<davis_ros_driver::DAVIS_ROS_DriverConfig>(nh_private));
-  server_->setCallback(dynamic_reconfigure_callback_);
+    // Dynamic reconfigure
+    dynamic_reconfigure_callback_ = boost::bind(&DavisRosDriver::callback, this, _1, _2);
+    server_.reset(new dynamic_reconfigure::Server<davis_ros_driver::DAVIS_ROS_DriverConfig>(nh_private));
+    server_->setCallback(dynamic_reconfigure_callback_);
 
-  // start timer to reset timestamps for synchronization
-  if (reset_timestamps_delay > 0.0)
-  {
-    timestamp_reset_timer_ = nh_.createTimer(ros::Duration(reset_timestamps_delay), &DavisRosDriver::resetTimerCallback, this);
-    ROS_INFO("Started timer to reset timestamps on master DVS for synchronization (delay=%3.2fs).", reset_timestamps_delay);
-  }
+    // start timer to reset timestamps for synchronization
+    if (reset_timestamps_delay > 0.0)
+    {
+        timestamp_reset_timer_ = nh_.createTimer(ros::Duration(reset_timestamps_delay), &DavisRosDriver::resetTimerCallback, this);
+        ROS_INFO("Started timer to reset timestamps on master DVS for synchronization (delay=%3.2fs).", reset_timestamps_delay);
+    }
 }
 
 DavisRosDriver::~DavisRosDriver()
 {
-  if (running_)
-  {
-    ROS_INFO("shutting down threads");
-    running_ = false;
-    parameter_thread_->join();
-    readout_thread_->join();
-    ROS_INFO("threads stopped");
-    caerLog(CAER_LOG_ERROR, "destructor",  "data stop now");
-    caerDeviceDataStop(davis_handle_);
-    caerDeviceClose(&davis_handle_);
-  }
+    if (running_)
+    {
+        ROS_INFO("shutting down threads");
+        running_ = false;
+        parameter_thread_->join();
+        readout_thread_->join();
+        ROS_INFO("threads stopped");
+        caerLog(CAER_LOG_ERROR, "destructor",  "data stop now");
+        caerDeviceDataStop(davis_handle_);
+        caerDeviceClose(&davis_handle_);
+    }
 }
 
 void DavisRosDriver::dataStop()
@@ -118,520 +122,624 @@ void DavisRosDriver::dataStop()
 void DavisRosDriver::caerConnect()
 {
 
-  // start driver
-  bool dvs_running = false;
-  while (!dvs_running)
-  {
-    //driver_ = new dvs::DvsDriver(dvs_serial_number, master);
-    davis_handle_ = caerDeviceOpen(1, CAER_DEVICE_DAVIS, 0, 0, NULL);
-
-    //dvs_running = driver_->isDeviceRunning();
-    dvs_running = !(davis_handle_ == NULL);
-
-    if (!dvs_running)
+    // start driver
+    bool dvs_running = false;
+    while (!dvs_running)
     {
-      ROS_WARN("Could not find DVS. Will retry every second.");
-      ros::Duration(1.0).sleep();
-      ros::spinOnce();
+        //driver_ = new dvs::DvsDriver(dvs_serial_number, master);
+        davis_handle_ = caerDeviceOpen(1, CAER_DEVICE_DAVIS, 0, 0, NULL);
+
+        //dvs_running = driver_->isDeviceRunning();
+        dvs_running = !(davis_handle_ == NULL);
+
+        if (!dvs_running)
+        {
+            ROS_WARN("Could not find DVS. Will retry every second.");
+            ros::Duration(1.0).sleep();
+            ros::spinOnce();
+        }
+
+        if (!ros::ok())
+        {
+            return;
+        }
     }
 
-    if (!ros::ok())
+    davis_info_ = caerDavisInfoGet(davis_handle_);
+
+    if (davis_info_.chipID == DAVIS_CHIP_DAVIS346B)
     {
-      return;
+        device_id_ = "DAVIS-346-" + std::string(davis_info_.deviceString).substr(21, 5);
     }
-  }
+    else
+    {
+        device_id_ = "DAVIS-" + std::string(davis_info_.deviceString).substr(18, 8);
+    }
 
-  davis_info_ = caerDavisInfoGet(davis_handle_);
+    ROS_INFO("%s --- ID: %d, Master: %d, DVS X: %d, DVS Y: %d, Logic: %d.\n", davis_info_.deviceString,
+             davis_info_.deviceID, davis_info_.deviceIsMaster, davis_info_.dvsSizeX, davis_info_.dvsSizeY,
+             davis_info_.logicVersion);
 
-  if (davis_info_.chipID == DAVIS_CHIP_DAVIS346B)
-  {
-    device_id_ = "DAVIS-346-" + std::string(davis_info_.deviceString).substr(21, 5);
-  }
-  else
-  {
-    device_id_ = "DAVIS-" + std::string(davis_info_.deviceString).substr(18, 8);
-  }
+    // Send the default configuration before using the device.
+    // No configuration is sent automatically!
+    caerDeviceSendDefaultConfig(davis_handle_);
 
-  ROS_INFO("%s --- ID: %d, Master: %d, DVS X: %d, DVS Y: %d, Logic: %d.\n", davis_info_.deviceString,
-          davis_info_.deviceID, davis_info_.deviceIsMaster, davis_info_.dvsSizeX, davis_info_.dvsSizeY,
-          davis_info_.logicVersion);
+    // Re-send params from param server if not first connection
+    parameter_bias_update_required_ = true;
+    parameter_update_required_ = true;
 
-  // Send the default configuration before using the device.
-  // No configuration is sent automatically!
-  caerDeviceSendDefaultConfig(davis_handle_);
+    // camera info handling
+    ros::NodeHandle nh_ns(ns);
+    camera_info_manager_.reset(new camera_info_manager::CameraInfoManager(nh_ns, device_id_));
 
-  // Re-send params from param server if not first connection
-  parameter_bias_update_required_ = true;
-  parameter_update_required_ = true;
+    // spawn threads
+    running_ = true;
+    parameter_thread_ = boost::shared_ptr<boost::thread>(new boost::thread(boost::bind(&DavisRosDriver::changeDvsParameters, this)));
+    readout_thread_ = boost::shared_ptr<boost::thread>(new boost::thread(boost::bind(&DavisRosDriver::readout, this)));
 
-  // camera info handling
-  ros::NodeHandle nh_ns(ns);
-  camera_info_manager_.reset(new camera_info_manager::CameraInfoManager(nh_ns, device_id_));
+    // wait for driver to be ready
+    ros::Duration(0.5).sleep();
 
-  // spawn threads
-  running_ = true;
-  parameter_thread_ = boost::shared_ptr<boost::thread>(new boost::thread(boost::bind(&DavisRosDriver::changeDvsParameters, this)));
-  readout_thread_ = boost::shared_ptr<boost::thread>(new boost::thread(boost::bind(&DavisRosDriver::readout, this)));
-
-  // wait for driver to be ready
-  ros::Duration(0.5).sleep();
-
-  // initialize timestamps
-  resetTimestamps();
+    // initialize timestamps
+    resetTimestamps();
 }
 
 void DavisRosDriver::onDisconnectUSB(void* driver)
 {
-  ROS_ERROR("USB connection lost with DVS !");
-  static_cast<davis_ros_driver::DavisRosDriver*>(driver)->caerConnect();
+    ROS_ERROR("USB connection lost with DVS !");
+    static_cast<davis_ros_driver::DavisRosDriver*>(driver)->caerConnect();
 }
 
 void DavisRosDriver::resetTimestamps()
 {
-  ROS_INFO("Reset timestamps on %s", device_id_.c_str());
-  caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_MUX, DAVIS_CONFIG_MUX_TIMESTAMP_RESET, 1);
-  reset_time_ = ros::Time::now();
+    ROS_INFO("Reset timestamps on %s", device_id_.c_str());
+    caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_MUX, DAVIS_CONFIG_MUX_TIMESTAMP_RESET, 1);
+    reset_time_ = ros::Time::now();
 }
 
 void DavisRosDriver::resetTimestampsCallback(const std_msgs::Empty::ConstPtr& msg)
 {
-  resetTimestamps();
+    resetTimestamps();
 }
 
 void DavisRosDriver::imuCalibrationCallback(const std_msgs::Empty::ConstPtr &msg)
 {
-  ROS_INFO("Starting IMU calibration with %d samples...", (int) imu_calibration_sample_size_);
-  imu_calibration_running_ = true;
-  imu_calibration_samples_.clear();
+    ROS_INFO("Starting IMU calibration with %d samples...", (int) imu_calibration_sample_size_);
+    imu_calibration_running_ = true;
+    imu_calibration_samples_.clear();
 }
 
 void DavisRosDriver::updateImuBias()
 {
-  bias.linear_acceleration.x = 0.0;
-  bias.linear_acceleration.y = 0.0;
-  bias.linear_acceleration.z = 0.0;
-  bias.angular_velocity.x = 0.0;
-  bias.angular_velocity.y = 0.0;
-  bias.angular_velocity.z = 0.0;
+    bias.linear_acceleration.x = 0.0;
+    bias.linear_acceleration.y = 0.0;
+    bias.linear_acceleration.z = 0.0;
+    bias.angular_velocity.x = 0.0;
+    bias.angular_velocity.y = 0.0;
+    bias.angular_velocity.z = 0.0;
 
-  for (auto m : imu_calibration_samples_)
-  {
-    bias.linear_acceleration.x += m.linear_acceleration.x;
-    bias.linear_acceleration.y += m.linear_acceleration.y;
-    bias.linear_acceleration.z += m.linear_acceleration.z;
-    bias.angular_velocity.x += m.angular_velocity.x;
-    bias.angular_velocity.y += m.angular_velocity.y;
-    bias.angular_velocity.z += m.angular_velocity.z;
-  }
+    for (auto m : imu_calibration_samples_)
+    {
+        bias.linear_acceleration.x += m.linear_acceleration.x;
+        bias.linear_acceleration.y += m.linear_acceleration.y;
+        bias.linear_acceleration.z += m.linear_acceleration.z;
+        bias.angular_velocity.x += m.angular_velocity.x;
+        bias.angular_velocity.y += m.angular_velocity.y;
+        bias.angular_velocity.z += m.angular_velocity.z;
+    }
 
-  bias.linear_acceleration.x /= (double) imu_calibration_samples_.size();
-  bias.linear_acceleration.y /= (double) imu_calibration_samples_.size();
-  bias.linear_acceleration.z /= (double) imu_calibration_samples_.size();
-  bias.linear_acceleration.z -= STANDARD_GRAVITY * sgn(bias.linear_acceleration.z);
+    bias.linear_acceleration.x /= (double) imu_calibration_samples_.size();
+    bias.linear_acceleration.y /= (double) imu_calibration_samples_.size();
+    bias.linear_acceleration.z /= (double) imu_calibration_samples_.size();
+    bias.linear_acceleration.z -= STANDARD_GRAVITY * sgn(bias.linear_acceleration.z);
 
-  bias.angular_velocity.x /= (double) imu_calibration_samples_.size();
-  bias.angular_velocity.y /= (double) imu_calibration_samples_.size();
-  bias.angular_velocity.z /= (double) imu_calibration_samples_.size();
+    bias.angular_velocity.x /= (double) imu_calibration_samples_.size();
+    bias.angular_velocity.y /= (double) imu_calibration_samples_.size();
+    bias.angular_velocity.z /= (double) imu_calibration_samples_.size();
 
-  ROS_INFO("IMU calibration done.");
-  ROS_INFO("Acceleration biases: %1.5f %1.5f %1.5f [m/s^2]", bias.linear_acceleration.x,
-           bias.linear_acceleration.y, bias.linear_acceleration.z);
-  ROS_INFO("Gyroscope biases: %1.5f %1.5f %1.5f [rad/s]", bias.angular_velocity.x,
-           bias.angular_velocity.y, bias.angular_velocity.z);
+    ROS_INFO("IMU calibration done.");
+    ROS_INFO("Acceleration biases: %1.5f %1.5f %1.5f [m/s^2]", bias.linear_acceleration.x,
+             bias.linear_acceleration.y, bias.linear_acceleration.z);
+    ROS_INFO("Gyroscope biases: %1.5f %1.5f %1.5f [rad/s]", bias.angular_velocity.x,
+             bias.angular_velocity.y, bias.angular_velocity.z);
 }
 
 void DavisRosDriver::snapshotCallback(const std_msgs::Empty::ConstPtr& msg)
 {
-  // only trigger frame readout when APS not running
-  if (!current_config_.aps_enabled)
-  {
-    caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_APS, DAVIS_CONFIG_APS_SNAPSHOT, 1);
-  }
-  else
-  {
-    ROS_WARN("Snapshot will only be taken when APS is not enabled.");
-  }
+    // only trigger frame readout when APS not running
+    if (!current_config_.aps_enabled)
+    {
+        caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_APS, DAVIS_CONFIG_APS_SNAPSHOT, 1);
+    }
+    else
+    {
+        ROS_WARN("Snapshot will only be taken when APS is not enabled.");
+    }
 }
 
 void DavisRosDriver::resetTimerCallback(const ros::TimerEvent& te)
 {
-  resetTimestamps();
-  timestamp_reset_timer_.stop();
+    resetTimestamps();
+    timestamp_reset_timer_.stop();
 }
 
 void DavisRosDriver::changeDvsParameters()
 {
-  while(running_)
-  {
-    try
+    while(running_)
     {
-      if (parameter_update_required_)
-      {
-        parameter_update_required_ = false;
-        caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_APS, DAVIS_CONFIG_APS_EXPOSURE, current_config_.exposure);
-        caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_APS, DAVIS_CONFIG_APS_FRAME_DELAY, current_config_.frame_delay);
+        try
+        {
+            if (parameter_update_required_)
+            {
+                parameter_update_required_ = false;
+                //caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_APS, DAVIS_CONFIG_APS_EXPOSURE, current_config_.exposure);
+                caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_APS, DAVIS_CONFIG_APS_FRAME_DELAY, current_config_.frame_delay);
 
-        caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_APS, DAVIS_CONFIG_APS_RUN, current_config_.aps_enabled);
-        caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_DVS, DAVIS_CONFIG_DVS_RUN, current_config_.dvs_enabled);
-        caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_IMU, DAVIS_CONFIG_IMU_RUN, current_config_.imu_enabled);
+                caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_APS, DAVIS_CONFIG_APS_RUN, current_config_.aps_enabled);
+                caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_DVS, DAVIS_CONFIG_DVS_RUN, current_config_.dvs_enabled);
+                caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_IMU, DAVIS_CONFIG_IMU_RUN, current_config_.imu_enabled);
 
-        if (current_config_.imu_gyro_scale >= 0 && current_config_.imu_gyro_scale <= 3)
-          caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_IMU, DAVIS_CONFIG_IMU_GYRO_FULL_SCALE, current_config_.imu_gyro_scale);
+                if (current_config_.imu_gyro_scale >= 0 && current_config_.imu_gyro_scale <= 3)
+                    caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_IMU, DAVIS_CONFIG_IMU_GYRO_FULL_SCALE, current_config_.imu_gyro_scale);
 
-        if (current_config_.imu_acc_scale >= 0 && current_config_.imu_acc_scale <= 3)
-          caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_IMU, DAVIS_CONFIG_IMU_ACCEL_FULL_SCALE, current_config_.imu_acc_scale);
-      }
-      /*
+                if (current_config_.imu_acc_scale >= 0 && current_config_.imu_acc_scale <= 3)
+                    caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_IMU, DAVIS_CONFIG_IMU_ACCEL_FULL_SCALE, current_config_.imu_acc_scale);
+            }
+            /*
        * Set Sensor-dependent Biases
        */
-      if (davis_info_.chipID == DAVIS_CHIP_DAVIS346B)
-      {
-        // VDAC
-        caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_BIAS, DAVIS346_CONFIG_BIAS_APSOVERFLOWLEVEL,
-            caerBiasVDACGenerate(VDAC(27,6)));
-        caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_BIAS, DAVIS346_CONFIG_BIAS_APSCAS,
-            caerBiasVDACGenerate(VDAC(21,6)));
-        caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_BIAS, DAVIS346_CONFIG_BIAS_ADCREFHIGH,
-            caerBiasVDACGenerate(VDAC(30,7)));
-        caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_BIAS, DAVIS346_CONFIG_BIAS_ADCREFLOW,
-            caerBiasVDACGenerate(VDAC(1,7)));
-        caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_BIAS, DAVIS346_CONFIG_BIAS_ADCTESTVOLTAGE,
-            caerBiasVDACGenerate(VDAC(21,7)));
-        // CF Biases
-        caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_BIAS, DAVIS346_CONFIG_BIAS_LOCALBUFBN,
-            caerBiasCoarseFineGenerate(CF_N_TYPE(5, 164)));
-        caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_BIAS, DAVIS346_CONFIG_BIAS_PADFOLLBN,
-            caerBiasCoarseFineGenerate(CF_N_TYPE(7, 215)));
-        caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_BIAS, DAVIS346_CONFIG_BIAS_DIFFBN,
-            caerBiasCoarseFineGenerate(CF_N_TYPE(4, 39)));
-        caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_BIAS, DAVIS346_CONFIG_BIAS_ONBN,
-            caerBiasCoarseFineGenerate(CF_N_TYPE(6, 255)));
-        caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_BIAS, DAVIS346_CONFIG_BIAS_OFFBN,
-            caerBiasCoarseFineGenerate(CF_N_TYPE(4, 0)));
-        caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_BIAS, DAVIS346_CONFIG_BIAS_PIXINVBN,
-            caerBiasCoarseFineGenerate(CF_N_TYPE(5, 129)));
-        caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_BIAS, DAVIS346_CONFIG_BIAS_PRBP,
-            caerBiasCoarseFineGenerate(CF_P_TYPE(2, 255)));
-        caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_BIAS, DAVIS346_CONFIG_BIAS_PRSFBP,
-            caerBiasCoarseFineGenerate(CF_P_TYPE(1, 199)));
-        caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_BIAS, DAVIS346_CONFIG_BIAS_REFRBP,
-            caerBiasCoarseFineGenerate(CF_P_TYPE(3, 7)));
-        caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_BIAS, DAVIS346_CONFIG_BIAS_READOUTBUFBP,
-            caerBiasCoarseFineGenerate(CF_P_TYPE(6, 20)));
-        caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_BIAS, DAVIS346_CONFIG_BIAS_APSROSFBN,
-            caerBiasCoarseFineGenerate(CF_N_TYPE(6, 219)));
-        caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_BIAS, DAVIS346_CONFIG_BIAS_ADCCOMPBP,
-            caerBiasCoarseFineGenerate(CF_P_TYPE(5, 20)));
-        caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_BIAS, DAVIS346_CONFIG_BIAS_COLSELLOWBN,
-            caerBiasCoarseFineGenerate(CF_N_TYPE(0, 1)));
-        caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_BIAS, DAVIS346_CONFIG_BIAS_DACBUFBP,
-            caerBiasCoarseFineGenerate(CF_P_TYPE(6, 60)));
-        caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_BIAS, DAVIS346_CONFIG_BIAS_LCOLTIMEOUTBN,
-            caerBiasCoarseFineGenerate(CF_N_TYPE(5, 49)));;
-        caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_BIAS, DAVIS346_CONFIG_BIAS_AEPDBN,
-            caerBiasCoarseFineGenerate(CF_N_TYPE(6, 91)));
-        caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_BIAS, DAVIS346_CONFIG_BIAS_AEPUXBP,
-            caerBiasCoarseFineGenerate(CF_P_TYPE(4, 80)));
-        caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_BIAS, DAVIS346_CONFIG_BIAS_AEPUYBP,
-            caerBiasCoarseFineGenerate(CF_P_TYPE(7, 152)));
-        caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_BIAS, DAVIS346_CONFIG_BIAS_IFREFRBN,
-            caerBiasCoarseFineGenerate(CF_N_TYPE(5, 255)));
-        caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_BIAS, DAVIS346_CONFIG_BIAS_IFTHRBN,
-            caerBiasCoarseFineGenerate(CF_N_TYPE(5, 255)));
-        caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_BIAS, DAVIS346_CONFIG_BIAS_BIASBUFFER,
-          caerBiasCoarseFineGenerate(CF_N_TYPE(5, 254)));
-        // Special Biases
-        caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_BIAS, DAVIS346_CONFIG_BIAS_SSP,
-            caerBiasShiftedSourceGenerate(SHIFTSOURCE(1,33,SHIFTED_SOURCE)));
-        caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_BIAS, DAVIS346_CONFIG_BIAS_SSN,
-            caerBiasShiftedSourceGenerate(SHIFTSOURCE(1,33,SHIFTED_SOURCE)));
-      }
-      else
-      {
-        // BIAS changes for DAVIS240
-        if (parameter_bias_update_required_)
-        {
-          parameter_bias_update_required_ = false;
-          caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_BIAS, DAVIS240_CONFIG_BIAS_PRBP,
-              caerBiasCoarseFineGenerate(CF_P_TYPE(current_config_.PrBp_coarse, current_config_.PrBp_fine)));
-          caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_BIAS, DAVIS240_CONFIG_BIAS_PRSFBP,
-              caerBiasCoarseFineGenerate(CF_P_TYPE(current_config_.PrSFBp_coarse, current_config_.PrSFBp_fine)));
+            if (davis_info_.chipID == DAVIS_CHIP_DAVIS346B)
+            {
+                // VDAC
+                caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_BIAS, DAVIS346_CONFIG_BIAS_APSOVERFLOWLEVEL,
+                                    caerBiasVDACGenerate(VDAC(27,6)));
+                caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_BIAS, DAVIS346_CONFIG_BIAS_APSCAS,
+                                    caerBiasVDACGenerate(VDAC(21,6)));
+                caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_BIAS, DAVIS346_CONFIG_BIAS_ADCREFHIGH,
+                                    caerBiasVDACGenerate(VDAC(30,7)));
+                caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_BIAS, DAVIS346_CONFIG_BIAS_ADCREFLOW,
+                                    caerBiasVDACGenerate(VDAC(1,7)));
+                caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_BIAS, DAVIS346_CONFIG_BIAS_ADCTESTVOLTAGE,
+                                    caerBiasVDACGenerate(VDAC(21,7)));
+                // CF Biases
+                caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_BIAS, DAVIS346_CONFIG_BIAS_LOCALBUFBN,
+                                    caerBiasCoarseFineGenerate(CF_N_TYPE(5, 164)));
+                caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_BIAS, DAVIS346_CONFIG_BIAS_PADFOLLBN,
+                                    caerBiasCoarseFineGenerate(CF_N_TYPE(7, 215)));
+                caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_BIAS, DAVIS346_CONFIG_BIAS_DIFFBN,
+                                    caerBiasCoarseFineGenerate(CF_N_TYPE(4, 39)));
+                caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_BIAS, DAVIS346_CONFIG_BIAS_ONBN,
+                                    caerBiasCoarseFineGenerate(CF_N_TYPE(6, 255)));
+                caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_BIAS, DAVIS346_CONFIG_BIAS_OFFBN,
+                                    caerBiasCoarseFineGenerate(CF_N_TYPE(4, 0)));
+                caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_BIAS, DAVIS346_CONFIG_BIAS_PIXINVBN,
+                                    caerBiasCoarseFineGenerate(CF_N_TYPE(5, 129)));
+                caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_BIAS, DAVIS346_CONFIG_BIAS_PRBP,
+                                    caerBiasCoarseFineGenerate(CF_P_TYPE(2, 255)));
+                caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_BIAS, DAVIS346_CONFIG_BIAS_PRSFBP,
+                                    caerBiasCoarseFineGenerate(CF_P_TYPE(1, 199)));
+                caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_BIAS, DAVIS346_CONFIG_BIAS_REFRBP,
+                                    caerBiasCoarseFineGenerate(CF_P_TYPE(3, 7)));
+                caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_BIAS, DAVIS346_CONFIG_BIAS_READOUTBUFBP,
+                                    caerBiasCoarseFineGenerate(CF_P_TYPE(6, 20)));
+                caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_BIAS, DAVIS346_CONFIG_BIAS_APSROSFBN,
+                                    caerBiasCoarseFineGenerate(CF_N_TYPE(6, 219)));
+                caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_BIAS, DAVIS346_CONFIG_BIAS_ADCCOMPBP,
+                                    caerBiasCoarseFineGenerate(CF_P_TYPE(5, 20)));
+                caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_BIAS, DAVIS346_CONFIG_BIAS_COLSELLOWBN,
+                                    caerBiasCoarseFineGenerate(CF_N_TYPE(0, 1)));
+                caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_BIAS, DAVIS346_CONFIG_BIAS_DACBUFBP,
+                                    caerBiasCoarseFineGenerate(CF_P_TYPE(6, 60)));
+                caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_BIAS, DAVIS346_CONFIG_BIAS_LCOLTIMEOUTBN,
+                                    caerBiasCoarseFineGenerate(CF_N_TYPE(5, 49)));;
+                caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_BIAS, DAVIS346_CONFIG_BIAS_AEPDBN,
+                                    caerBiasCoarseFineGenerate(CF_N_TYPE(6, 91)));
+                caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_BIAS, DAVIS346_CONFIG_BIAS_AEPUXBP,
+                                    caerBiasCoarseFineGenerate(CF_P_TYPE(4, 80)));
+                caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_BIAS, DAVIS346_CONFIG_BIAS_AEPUYBP,
+                                    caerBiasCoarseFineGenerate(CF_P_TYPE(7, 152)));
+                caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_BIAS, DAVIS346_CONFIG_BIAS_IFREFRBN,
+                                    caerBiasCoarseFineGenerate(CF_N_TYPE(5, 255)));
+                caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_BIAS, DAVIS346_CONFIG_BIAS_IFTHRBN,
+                                    caerBiasCoarseFineGenerate(CF_N_TYPE(5, 255)));
+                caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_BIAS, DAVIS346_CONFIG_BIAS_BIASBUFFER,
+                                    caerBiasCoarseFineGenerate(CF_N_TYPE(5, 254)));
+                // Special Biases
+                caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_BIAS, DAVIS346_CONFIG_BIAS_SSP,
+                                    caerBiasShiftedSourceGenerate(SHIFTSOURCE(1,33,SHIFTED_SOURCE)));
+                caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_BIAS, DAVIS346_CONFIG_BIAS_SSN,
+                                    caerBiasShiftedSourceGenerate(SHIFTSOURCE(1,33,SHIFTED_SOURCE)));
+            }
+            else
+            {
+                // BIAS changes for DAVIS240
+                if (parameter_bias_update_required_)
+                {
+                    parameter_bias_update_required_ = false;
+                    caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_BIAS, DAVIS240_CONFIG_BIAS_PRBP,
+                                        caerBiasCoarseFineGenerate(CF_P_TYPE(current_config_.PrBp_coarse, current_config_.PrBp_fine)));
+                    caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_BIAS, DAVIS240_CONFIG_BIAS_PRSFBP,
+                                        caerBiasCoarseFineGenerate(CF_P_TYPE(current_config_.PrSFBp_coarse, current_config_.PrSFBp_fine)));
 
-          caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_BIAS, DAVIS240_CONFIG_BIAS_DIFFBN,
-              caerBiasCoarseFineGenerate(CF_N_TYPE(current_config_.DiffBn_coarse, current_config_.DiffBn_fine)));
-          caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_BIAS, DAVIS240_CONFIG_BIAS_ONBN,
-              caerBiasCoarseFineGenerate(CF_N_TYPE(current_config_.ONBn_coarse, current_config_.ONBn_fine)));
-          caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_BIAS, DAVIS240_CONFIG_BIAS_OFFBN,
-              caerBiasCoarseFineGenerate(CF_N_TYPE(current_config_.OFFBn_coarse, current_config_.OFFBn_fine)));
+                    caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_BIAS, DAVIS240_CONFIG_BIAS_DIFFBN,
+                                        caerBiasCoarseFineGenerate(CF_N_TYPE(current_config_.DiffBn_coarse, current_config_.DiffBn_fine)));
+                    caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_BIAS, DAVIS240_CONFIG_BIAS_ONBN,
+                                        caerBiasCoarseFineGenerate(CF_N_TYPE(current_config_.ONBn_coarse, current_config_.ONBn_fine)));
+                    caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_BIAS, DAVIS240_CONFIG_BIAS_OFFBN,
+                                        caerBiasCoarseFineGenerate(CF_N_TYPE(current_config_.OFFBn_coarse, current_config_.OFFBn_fine)));
 
-          caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_BIAS, DAVIS240_CONFIG_BIAS_REFRBP,
-              caerBiasCoarseFineGenerate(CF_P_TYPE(current_config_.RefrBp_coarse, current_config_.RefrBp_fine)));
+                    caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_BIAS, DAVIS240_CONFIG_BIAS_REFRBP,
+                                        caerBiasCoarseFineGenerate(CF_P_TYPE(current_config_.RefrBp_coarse, current_config_.RefrBp_fine)));
 
+                }
+            }
+
+            boost::this_thread::sleep(boost::posix_time::milliseconds(100));
         }
-      }
-
-      boost::this_thread::sleep(boost::posix_time::milliseconds(100));
+        catch(boost::thread_interrupted&)
+        {
+            return;
+        }
     }
-    catch(boost::thread_interrupted&)
-    {
-      return;
-    }
-  }
 }
 
 void DavisRosDriver::callback(davis_ros_driver::DAVIS_ROS_DriverConfig &config, uint32_t level)
 {
-  // did any DVS bias setting change?
-   if (current_config_.exposure != config.exposure || current_config_.frame_delay != config.frame_delay ||
-       current_config_.aps_enabled != config.aps_enabled || current_config_.dvs_enabled != config.dvs_enabled ||
-       current_config_.imu_enabled != config.imu_enabled || current_config_.imu_acc_scale != config.imu_acc_scale ||
-       current_config_.imu_gyro_scale != config.imu_gyro_scale || current_config_.max_events != config.max_events)
-   {
-     current_config_.exposure = config.exposure;
-     current_config_.frame_delay = config.frame_delay;
+    // did any DVS bias setting change?
+    if (current_config_.exposure != config.exposure || current_config_.frame_delay != config.frame_delay ||
+            current_config_.aps_enabled != config.aps_enabled || current_config_.dvs_enabled != config.dvs_enabled ||
+            current_config_.imu_enabled != config.imu_enabled || current_config_.imu_acc_scale != config.imu_acc_scale ||
+            current_config_.imu_gyro_scale != config.imu_gyro_scale || current_config_.max_events != config.max_events)
+    {
+        current_config_.exposure = config.exposure;
+        current_config_.frame_delay = config.frame_delay;
 
-     current_config_.aps_enabled = config.aps_enabled;
-     current_config_.dvs_enabled = config.dvs_enabled;
-     current_config_.imu_enabled = config.imu_enabled;
+        current_config_.aps_enabled = config.aps_enabled;
+        current_config_.dvs_enabled = config.dvs_enabled;
+        current_config_.imu_enabled = config.imu_enabled;
 
-     current_config_.imu_acc_scale = config.imu_acc_scale;
-     current_config_.imu_gyro_scale = config.imu_gyro_scale;
+        current_config_.imu_acc_scale = config.imu_acc_scale;
+        current_config_.imu_gyro_scale = config.imu_gyro_scale;
 
-     current_config_.max_events = config.max_events;
+        current_config_.max_events = config.max_events;
 
-     parameter_update_required_ = true;
-   }
+        parameter_update_required_ = true;
+    }
 
-   if (level & 1)
-   {
-     parameter_bias_update_required_ = true;
-     current_config_.PrBp_coarse = config.PrBp_coarse;
-     current_config_.PrBp_fine = config.PrBp_fine;
-     current_config_.PrSFBp_coarse = config.PrSFBp_coarse;
-     current_config_.PrSFBp_fine = config.PrSFBp_fine;
-     current_config_.DiffBn_coarse = config.DiffBn_coarse;
-     current_config_.DiffBn_fine = config.DiffBn_fine;
-     current_config_.ONBn_coarse = config.ONBn_coarse;
-     current_config_.ONBn_fine = config.ONBn_fine;
-     current_config_.OFFBn_coarse = config.OFFBn_coarse;
-     current_config_.OFFBn_fine = config.OFFBn_fine;
-     current_config_.RefrBp_coarse = config.RefrBp_coarse;
-     current_config_.RefrBp_fine = config.RefrBp_fine;
-   }
+    if (level & 1)
+    {
+        parameter_bias_update_required_ = true;
+        current_config_.PrBp_coarse = config.PrBp_coarse;
+        current_config_.PrBp_fine = config.PrBp_fine;
+        current_config_.PrSFBp_coarse = config.PrSFBp_coarse;
+        current_config_.PrSFBp_fine = config.PrSFBp_fine;
+        current_config_.DiffBn_coarse = config.DiffBn_coarse;
+        current_config_.DiffBn_fine = config.DiffBn_fine;
+        current_config_.ONBn_coarse = config.ONBn_coarse;
+        current_config_.ONBn_fine = config.ONBn_fine;
+        current_config_.OFFBn_coarse = config.OFFBn_coarse;
+        current_config_.OFFBn_fine = config.OFFBn_fine;
+        current_config_.RefrBp_coarse = config.RefrBp_coarse;
+        current_config_.RefrBp_fine = config.RefrBp_fine;
+    }
 
-   // change streaming rate, if necessary
-   if (current_config_.streaming_rate != config.streaming_rate)
-   {
-     current_config_.streaming_rate = config.streaming_rate;
-     if (current_config_.streaming_rate > 0)
-     {
-       delta_ = boost::posix_time::microseconds(1e6/current_config_.streaming_rate);
-     }
-   }
+    // change streaming rate, if necessary
+    if (current_config_.streaming_rate != config.streaming_rate)
+    {
+        current_config_.streaming_rate = config.streaming_rate;
+        if (current_config_.streaming_rate > 0)
+        {
+            delta_ = boost::posix_time::microseconds(1e6/current_config_.streaming_rate);
+        }
+    }
+}
+
+int clip(int n, int lower, int upper) {
+    return std::max(lower, std::min(n, upper));
+}
+
+float mean(const std::vector<uint8_t>& v)
+{
+    if(v.empty())
+        return 0.f;
+
+    float sum = (float) std::accumulate(v.begin(), v.end(), 0.0);
+    float mean = sum / v.size();
+    return mean;
+}
+
+float median(const std::vector<uint8_t>& v_original)
+{
+    std::vector<uint8_t> v(v_original);
+    if(v.empty())
+        return 0.f;
+
+    float median;
+    size_t size = v.size();
+
+    std::sort(v.begin(), v.end());
+
+    if (size  % 2 == 0)
+    {
+        median = ((float) v[size / 2 - 1] + (float) v[size / 2]) / 2.f;
+    }
+    else
+    {
+        median = (float) v[size / 2];
+    }
+
+    return median;
+}
+
+float trim_mean(const std::vector<uint8_t>& v_original, const float proportion_to_cut)
+{
+    if(v_original.empty())
+    {
+        return 0.f;
+    }
+
+    std::vector<uint8_t> v(v_original);
+    std::sort(v.begin(), v.end());
+
+    const size_t size = v.size();
+    const size_t num_values_to_cut = (int) (size * proportion_to_cut);
+    const size_t start_index = num_values_to_cut - 1;
+    const size_t end_index = size - num_values_to_cut - 1;
+
+    std::vector<uint8_t> trimmed_vec(v.begin() + start_index, v.begin() + end_index);
+    return mean(trimmed_vec);
 }
 
 void DavisRosDriver::readout()
 {
 
-  //std::vector<dvs::Event> events;
+    //std::vector<dvs::Event> events;
 
-  caerDeviceConfigSet(davis_handle_, CAER_HOST_CONFIG_DATAEXCHANGE, CAER_HOST_CONFIG_DATAEXCHANGE_BLOCKING, true);
-  caerDeviceDataStart(davis_handle_, NULL, NULL, NULL, &DavisRosDriver::onDisconnectUSB, this);
-  
-  boost::posix_time::ptime next_send_time = boost::posix_time::microsec_clock::local_time();
+    caerDeviceConfigSet(davis_handle_, CAER_HOST_CONFIG_DATAEXCHANGE, CAER_HOST_CONFIG_DATAEXCHANGE_BLOCKING, true);
+    caerDeviceDataStart(davis_handle_, NULL, NULL, NULL, &DavisRosDriver::onDisconnectUSB, this);
 
-  dvs_msgs::EventArrayPtr event_array_msg;
+    boost::posix_time::ptime next_send_time = boost::posix_time::microsec_clock::local_time();
 
-  while (running_)
-  {
-    try
+    dvs_msgs::EventArrayPtr event_array_msg;
+
+    while (running_)
     {
-      caerEventPacketContainer packetContainer = caerDeviceDataGet(davis_handle_);
-      if (packetContainer == NULL)
-      {
-        continue; // Skip if nothing there.
-      }
-
-      int32_t packetNum = caerEventPacketContainerGetEventPacketsNumber(packetContainer);
-
-      for (int32_t i = 0; i < packetNum; i++)
-      {
-        caerEventPacketHeader packetHeader = caerEventPacketContainerGetEventPacket(packetContainer, i);
-        if (packetHeader == NULL)
+        try
         {
-          continue; // Skip if nothing there.
+            caerEventPacketContainer packetContainer = caerDeviceDataGet(davis_handle_);
+            if (packetContainer == NULL)
+            {
+                continue; // Skip if nothing there.
+            }
+
+            int32_t packetNum = caerEventPacketContainerGetEventPacketsNumber(packetContainer);
+
+            for (int32_t i = 0; i < packetNum; i++)
+            {
+                caerEventPacketHeader packetHeader = caerEventPacketContainerGetEventPacket(packetContainer, i);
+                if (packetHeader == NULL)
+                {
+                    continue; // Skip if nothing there.
+                }
+
+                const int type = caerEventPacketHeaderGetEventType(packetHeader);
+
+                // Packet 0 is always the special events packet for DVS128, while packet is the polarity events packet.
+                if (type == POLARITY_EVENT)
+                {
+                    if (!event_array_msg)
+                    {
+                        event_array_msg = dvs_msgs::EventArrayPtr(new dvs_msgs::EventArray());
+                        event_array_msg->height = davis_info_.dvsSizeY;
+                        event_array_msg->width = davis_info_.dvsSizeX;
+                    }
+
+                    caerPolarityEventPacket polarity = (caerPolarityEventPacket) packetHeader;
+
+                    const int numEvents = caerEventPacketHeaderGetEventNumber(packetHeader);
+                    for (int j = 0; j < numEvents; j++)
+                    {
+                        // Get full timestamp and addresses of first event.
+                        caerPolarityEvent event = caerPolarityEventPacketGetEvent(polarity, j);
+
+                        dvs_msgs::Event e;
+                        e.x = caerPolarityEventGetX(event);
+                        e.y = caerPolarityEventGetY(event);
+                        e.ts = reset_time_ + ros::Duration(caerPolarityEventGetTimestamp64(event, polarity) / 1.e6);
+                        e.polarity = caerPolarityEventGetPolarity(event);
+
+                        if(j == 0)
+                        {
+                            event_array_msg->header.stamp = e.ts;
+                        }
+
+                        event_array_msg->events.push_back(e);
+                    }
+
+                    // throttle event messages
+                    if (boost::posix_time::microsec_clock::local_time() > next_send_time ||
+                            current_config_.streaming_rate == 0 ||
+                            (current_config_.max_events != 0 && event_array_msg->events.size() > current_config_.max_events)
+                            )
+                    {
+                        event_array_pub_.publish(event_array_msg);
+
+                        if (current_config_.streaming_rate > 0)
+                        {
+                            next_send_time += delta_;
+                        }
+                        if (current_config_.max_events != 0 && event_array_msg->events.size() > current_config_.max_events)
+                        {
+                            next_send_time = boost::posix_time::microsec_clock::local_time() + delta_;
+                        }
+
+                        event_array_msg.reset();
+                    }
+
+                    if (camera_info_manager_->isCalibrated())
+                    {
+                        sensor_msgs::CameraInfoPtr camera_info_msg(new sensor_msgs::CameraInfo(camera_info_manager_->getCameraInfo()));
+                        camera_info_pub_.publish(camera_info_msg);
+                    }
+                }
+                else if (type == IMU6_EVENT)
+                {
+                    caerIMU6EventPacket imu = (caerIMU6EventPacket) packetHeader;
+
+                    const int numEvents = caerEventPacketHeaderGetEventNumber(packetHeader);
+
+                    for (int j = 0; j < numEvents; j++)
+                    {
+                        caerIMU6Event event = caerIMU6EventPacketGetEvent(imu, j);
+
+                        sensor_msgs::Imu msg;
+                        if (davis_info_.chipID == DAVIS_CHIP_DAVIS346B)
+                        {
+                            // convert from g's to m/s^2 and align axes with camera frame
+                            msg.linear_acceleration.x = -caerIMU6EventGetAccelY(event) * STANDARD_GRAVITY;
+                            msg.linear_acceleration.y = -caerIMU6EventGetAccelX(event) * STANDARD_GRAVITY;
+                            msg.linear_acceleration.z = -caerIMU6EventGetAccelZ(event) * STANDARD_GRAVITY;
+                            // convert from deg/s to rad/s and align axes with camera frame
+                            msg.angular_velocity.x = -caerIMU6EventGetGyroY(event) / 180.0 * M_PI;
+                            msg.angular_velocity.y = -caerIMU6EventGetGyroX(event) / 180.0 * M_PI;
+                            msg.angular_velocity.z = -caerIMU6EventGetGyroZ(event) / 180.0 * M_PI;
+                        }
+                        else
+                        {
+                            // convert from g's to m/s^2 and align axes with camera frame
+                            msg.linear_acceleration.x = -caerIMU6EventGetAccelX(event) * STANDARD_GRAVITY;
+                            msg.linear_acceleration.y = caerIMU6EventGetAccelY(event) * STANDARD_GRAVITY;
+                            msg.linear_acceleration.z = -caerIMU6EventGetAccelZ(event) * STANDARD_GRAVITY;
+                            // convert from deg/s to rad/s and align axes with camera frame
+                            msg.angular_velocity.x = -caerIMU6EventGetGyroX(event) / 180.0 * M_PI;
+                            msg.angular_velocity.y = caerIMU6EventGetGyroY(event) / 180.0 * M_PI;
+                            msg.angular_velocity.z = -caerIMU6EventGetGyroZ(event) / 180.0 * M_PI;
+                        }
+
+                        // no orientation estimate: http://docs.ros.org/api/sensor_msgs/html/msg/Imu.html
+                        msg.orientation_covariance[0] = -1.0;
+
+                        // time
+                        msg.header.stamp = reset_time_ + ros::Duration(caerIMU6EventGetTimestamp64(event, imu) / 1.e6);
+
+                        // frame
+                        msg.header.frame_id = "base_link";
+
+                        // IMU calibration
+                        if (imu_calibration_running_)
+                        {
+                            if (imu_calibration_samples_.size() < imu_calibration_sample_size_)
+                            {
+                                imu_calibration_samples_.push_back(msg);
+                            }
+                            else
+                            {
+                                imu_calibration_running_ = false;
+                                updateImuBias();
+                            }
+                        }
+
+                        // bias correction
+                        msg.linear_acceleration.x -= bias.linear_acceleration.x;
+                        msg.linear_acceleration.y -= bias.linear_acceleration.y;
+                        msg.linear_acceleration.z -= bias.linear_acceleration.z;
+                        msg.angular_velocity.x -= bias.angular_velocity.x;
+                        msg.angular_velocity.y -= bias.angular_velocity.y;
+                        msg.angular_velocity.z -= bias.angular_velocity.z;
+
+                        imu_pub_.publish(msg);
+                    }
+                }
+                else if (type == FRAME_EVENT)
+                {
+                    caerFrameEventPacket frame = (caerFrameEventPacket) packetHeader;
+                    caerFrameEvent event = caerFrameEventPacketGetEvent(frame, 0);
+
+                    uint16_t* image = caerFrameEventGetPixelArrayUnsafe(event);
+
+                    sensor_msgs::Image msg;
+
+                    // meta information
+                    msg.encoding = "mono8";
+                    msg.width = davis_info_.apsSizeX;
+                    msg.height = davis_info_.apsSizeY;
+                    msg.step = davis_info_.apsSizeX;
+
+                    // image data
+                    const int32_t frame_width = caerFrameEventGetLengthX(event);
+                    const int32_t frame_height= caerFrameEventGetLengthY(event);
+
+                    for (int img_y=0; img_y<frame_height; img_y++)
+                    {
+                        for (int img_x=0; img_x<frame_width; img_x++)
+                        {
+                            const uint16_t value = image[img_y*frame_width + img_x];
+                            msg.data.push_back(value >> 8);
+                        }
+                    }
+
+                    // time
+                    msg.header.stamp = reset_time_ + ros::Duration(caerFrameEventGetTimestamp64(event, frame) / 1.e6);
+
+                    image_pub_.publish(msg);
+
+                    // exposure control
+                    constexpr float desired_intensity = 128;
+                    constexpr int min_exposure = 10;
+                    constexpr int max_exposure = 150000;
+
+                    //const float current_intensity = mean(msg.data);
+                    const float current_intensity = trim_mean(msg.data, 0.25f);
+                    //const float current_intensity = median(msg.data);
+
+                    uint32_t current_exposure;
+                    caerDeviceConfigGet(davis_handle_, DAVIS_CONFIG_APS, DAVIS_CONFIG_APS_EXPOSURE, &current_exposure);
+
+                    float err = desired_intensity - current_intensity;
+                    float delta_exposure = (float) current_exposure * Kp_ / 1000.f * err;
+
+                    int new_exposure = static_cast<int> (static_cast<float>(current_exposure) + delta_exposure + 0.5f);
+
+                    new_exposure = clip(new_exposure, min_exposure, max_exposure);
+
+                    // Debug stuff
+
+                    // std::cout << "current intensity: " << current_intensity << std::endl;
+                    // std::cout << "cur exposure: " << current_exposure << std::endl;
+                    // std::cout << "delta exposure: " << delta_exposure << std::endl;
+                    // std::cout << "new exposure: " << new_exposure << std::endl;
+
+                    static const ros::Publisher exposure_pub = nh_.advertise<std_msgs::Float32>(ns + "/exposure", 1000);
+                    // static const ros::Publisher intensity_pub = nh_.advertise<std_msgs::Float32>("intensity", 1000);
+                    // static const ros::Publisher err_pub = nh_.advertise<std_msgs::Float32>("err", 1000);
+
+                    std_msgs::Float32 exposure_msg;
+                    exposure_msg.data = (float) new_exposure;
+                    exposure_pub.publish(exposure_msg);
+
+                    // std_msgs::Float32 intensity_msg;
+                    // intensity_msg.data = (float) current_intensity;
+                    // intensity_pub.publish(intensity_msg);
+
+                    // std_msgs::Float32 err_msg;
+                    // err_msg.data = (float) err;
+                    // err_pub.publish(err_msg);
+
+                    caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_APS, DAVIS_CONFIG_APS_EXPOSURE, new_exposure);
+                }
+            }
+
+            caerEventPacketContainerFree(packetContainer);
+
+            ros::spinOnce();
         }
-
-	const int type = caerEventPacketHeaderGetEventType(packetHeader);
-
-        // Packet 0 is always the special events packet for DVS128, while packet is the polarity events packet.
-        if (type == POLARITY_EVENT)
+        catch(boost::thread_interrupted&)
         {
-          if (!event_array_msg)
-          {
-            event_array_msg = dvs_msgs::EventArrayPtr(new dvs_msgs::EventArray());
-            event_array_msg->height = davis_info_.dvsSizeY;
-            event_array_msg->width = davis_info_.dvsSizeX;
-          }
-
-          caerPolarityEventPacket polarity = (caerPolarityEventPacket) packetHeader;
-
-          const int numEvents = caerEventPacketHeaderGetEventNumber(packetHeader);
-          for (int j = 0; j < numEvents; j++)
-          {
-            // Get full timestamp and addresses of first event.
-            caerPolarityEvent event = caerPolarityEventPacketGetEvent(polarity, j);
-
-            dvs_msgs::Event e;
-            e.x = caerPolarityEventGetX(event);
-            e.y = caerPolarityEventGetY(event);
-            e.ts = reset_time_ + ros::Duration(caerPolarityEventGetTimestamp64(event, polarity) / 1.e6);
-            e.polarity = caerPolarityEventGetPolarity(event);
-
-            event_array_msg->events.push_back(e);
-          }
-
-          // throttle event messages
-          if (boost::posix_time::microsec_clock::local_time() > next_send_time ||
-              current_config_.streaming_rate == 0 ||
-              (current_config_.max_events != 0 && event_array_msg->events.size() > current_config_.max_events)
-             )
-          {
-            event_array_pub_.publish(event_array_msg);
-
-            if (current_config_.streaming_rate > 0)
-            {
-              next_send_time += delta_;
-            }
-            if (current_config_.max_events != 0 && event_array_msg->events.size() > current_config_.max_events)
-            {
-              next_send_time = boost::posix_time::microsec_clock::local_time() + delta_;
-            }
-
-            event_array_msg.reset();
-          }
-
-          if (camera_info_manager_->isCalibrated())
-          {
-            sensor_msgs::CameraInfoPtr camera_info_msg(new sensor_msgs::CameraInfo(camera_info_manager_->getCameraInfo()));
-            camera_info_pub_.publish(camera_info_msg);
-          }
+            return;
         }
-        else if (type == IMU6_EVENT)
-        {
-          caerIMU6EventPacket imu = (caerIMU6EventPacket) packetHeader;
-
-          const int numEvents = caerEventPacketHeaderGetEventNumber(packetHeader);
-
-          for (int j = 0; j < numEvents; j++)
-          {
-            caerIMU6Event event = caerIMU6EventPacketGetEvent(imu, j);
-
-            sensor_msgs::Imu msg;
-            if (davis_info_.chipID == DAVIS_CHIP_DAVIS346B)
-            {
-              // convert from g's to m/s^2 and align axes with camera frame
-              msg.linear_acceleration.x = -caerIMU6EventGetAccelY(event) * STANDARD_GRAVITY;
-              msg.linear_acceleration.y = -caerIMU6EventGetAccelX(event) * STANDARD_GRAVITY;
-              msg.linear_acceleration.z = -caerIMU6EventGetAccelZ(event) * STANDARD_GRAVITY;
-              // convert from deg/s to rad/s and align axes with camera frame
-              msg.angular_velocity.x = -caerIMU6EventGetGyroY(event) / 180.0 * M_PI;
-              msg.angular_velocity.y = -caerIMU6EventGetGyroX(event) / 180.0 * M_PI;
-              msg.angular_velocity.z = -caerIMU6EventGetGyroZ(event) / 180.0 * M_PI;
-            }
-            else
-            {
-              // convert from g's to m/s^2 and align axes with camera frame
-              msg.linear_acceleration.x = -caerIMU6EventGetAccelX(event) * STANDARD_GRAVITY;
-              msg.linear_acceleration.y = caerIMU6EventGetAccelY(event) * STANDARD_GRAVITY;
-              msg.linear_acceleration.z = -caerIMU6EventGetAccelZ(event) * STANDARD_GRAVITY;
-              // convert from deg/s to rad/s and align axes with camera frame
-              msg.angular_velocity.x = -caerIMU6EventGetGyroX(event) / 180.0 * M_PI;
-              msg.angular_velocity.y = caerIMU6EventGetGyroY(event) / 180.0 * M_PI;
-              msg.angular_velocity.z = -caerIMU6EventGetGyroZ(event) / 180.0 * M_PI;
-            }
-
-            // no orientation estimate: http://docs.ros.org/api/sensor_msgs/html/msg/Imu.html
-            msg.orientation_covariance[0] = -1.0;
-
-            // time
-            msg.header.stamp = reset_time_ + ros::Duration(caerIMU6EventGetTimestamp64(event, imu) / 1.e6);
-
-            // frame
-            msg.header.frame_id = "base_link";
-
-            // IMU calibration
-            if (imu_calibration_running_)
-            {
-              if (imu_calibration_samples_.size() < imu_calibration_sample_size_)
-              {
-                imu_calibration_samples_.push_back(msg);
-              }
-              else
-              {
-                imu_calibration_running_ = false;
-                updateImuBias();
-              }
-            }
-
-            // bias correction
-            msg.linear_acceleration.x -= bias.linear_acceleration.x;
-            msg.linear_acceleration.y -= bias.linear_acceleration.y;
-            msg.linear_acceleration.z -= bias.linear_acceleration.z;
-            msg.angular_velocity.x -= bias.angular_velocity.x;
-            msg.angular_velocity.y -= bias.angular_velocity.y;
-            msg.angular_velocity.z -= bias.angular_velocity.z;
-
-            imu_pub_.publish(msg);
-          }
-        }
-        else if (type == FRAME_EVENT)
-        {
-          caerFrameEventPacket frame = (caerFrameEventPacket) packetHeader;
-          caerFrameEvent event = caerFrameEventPacketGetEvent(frame, 0);
-
-          uint16_t* image = caerFrameEventGetPixelArrayUnsafe(event);
-
-          sensor_msgs::Image msg;
-
-          // meta information
-          msg.encoding = "mono8";
-          msg.width = davis_info_.apsSizeX;
-          msg.height = davis_info_.apsSizeY;
-          msg.step = davis_info_.apsSizeX;
-
-          // image data
-          const int32_t frame_width = caerFrameEventGetLengthX(event);
-          const int32_t frame_height= caerFrameEventGetLengthY(event);
-
-          for (int img_y=0; img_y<frame_height; img_y++)
-          {
-            for (int img_x=0; img_x<frame_width; img_x++)
-            {
-              const uint16_t value = image[img_y*frame_width + img_x];
-              //msg.data.push_back(value & 0xff);
-              msg.data.push_back(value >> 8);
-            }
-          }
-
-          // time
-          msg.header.stamp = reset_time_ + ros::Duration(caerFrameEventGetTimestamp64(event, frame) / 1.e6);
-
-          image_pub_.publish(msg);
-        }
-      }
-
-      caerEventPacketContainerFree(packetContainer);
-
-      ros::spinOnce();
     }
-    catch(boost::thread_interrupted&)
-    {
-      return;
-    }
-  }
     
-  caerDeviceDataStop(davis_handle_);
+    caerDeviceDataStop(davis_handle_);
 
 }
 
