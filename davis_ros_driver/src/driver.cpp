@@ -495,7 +495,8 @@ void DavisRosDriver::readout()
                         dvs_msgs::Event e;
                         e.x = caerPolarityEventGetX(event);
                         e.y = caerPolarityEventGetY(event);
-                        e.ts = reset_time_ + ros::Duration(caerPolarityEventGetTimestamp64(event, polarity) / 1.e6);
+                        e.ts = reset_time_
+                                + ros::Duration().fromNSec(caerPolarityEventGetTimestamp64(event, polarity) * 1000);
                         e.polarity = caerPolarityEventGetPolarity(event);
 
                         if(j == 0)
@@ -570,7 +571,8 @@ void DavisRosDriver::readout()
                         msg.orientation_covariance[0] = -1.0;
 
                         // time
-                        msg.header.stamp = reset_time_ + ros::Duration(caerIMU6EventGetTimestamp64(event, imu) / 1.e6);
+                        msg.header.stamp = reset_time_ +
+                                ros::Duration().fromNSec(caerIMU6EventGetTimestamp64(event, imu) * 1000);
 
                         // frame
                         msg.header.frame_id = "base_link";
@@ -629,7 +631,8 @@ void DavisRosDriver::readout()
                     }
 
                     // time
-                    msg.header.stamp = reset_time_ + ros::Duration(caerFrameEventGetTimestamp64(event, frame) / 1.e6);
+                    msg.header.stamp = reset_time_ +
+                            ros::Duration().fromNSec(caerFrameEventGetTimestamp64(event, frame) * 1000);
 
                     image_pub_.publish(msg);
 
@@ -666,10 +669,10 @@ void DavisRosDriver::readout()
 
 int DavisRosDriver::computeNewExposure(const std::vector<uint8_t>& img_data, const uint32_t current_exposure) const
 {
-    constexpr float desired_intensity = 128;
-    constexpr int min_exposure = 10;
-    constexpr int max_exposure = 150000;
-    constexpr float proportion_to_cut = 0.25f;
+    static constexpr float desired_intensity = 128;
+    static constexpr int min_exposure = 10;
+    static constexpr int max_exposure = 150000;
+    static constexpr float proportion_to_cut = 0.25f;
 
     const float current_intensity = trim_mean(img_data, proportion_to_cut);
 
