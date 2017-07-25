@@ -58,12 +58,15 @@ private:
   void readout();
   void resetTimestamps();
   void caerConnect();
+  int computeNewExposure(const std::vector<uint8_t>& img_data,
+                          const uint32_t current_exposure) const;
 
   ros::NodeHandle nh_;
   ros::Publisher event_array_pub_;
   ros::Publisher camera_info_pub_;
   ros::Publisher imu_pub_;
   ros::Publisher image_pub_;
+  ros::Publisher exposure_pub_;
   caerDeviceHandle davis_handle_;
   
   std::string ns;
