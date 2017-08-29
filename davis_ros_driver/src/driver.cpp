@@ -392,13 +392,15 @@ void DavisRosDriver::callback(davis_ros_driver::DAVIS_ROS_DriverConfig &config, 
             current_config_.autoexposure_enabled != config.autoexposure_enabled || current_config_.autoexposure_gain != config.autoexposure_gain ||
             current_config_.aps_enabled != config.aps_enabled || current_config_.dvs_enabled != config.dvs_enabled ||
             current_config_.imu_enabled != config.imu_enabled || current_config_.imu_acc_scale != config.imu_acc_scale ||
-            current_config_.imu_gyro_scale != config.imu_gyro_scale || current_config_.max_events != config.max_events)
+            current_config_.imu_gyro_scale != config.imu_gyro_scale || current_config_.max_events != config.max_events ||
+            current_config_.autoexposure_desired_intensity != config.autoexposure_desired_intensity)
     {
         current_config_.exposure = config.exposure;
         current_config_.frame_delay = config.frame_delay;
 
         current_config_.autoexposure_enabled = config.autoexposure_enabled;
         current_config_.autoexposure_gain = config.autoexposure_gain;
+        current_config_.autoexposure_desired_intensity = config.autoexposure_desired_intensity;
 
         current_config_.aps_enabled = config.aps_enabled;
         current_config_.dvs_enabled = config.dvs_enabled;
@@ -669,9 +671,9 @@ void DavisRosDriver::readout()
 
 int DavisRosDriver::computeNewExposure(const std::vector<uint8_t>& img_data, const uint32_t current_exposure) const
 {
-    static constexpr float desired_intensity = 128;
+    const float desired_intensity = static_cast<float>(current_config_.autoexposure_desired_intensity);
     static constexpr int min_exposure = 10;
-    static constexpr int max_exposure = 150000;
+    static constexpr int max_exposure = 25000;
     static constexpr float proportion_to_cut = 0.25f;
 
     const float current_intensity = trim_mean(img_data, proportion_to_cut);
