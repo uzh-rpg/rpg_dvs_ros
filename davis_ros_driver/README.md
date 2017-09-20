@@ -40,5 +40,5 @@ The driver will slowly sweep a range of exposures. When it is done, it will save
 
 This will create a ```photometricCalibResult``` folder containing the response curve in ```pcalib.txt``` + some debug outputs.
 
-* You can use the scripts in the ```scripts``` folder to display the response curve, or the images used for calibration.
+* You can use the scripts [here](https://github.com/uzh-rpg/mono_dataset_code/tree/master/scripts) to display the response curve, or the images used for calibration.
 
