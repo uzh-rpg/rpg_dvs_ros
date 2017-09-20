@@ -90,6 +90,22 @@ private:
       return (T(0) < val) - (val < T(0));
   }
 
+  ros::Subscriber photometric_calibration_sub_;
+  void photometricCalibrationCallback(const std_msgs::Empty::ConstPtr& msg);
+  int photometric_calibration_sample_size_;
+  int photometric_calibration_min_exposure_;
+  int photometric_calibration_max_exposure_;
+  double photometric_calibration_multiplicative_increment_;
+  bool photometric_calibration_running_;
+  double photometric_desired_exposure_;
+  bool photometric_request_next_frame_;
+  std::string photometric_calibration_data_folder_;
+
+  using ImageStampWithExposure = std::pair<int64_t, int64_t>;
+  std::map<ImageStampWithExposure, sensor_msgs::Image> photometric_calibration_samples_;
+  void updatePhotometricCalibration();
+  void savePhotometricCalibrationData();
+
   ros::Subscriber snapshot_sub_;
   void snapshotCallback(const std_msgs::Empty::ConstPtr& msg);
 

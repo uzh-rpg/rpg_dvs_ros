@@ -16,6 +16,9 @@
 #include "davis_ros_driver/driver.h"
 #include "davis_ros_driver/driver_utils.h"
 #include <std_msgs/Float32.h>
+#include <cv_bridge/cv_bridge.h>
+#include <opencv2/highgui/highgui.hpp>
+#include <fstream>
 
 //DAVIS Bias types
 #define CF_N_TYPE(COARSE, FINE) (struct caer_bias_coarsefine) \
@@ -42,7 +45,8 @@ DavisRosDriver::DavisRosDriver(ros::NodeHandle & nh, ros::NodeHandle nh_private)
     nh_(nh),
     parameter_update_required_(false),
     parameter_bias_update_required_(false),
-    imu_calibration_running_(false)
+    imu_calibration_running_(false),
+    photometric_calibration_running_(false)
 {
 
     // load parameters
@@ -53,6 +57,15 @@ DavisRosDriver::DavisRosDriver(ros::NodeHandle & nh, ros::NodeHandle nh_private)
     double reset_timestamps_delay;
     nh_private.param<double>("reset_timestamps_delay", reset_timestamps_delay, -1.0);
     nh_private.param<int>("imu_calibration_sample_size", imu_calibration_sample_size_, 1000);
+
+    nh_private.param<int>("photometric_calibration_sample_size", photometric_calibration_sample_size_, 1500);
+    nh_private.param<int>("photometric_calibration_min_exposure", photometric_calibration_min_exposure_, 50);
+    nh_private.param<int>("photometric_calibration_max_exposure", photometric_calibration_max_exposure_, 20000);
+    nh_private.param<std::string>("photometric_calibration_data_folder", photometric_calibration_data_folder_, "/tmp");
+
+    // find the multiplicative increment such that exp_min * (mult_increment)^(num_samples) >= exp_max
+    photometric_calibration_multiplicative_increment_ = std::exp(1.0 / (double) (photometric_calibration_sample_size_ - 1) * std::log((double) photometric_calibration_max_exposure_ / (double) photometric_calibration_min_exposure_));
+    ROS_DEBUG("Exposure multiplicative increment: %f", photometric_calibration_multiplicative_increment_);
 
     // initialize bias
     bias.linear_acceleration.x = 0.0;
@@ -79,6 +92,7 @@ DavisRosDriver::DavisRosDriver(ros::NodeHandle & nh, ros::NodeHandle nh_private)
 
     reset_sub_ = nh_.subscribe((ns + "/reset_timestamps").c_str(), 1, &DavisRosDriver::resetTimestampsCallback, this);
     imu_calibration_sub_ = nh_.subscribe((ns + "/calibrate_imu").c_str(), 1, &DavisRosDriver::imuCalibrationCallback, this);
+    photometric_calibration_sub_ = nh_.subscribe((ns + "/calibrate_photometric").c_str(), 1, &DavisRosDriver::photometricCalibrationCallback, this);
     snapshot_sub_ = nh_.subscribe((ns + "/trigger_snapshot").c_str(), 1, &DavisRosDriver::snapshotCallback, this);
 
     // Dynamic reconfigure
@@ -205,6 +219,17 @@ void DavisRosDriver::imuCalibrationCallback(const std_msgs::Empty::ConstPtr &msg
     ROS_INFO("Starting IMU calibration with %d samples...", (int) imu_calibration_sample_size_);
     imu_calibration_running_ = true;
     imu_calibration_samples_.clear();
+}
+
+void DavisRosDriver::photometricCalibrationCallback(const std_msgs::Empty::ConstPtr &msg)
+{
+  ROS_INFO("Starting photometric calibration with %d samples. Min/max exposure: %d -> %d", (int) photometric_calibration_sample_size_,
+           photometric_calibration_min_exposure_,
+           photometric_calibration_max_exposure_);
+  photometric_calibration_running_ = true;
+  photometric_desired_exposure_ = photometric_calibration_min_exposure_;
+  photometric_request_next_frame_ = true;
+  photometric_calibration_samples_.clear();
 }
 
 void DavisRosDriver::updateImuBias()
@@ -638,8 +663,53 @@ void DavisRosDriver::readout()
 
                     image_pub_.publish(msg);
 
+                    if(photometric_calibration_running_)
+                    {
+                      if(photometric_calibration_samples_.size() >= photometric_calibration_sample_size_)
+                      {
+                        ROS_INFO("Finished photometric exposure. Setting exposure back to: %d", current_config_.exposure);
+                        photometric_calibration_running_ = false;
+
+                        savePhotometricCalibrationData();
+
+                        // restore the exposure to some reasonable value
+                        caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_APS, DAVIS_CONFIG_APS_EXPOSURE, current_config_.exposure);
+                      }
+                      else
+                      {
+                        if(photometric_request_next_frame_)
+                        {
+                          ROS_INFO("Requested new exposure: %d", static_cast<uint32_t>(photometric_desired_exposure_));
+                          caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_APS, DAVIS_CONFIG_APS_EXPOSURE, static_cast<uint32_t>(photometric_desired_exposure_));
+                          photometric_request_next_frame_ = false;
+                        }
+
+                        // we now have to wait until we received a frame whose exposure time is close enough to the one requested
+                        // this might take a couple of frames...
+
+                        static constexpr int32_t tolerance_exposure_time = 20;
+                        const int32_t actual_exposure_time = caerFrameEventGetExposureLength(event);
+
+                        ROS_DEBUG("Got frame with exposure: %d", actual_exposure_time);
+
+                        if(std::fabs(actual_exposure_time - photometric_desired_exposure_) < tolerance_exposure_time)
+                        {
+                          // got the frame we requested!
+                          ROS_DEBUG("OK! Will request next frame now");
+                          photometric_calibration_samples_.insert(std::pair<ImageStampWithExposure, sensor_msgs::Image>(
+                                                                    ImageStampWithExposure(caerFrameEventGetTimestamp64(event, frame),
+                                                                                           actual_exposure_time),
+                                                                    msg));
+
+                          // update the desired exposure for the next frame
+                          photometric_desired_exposure_ *= photometric_calibration_multiplicative_increment_;
+                          photometric_request_next_frame_ = true;
+                        }
+                      }
+                    }
+
                     // auto-exposure algorithm
-                    if(current_config_.autoexposure_enabled)
+                    if(!photometric_calibration_running_ && current_config_.autoexposure_enabled)
                     {
                         uint32_t current_exposure;
                         caerDeviceConfigGet(davis_handle_, DAVIS_CONFIG_APS, DAVIS_CONFIG_APS_EXPOSURE, &current_exposure);
@@ -667,6 +737,51 @@ void DavisRosDriver::readout()
     
     caerDeviceDataStop(davis_handle_);
 
+}
+
+void DavisRosDriver::savePhotometricCalibrationData()
+{
+  ROS_INFO("Saving photometric calibration data to: %s", photometric_calibration_data_folder_.c_str());
+
+  std::ofstream photometric_data_exposure_file_(photometric_calibration_data_folder_ + "/times.txt", std::ios::out);
+  std::ofstream photometric_data_camera_file_(photometric_calibration_data_folder_ + "/camera.txt", std::ios::out);
+
+  static constexpr double fx = 0.6, fy = 0.6; // arbitrary focal lengths since they are not used by the photometric calib tools
+  static constexpr double cx = 0.5, cy = 0.5; // same for the optical center positions
+  photometric_data_camera_file_ << fx << " " << fy << " " << cx << " " << cy << " 1.0" << std::endl;
+  sensor_msgs::Image& img = photometric_calibration_samples_.begin()->second;
+  photometric_data_camera_file_ << img.width << " " << img.height << std::endl;
+  photometric_data_camera_file_ << "crop" << std::endl;
+  photometric_data_camera_file_ << img.width << " " << img.height << std::endl;
+
+  std::vector<int> compression_params;
+  compression_params.push_back(CV_IMWRITE_PNG_COMPRESSION);
+  compression_params.push_back(0);
+
+  cv_bridge::CvImagePtr cv_ptr;
+  int idx = 0;
+  for(auto it = photometric_calibration_samples_.begin(); it != photometric_calibration_samples_.end(); it++)
+  {
+    std::stringstream ss;
+    ss << photometric_calibration_data_folder_ << "/images/" << std::setfill('0') << std::setw(5) << idx << ".png";
+    try
+    {
+      cv_ptr = cv_bridge::toCvCopy(it->second, sensor_msgs::image_encodings::MONO8);
+      cv::imwrite(ss.str(), cv_ptr->image, compression_params);
+
+      const double image_stamp_s = ros::Duration().fromNSec(it->first.first * 1000).toSec();
+      const double exposure_time_ms = ros::Duration().fromNSec(it->first.second * 1000).toSec() * 1000.0;
+      photometric_data_exposure_file_ << std::setfill('0') << std::setw(5) << idx;
+      photometric_data_exposure_file_ << " " << std::setprecision(15) << image_stamp_s;
+      photometric_data_exposure_file_ << " " << std::setprecision(15) << exposure_time_ms << std::endl;
+    }
+    catch (cv_bridge::Exception& e)
+    {
+      ROS_ERROR("cv_bridge exception: %s", e.what());
+    }
+
+    idx++;
+  }
 }
 
 int DavisRosDriver::computeNewExposure(const std::vector<uint8_t>& img_data, const uint32_t current_exposure) const
