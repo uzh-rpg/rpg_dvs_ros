@@ -298,9 +298,9 @@ void DavisRosDriver::changeDvsParameters()
                 caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_BIAS, DAVIS346_CONFIG_BIAS_APSCAS,
                                     caerBiasVDACGenerate(VDAC(21,6)));
                 caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_BIAS, DAVIS346_CONFIG_BIAS_ADCREFHIGH,
-                                    caerBiasVDACGenerate(VDAC(30,7)));
+                                    caerBiasVDACGenerate(VDAC(current_config_.ADC_RefHigh_volt, current_config_.ADC_RefHigh_curr)));
                 caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_BIAS, DAVIS346_CONFIG_BIAS_ADCREFLOW,
-                                    caerBiasVDACGenerate(VDAC(1,7)));
+                                    caerBiasVDACGenerate(VDAC(current_config_.ADC_RefLow_volt, current_config_.ADC_RefLow_curr)));
                 caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_BIAS, DAVIS346_CONFIG_BIAS_ADCTESTVOLTAGE,
                                     caerBiasVDACGenerate(VDAC(21,7)));
                 // CF Biases
@@ -429,6 +429,10 @@ void DavisRosDriver::callback(davis_ros_driver::DAVIS_ROS_DriverConfig &config, 
         current_config_.OFFBn_fine = config.OFFBn_fine;
         current_config_.RefrBp_coarse = config.RefrBp_coarse;
         current_config_.RefrBp_fine = config.RefrBp_fine;
+        current_config_.ADC_RefHigh_volt = config.ADC_RefHigh_volt;
+        current_config_.ADC_RefHigh_curr = config.ADC_RefHigh_curr;
+        current_config_.ADC_RefLow_volt = config.ADC_RefLow_volt;
+        current_config_.ADC_RefLow_curr = config.ADC_RefLow_curr;
     }
 
     // change streaming rate, if necessary
