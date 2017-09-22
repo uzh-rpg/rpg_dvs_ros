@@ -323,9 +323,9 @@ void DavisRosDriver::changeDvsParameters()
                 caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_BIAS, DAVIS346_CONFIG_BIAS_APSCAS,
                                     caerBiasVDACGenerate(VDAC(21,6)));
                 caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_BIAS, DAVIS346_CONFIG_BIAS_ADCREFHIGH,
-                                    caerBiasVDACGenerate(VDAC(30,7)));
+                                    caerBiasVDACGenerate(VDAC(current_config_.ADC_RefHigh_volt, current_config_.ADC_RefHigh_curr)));
                 caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_BIAS, DAVIS346_CONFIG_BIAS_ADCREFLOW,
-                                    caerBiasVDACGenerate(VDAC(1,7)));
+                                    caerBiasVDACGenerate(VDAC(current_config_.ADC_RefLow_volt, current_config_.ADC_RefLow_curr)));
                 caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_BIAS, DAVIS346_CONFIG_BIAS_ADCTESTVOLTAGE,
                                     caerBiasVDACGenerate(VDAC(21,7)));
                 // CF Biases
@@ -334,19 +334,19 @@ void DavisRosDriver::changeDvsParameters()
                 caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_BIAS, DAVIS346_CONFIG_BIAS_PADFOLLBN,
                                     caerBiasCoarseFineGenerate(CF_N_TYPE(7, 215)));
                 caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_BIAS, DAVIS346_CONFIG_BIAS_DIFFBN,
-                                    caerBiasCoarseFineGenerate(CF_N_TYPE(4, 39)));
+                                    caerBiasCoarseFineGenerate(CF_N_TYPE(current_config_.DiffBn_coarse, current_config_.DiffBn_fine)));
                 caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_BIAS, DAVIS346_CONFIG_BIAS_ONBN,
-                                    caerBiasCoarseFineGenerate(CF_N_TYPE(6, 255)));
+                                    caerBiasCoarseFineGenerate(CF_N_TYPE(current_config_.ONBn_coarse, current_config_.ONBn_fine)));
                 caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_BIAS, DAVIS346_CONFIG_BIAS_OFFBN,
-                                    caerBiasCoarseFineGenerate(CF_N_TYPE(4, 0)));
+                                    caerBiasCoarseFineGenerate(CF_N_TYPE(current_config_.OFFBn_coarse, current_config_.OFFBn_fine)));
                 caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_BIAS, DAVIS346_CONFIG_BIAS_PIXINVBN,
                                     caerBiasCoarseFineGenerate(CF_N_TYPE(5, 129)));
                 caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_BIAS, DAVIS346_CONFIG_BIAS_PRBP,
-                                    caerBiasCoarseFineGenerate(CF_P_TYPE(2, 255)));
+                                    caerBiasCoarseFineGenerate(CF_P_TYPE(current_config_.PrBp_coarse, current_config_.PrBp_fine)));
                 caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_BIAS, DAVIS346_CONFIG_BIAS_PRSFBP,
-                                    caerBiasCoarseFineGenerate(CF_P_TYPE(1, 199)));
+                                    caerBiasCoarseFineGenerate(CF_P_TYPE(current_config_.PrSFBp_coarse, current_config_.PrSFBp_fine)));
                 caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_BIAS, DAVIS346_CONFIG_BIAS_REFRBP,
-                                    caerBiasCoarseFineGenerate(CF_P_TYPE(3, 7)));
+                                    caerBiasCoarseFineGenerate(CF_P_TYPE(current_config_.RefrBp_coarse, current_config_.RefrBp_fine)));
                 caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_BIAS, DAVIS346_CONFIG_BIAS_READOUTBUFBP,
                                     caerBiasCoarseFineGenerate(CF_P_TYPE(6, 20)));
                 caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_BIAS, DAVIS346_CONFIG_BIAS_APSROSFBN,
@@ -454,6 +454,10 @@ void DavisRosDriver::callback(davis_ros_driver::DAVIS_ROS_DriverConfig &config, 
         current_config_.OFFBn_fine = config.OFFBn_fine;
         current_config_.RefrBp_coarse = config.RefrBp_coarse;
         current_config_.RefrBp_fine = config.RefrBp_fine;
+        current_config_.ADC_RefHigh_volt = config.ADC_RefHigh_volt;
+        current_config_.ADC_RefHigh_curr = config.ADC_RefHigh_curr;
+        current_config_.ADC_RefLow_volt = config.ADC_RefLow_volt;
+        current_config_.ADC_RefLow_curr = config.ADC_RefLow_curr;
     }
 
     // change streaming rate, if necessary
