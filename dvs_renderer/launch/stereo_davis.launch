@@ -1,0 +1,29 @@
+<launch>
+  <!-- DAVIS drivers -->
+  <include file="$(find davis_ros_driver)/launch/stereo.launch" />
+
+  <!-- visualization -->
+  <node name="dvs_renderer_left" pkg="dvs_renderer" type="dvs_renderer">
+    <param name="display_method" value="red-blue"/>
+    <remap from="events" to="/davis_left/events" />
+    <remap from="image" to="/davis_left/image_raw" />
+    <remap from="dvs_rendering" to="dvs_rendering_left" />
+  </node>
+
+  <node name="dvs_renderer_right" pkg="dvs_renderer" type="dvs_renderer">
+    <param name="display_method" value="red-blue"/>
+    <remap from="events" to="/davis_right/events" />
+    <remap from="image" to="/davis_right/image_raw" />
+    <remap from="dvs_rendering" to="dvs_rendering_right" />
+  </node>
+
+  <!-- display -->
+  <node name="image_view_left" pkg="image_view" type="image_view">
+    <remap from="image" to="dvs_rendering_left"/>
+  </node>
+
+  <node name="image_view_right" pkg="image_view" type="image_view">
+    <remap from="image" to="dvs_rendering_right"/>
+  </node>
+
+</launch>

@@ -27,6 +27,7 @@
 #include <dvs_msgs/Event.h>
 #include <dvs_msgs/EventArray.h>
 #include <std_msgs/Empty.h>
+#include <std_msgs/Time.h>
 #include <sensor_msgs/Imu.h>
 #include <sensor_msgs/Image.h>
 
@@ -77,7 +78,8 @@ private:
   dynamic_reconfigure::Server<davis_ros_driver::DAVIS_ROS_DriverConfig>::CallbackType dynamic_reconfigure_callback_;
 
   ros::Subscriber reset_sub_;
-  void resetTimestampsCallback(const std_msgs::Empty::ConstPtr& msg);
+  ros::Publisher reset_pub_;
+  void resetTimestampsCallback(const std_msgs::Time::ConstPtr& msg);
 
   ros::Subscriber imu_calibration_sub_;
   void imuCalibrationCallback(const std_msgs::Empty::ConstPtr& msg);
@@ -102,6 +104,7 @@ private:
   std::shared_ptr<camera_info_manager::CameraInfoManager> camera_info_manager_;
 
   struct caer_davis_info davis_info_;
+  bool master_;
   std::string device_id_;
 
   ros::Time reset_time_;
