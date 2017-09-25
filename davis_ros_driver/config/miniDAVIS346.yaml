@@ -1,0 +1,6 @@
+{ADC_RefHigh_volt: 24, ADC_RefHigh_curr: 7, ADC_RefLow_volt: 1, ADC_RefLow_curr: 7, DiffBn_coarse: 4, DiffBn_fine: 39, OFFBn_coarse: 4, OFFBn_fine: 0, ONBn_coarse: 6,
+  ONBn_fine: 255, PrBp_coarse: 2, PrBp_fine: 255, PrSFBp_coarse: 1, PrSFBp_fine: 199,
+  RefrBp_coarse: 3, RefrBp_fine: 7, aps_enabled: true, dvs_enabled: true, exposure: 4000,
+  frame_delay: 0, imu_acc_scale: 3, imu_enabled: true, imu_gyro_scale: 3, max_events: 0,
+  streaming_rate: 30}
+
