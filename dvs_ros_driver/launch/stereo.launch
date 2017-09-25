@@ -1,25 +1,24 @@
-<launch>  
+<launch>
   <!-- camera driver -->
   <node ns="dvs_left" name="dvs_ros_driver" pkg="dvs_ros_driver" type="dvs_ros_driver" output="screen">
     <!-- Serial number is on the back of the DVS -->
-  	<param name="serial_number" type="str" value="0273" />
+    <param name="serial_number" type="str" value="0273" />
+    <rosparam command="load" file="$(find dvs_ros_driver)/config/fast.yaml" />
 
     <!-- Set as master -->
-  	<param name="master" type="bool" value="true" />
+    <param name="master" type="bool" value="true" />
 
     <!-- Wait until both nodes are running before resetting timestamps -->
-  	<param name="reset_timestamps_delay" type="double" value="2.0" />
+    <param name="reset_timestamps_delay" type="double" value="2.0" />
 
-    <!-- Load configuration file -->
-    <rosparam command="load" file="$(find dvs_ros_driver)/config/fast.yaml" />
   </node>
-  
+
   <node ns="dvs_right" name="dvs_ros_driver" pkg="dvs_ros_driver" type="dvs_ros_driver" output="screen">
-  	<param name="serial_number" type="str" value="0272" />
+    <param name="serial_number" type="str" value="0272" />
+    <rosparam command="load" file="$(find dvs_ros_driver)/config/fast.yaml" />
 
     <!-- Set as slave -->
-  	<param name="master" type="bool" value="false" />
-  	 
-    <rosparam command="load" file="$(find dvs_ros_driver)/config/fast.yaml" />
+    <param name="master" type="bool" value="false" />
+    <remap from="reset_timestamps" to="/dvs_left/reset_timestamps"/>
   </node>
 </launch>
