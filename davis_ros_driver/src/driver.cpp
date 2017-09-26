@@ -52,12 +52,12 @@ DavisRosDriver::DavisRosDriver(ros::NodeHandle & nh, ros::NodeHandle nh_private)
   nh_private.param<int>("imu_calibration_sample_size", imu_calibration_sample_size_, 1000);
 
   // initialize bias
-  bias.linear_acceleration.x = 0.0;
-  bias.linear_acceleration.y = 0.0;
-  bias.linear_acceleration.z = 0.0;
-  bias.angular_velocity.x = 0.0;
-  bias.angular_velocity.y = 0.0;
-  bias.angular_velocity.z = 0.0;
+  nh_private.param<double>("imu_bias/ax", bias.linear_acceleration.x, 0.0);
+  nh_private.param<double>("imu_bias/ay", bias.linear_acceleration.y, 0.0);
+  nh_private.param<double>("imu_bias/az", bias.linear_acceleration.z, 0.0);
+  nh_private.param<double>("imu_bias/wx", bias.angular_velocity.x, 0.0);
+  nh_private.param<double>("imu_bias/wy", bias.angular_velocity.y, 0.0);
+  nh_private.param<double>("imu_bias/wz", bias.angular_velocity.z, 0.0);
 
   // set namespace
   ns = ros::this_node::getNamespace();
