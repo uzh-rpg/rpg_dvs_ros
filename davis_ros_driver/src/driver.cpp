@@ -671,9 +671,9 @@ void DavisRosDriver::readout()
                     image_pub_.publish(msg);
 
                     // publish image exposure
-                    const int32_t exposure_time_microseconds = caerFrameEventGetExposureLength(event);
+                    const float exposure_time_microseconds = static_cast<float>(caerFrameEventGetExposureLength(event));
                     std_msgs::Float32 exposure_msg;
-                    exposure_msg.data = static_cast<float>(exposure_time_microseconds) / 1000.f;
+                    exposure_msg.data = exposure_time_microseconds / 1000.f;
                     if(exposure_pub_.getNumSubscribers() > 0)
                     {
                       exposure_pub_.publish(exposure_msg);
