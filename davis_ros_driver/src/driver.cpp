@@ -15,7 +15,7 @@
 
 #include "davis_ros_driver/driver.h"
 #include "davis_ros_driver/driver_utils.h"
-#include <std_msgs/Float32.h>
+#include <std_msgs/Int32.h>
 
 //DAVIS Bias types
 #define CF_N_TYPE(COARSE, FINE) (struct caer_bias_coarsefine) \
@@ -68,7 +68,7 @@ DavisRosDriver::DavisRosDriver(ros::NodeHandle & nh, ros::NodeHandle nh_private)
   camera_info_pub_ = nh_.advertise<sensor_msgs::CameraInfo>(ns + "/camera_info", 1);
   imu_pub_ = nh_.advertise<sensor_msgs::Imu>(ns + "/imu", 10);
   image_pub_ = nh_.advertise<sensor_msgs::Image>(ns + "/image_raw", 1);
-  exposure_pub_ = nh_.advertise<std_msgs::Float32>(ns + "/exposure", 10);
+  exposure_pub_ = nh_.advertise<std_msgs::Int32>(ns + "/exposure", 10);
 
   // reset timestamps is publisher as master, subscriber as slave
   if (master_)
@@ -671,9 +671,9 @@ void DavisRosDriver::readout()
                     image_pub_.publish(msg);
 
                     // publish image exposure
-                    const float exposure_time_microseconds = static_cast<float>(caerFrameEventGetExposureLength(event));
-                    std_msgs::Float32 exposure_msg;
-                    exposure_msg.data = exposure_time_microseconds / 1000.f;
+                    const int32_t exposure_time_microseconds = caerFrameEventGetExposureLength(event);
+                    std_msgs::Int32 exposure_msg;
+                    exposure_msg.data = exposure_time_microseconds;
                     if(exposure_pub_.getNumSubscribers() > 0)
                     {
                       exposure_pub_.publish(exposure_msg);
