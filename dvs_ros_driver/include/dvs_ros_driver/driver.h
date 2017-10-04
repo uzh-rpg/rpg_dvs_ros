@@ -25,6 +25,7 @@
 
 // messages
 #include <dvs_msgs/Event.h>
+#include <dvs_msgs/SpecialEvent.h>
 #include <dvs_msgs/EventArray.h>
 #include <std_msgs/Empty.h>
 #include <std_msgs/Time.h>
@@ -56,6 +57,7 @@ private:
 
   ros::NodeHandle nh_;
   ros::Publisher event_array_pub_;
+  ros::Publisher special_event_pub_;
   ros::Publisher camera_info_pub_;
   caerDeviceHandle dvs128_handle;
 

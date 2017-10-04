@@ -71,8 +71,9 @@ DvsRosDriver::DvsRosDriver(ros::NodeHandle & nh, ros::NodeHandle nh_private) :
   std::string ns = ros::this_node::getNamespace();
   if (ns == "/")
     ns = "/dvs";
-  event_array_pub_ = nh_.advertise<dvs_msgs::EventArray>(ns + "/events", 1);
-  camera_info_pub_ = nh_.advertise<sensor_msgs::CameraInfo>(ns + "/camera_info", 1);
+  event_array_pub_   = nh_.advertise<dvs_msgs::EventArray>(ns + "/events", 1);
+  special_event_pub_ = nh_.advertise<dvs_msgs::SpecialEvent>(ns + "/special_events", 1);
+  camera_info_pub_   = nh_.advertise<sensor_msgs::CameraInfo>(ns + "/camera_info", 1);
 
   // camera info handling
   ros::NodeHandle nh_ns(ns);
@@ -244,6 +245,8 @@ void DvsRosDriver::readout()
   event_array_msg->height = dvs128_info_.dvsSizeY;
   event_array_msg->width = dvs128_info_.dvsSizeX;
 
+  dvs_msgs::SpecialEventPtr special_events_msg(new dvs_msgs::SpecialEvent());
+
   uint64_t last_timestamp = 0;
 
   while (running_)
@@ -321,8 +324,11 @@ void DvsRosDriver::readout()
             switch (type) {
                 // DVS128 only gives rising edge
                 case EXTERNAL_INPUT_RISING_EDGE:
-                  printf("delta T: %lld = %f FPS\n", delta, 1000000.0/delta);
-                  last_timestamp = ts;
+                  //printf("delta T: %lld = %f FPS\n", delta, 1000000.0/delta);
+                  //last_timestamp = ts;
+                  special_events_msg->ts = reset_time_ + ros::Duration().fromNSec(ts * 1000);
+                  special_events_msg->polarity = true; // the DVS can only detect rising edges
+                  special_event_pub_.publish(special_events_msg);
                   //printf("RISING EDGE\n");
                   break;
 
