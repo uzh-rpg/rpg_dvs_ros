@@ -44,6 +44,9 @@ DvsRosDriver::DvsRosDriver(ros::NodeHandle & nh, ros::NodeHandle nh_private) :
     }
     else
     {
+      printf("setting up custom things\n");
+      printf("is master: %d\n", master_);
+
       // configure as master or slave
       caerDeviceConfigSet(dvs128_handle, DVS128_CONFIG_DVS, DVS128_CONFIG_DVS_TS_MASTER, master_);
     }
@@ -91,7 +94,7 @@ DvsRosDriver::DvsRosDriver(ros::NodeHandle & nh, ros::NodeHandle nh_private) :
   // spawn threads
   running_ = true;
   parameter_thread_ = boost::shared_ptr< boost::thread >(new boost::thread(boost::bind(&DvsRosDriver::changeDvsParameters, this)));
-  readout_thread_ = boost::shared_ptr< boost::thread >(new boost::thread(boost::bind(&DvsRosDriver::readout, this)));
+  readout_thread_   = boost::shared_ptr< boost::thread >(new boost::thread(boost::bind(&DvsRosDriver::readout, this)));
 
   // Dynamic reconfigure
   dynamic_reconfigure_callback_ = boost::bind(&DvsRosDriver::callback, this, _1, _2);
@@ -171,18 +174,18 @@ void DvsRosDriver::changeDvsParameters()
       if (parameter_update_required_)
       {
         parameter_update_required_ = false;
-        caerDeviceConfigSet(dvs128_handle, DVS128_CONFIG_BIAS, DVS128_CONFIG_BIAS_CAS, current_config_.cas);
-        caerDeviceConfigSet(dvs128_handle, DVS128_CONFIG_BIAS, DVS128_CONFIG_BIAS_INJGND, current_config_.injGnd);
-        caerDeviceConfigSet(dvs128_handle, DVS128_CONFIG_BIAS, DVS128_CONFIG_BIAS_REQPD, current_config_.reqPd);
-        caerDeviceConfigSet(dvs128_handle, DVS128_CONFIG_BIAS, DVS128_CONFIG_BIAS_PUX, current_config_.puX);
-        caerDeviceConfigSet(dvs128_handle, DVS128_CONFIG_BIAS, DVS128_CONFIG_BIAS_DIFFOFF, current_config_.diffOff);
-        caerDeviceConfigSet(dvs128_handle, DVS128_CONFIG_BIAS, DVS128_CONFIG_BIAS_REQ, current_config_.req);
-        caerDeviceConfigSet(dvs128_handle, DVS128_CONFIG_BIAS, DVS128_CONFIG_BIAS_REFR, current_config_.refr);
-        caerDeviceConfigSet(dvs128_handle, DVS128_CONFIG_BIAS, DVS128_CONFIG_BIAS_PUY, current_config_.puY);
-        caerDeviceConfigSet(dvs128_handle, DVS128_CONFIG_BIAS, DVS128_CONFIG_BIAS_DIFFON, current_config_.diffOn);
-        caerDeviceConfigSet(dvs128_handle, DVS128_CONFIG_BIAS, DVS128_CONFIG_BIAS_DIFF, current_config_.diff);
-        caerDeviceConfigSet(dvs128_handle, DVS128_CONFIG_BIAS, DVS128_CONFIG_BIAS_FOLL, current_config_.foll);
-        caerDeviceConfigSet(dvs128_handle, DVS128_CONFIG_BIAS, DVS128_CONFIG_BIAS_PR, current_config_.Pr);
+        caerDeviceConfigSet(dvs128_handle, DVS128_CONFIG_BIAS, DVS128_CONFIG_BIAS_CAS,      current_config_.cas);
+        caerDeviceConfigSet(dvs128_handle, DVS128_CONFIG_BIAS, DVS128_CONFIG_BIAS_INJGND,   current_config_.injGnd);
+        caerDeviceConfigSet(dvs128_handle, DVS128_CONFIG_BIAS, DVS128_CONFIG_BIAS_REQPD,    current_config_.reqPd);
+        caerDeviceConfigSet(dvs128_handle, DVS128_CONFIG_BIAS, DVS128_CONFIG_BIAS_PUX,      current_config_.puX);
+        caerDeviceConfigSet(dvs128_handle, DVS128_CONFIG_BIAS, DVS128_CONFIG_BIAS_DIFFOFF,  current_config_.diffOff);
+        caerDeviceConfigSet(dvs128_handle, DVS128_CONFIG_BIAS, DVS128_CONFIG_BIAS_REQ,      current_config_.req);
+        caerDeviceConfigSet(dvs128_handle, DVS128_CONFIG_BIAS, DVS128_CONFIG_BIAS_REFR,     current_config_.refr);
+        caerDeviceConfigSet(dvs128_handle, DVS128_CONFIG_BIAS, DVS128_CONFIG_BIAS_PUY,      current_config_.puY);
+        caerDeviceConfigSet(dvs128_handle, DVS128_CONFIG_BIAS, DVS128_CONFIG_BIAS_DIFFON,   current_config_.diffOn);
+        caerDeviceConfigSet(dvs128_handle, DVS128_CONFIG_BIAS, DVS128_CONFIG_BIAS_DIFF,     current_config_.diff);
+        caerDeviceConfigSet(dvs128_handle, DVS128_CONFIG_BIAS, DVS128_CONFIG_BIAS_FOLL,     current_config_.foll);
+        caerDeviceConfigSet(dvs128_handle, DVS128_CONFIG_BIAS, DVS128_CONFIG_BIAS_PR,       current_config_.Pr);
       }
 
       boost::this_thread::sleep(boost::posix_time::milliseconds(100));
@@ -197,12 +200,12 @@ void DvsRosDriver::changeDvsParameters()
 void DvsRosDriver::callback(dvs_ros_driver::DVS_ROS_DriverConfig &config, uint32_t level)
 {
   // did any DVS bias setting change?
-   if (current_config_.cas != config.cas || current_config_.injGnd != config.injGnd ||
-       current_config_.reqPd != config.reqPd || current_config_.puX != config.puX ||
-       current_config_.diffOff != config.diffOff || current_config_.req != config.req ||
-       current_config_.refr != config.refr || current_config_.puY != config.puY ||
-       current_config_.diffOn != config.diffOn || current_config_.diff != config.diff ||
-       current_config_.foll != config.foll || current_config_.Pr != config.Pr) {
+   if (current_config_.cas      != config.cas       || current_config_.injGnd   != config.injGnd ||
+       current_config_.reqPd    != config.reqPd     || current_config_.puX      != config.puX ||
+       current_config_.diffOff  != config.diffOff   || current_config_.req      != config.req ||
+       current_config_.refr     != config.refr      || current_config_.puY      != config.puY ||
+       current_config_.diffOn   != config.diffOn    || current_config_.diff     != config.diff ||
+       current_config_.foll     != config.foll      || current_config_.Pr       != config.Pr) {
 
      current_config_.cas = config.cas;
      current_config_.injGnd = config.injGnd;
@@ -240,6 +243,8 @@ void DvsRosDriver::readout()
   dvs_msgs::EventArrayPtr event_array_msg(new dvs_msgs::EventArray());
   event_array_msg->height = dvs128_info_.dvsSizeY;
   event_array_msg->width = dvs128_info_.dvsSizeX;
+
+  uint64_t last_timestamp = 0;
 
   while (running_)
   {
@@ -298,6 +303,37 @@ void DvsRosDriver::readout()
           {
             sensor_msgs::CameraInfoPtr camera_info_msg(new sensor_msgs::CameraInfo(camera_info_manager_->getCameraInfo()));
             camera_info_pub_.publish(camera_info_msg);
+          }
+        } else if (i == SPECIAL_EVENT)
+        {
+          caerSpecialEventPacket special = (caerSpecialEventPacket) packetHeader;
+          const int numEvents = caerEventPacketHeaderGetEventNumber(packetHeader);
+          //printf("got %d special events:\n", numEvents);
+
+          for (int j = 0; j < numEvents; j++)
+          {
+            caerSpecialEvent event = caerSpecialEventPacketGetEvent(special, j);
+            int64_t ts = caerSpecialEventGetTimestamp64(event, special);
+            uint8_t type = caerSpecialEventGetType(event);
+            int64_t delta = ts-last_timestamp;
+
+            //printf("    event[%d]: type ", j);
+            switch (type) {
+                // DVS128 only gives rising edge
+                case EXTERNAL_INPUT_RISING_EDGE:
+                  printf("delta T: %lld = %f FPS\n", delta, 1000000.0/delta);
+                  last_timestamp = ts;
+                  //printf("RISING EDGE\n");
+                  break;
+
+                case EXTERNAL_INPUT_FALLING_EDGE:
+                  //printf("FALLING EDGE\n");
+                  break;
+
+                default:
+                  break;
+                  //printf("%d\n", type);
+            }
           }
         }
       }

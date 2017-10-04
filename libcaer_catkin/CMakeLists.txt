@@ -18,9 +18,9 @@ ExternalProject_Add(libcaer_src
   INSTALL_COMMAND make install
 )
 
-cs_add_library(${PROJECT_NAME} src/dependency_tracker.cc)
-add_dependencies(${PROJECT_NAME} libcaer_src)
-target_link_libraries(${PROJECT_NAME}
+cs_add_library(caer_catkin src/dependency_tracker.cc)
+add_dependencies(caer_catkin libcaer_src)
+target_link_libraries(caer_catkin
   ${CATKIN_DEVEL_PREFIX}/lib/libcaer${CMAKE_SHARED_LIBRARY_SUFFIX})
 
 cs_install()
