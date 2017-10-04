@@ -1,0 +1,8 @@
+<launch>
+    <!-- camera driver -->
+    <node name="dvs_ros_driver" pkg="dvs_ros_driver" type="dvs_ros_driver">
+        <rosparam command="load" file="$(find dvs_ros_driver)/config/fast.yaml" />
+        <!-- Set as master -->
+        <param name="master" type="bool" value="true" />
+    </node>
+</launch>
