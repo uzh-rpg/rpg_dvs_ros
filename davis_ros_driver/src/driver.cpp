@@ -379,6 +379,16 @@ void DavisRosDriver::changeDvsParameters()
                                     caerBiasShiftedSourceGenerate(SHIFTSOURCE(1,33,SHIFTED_SOURCE)));
                 caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_BIAS, DAVIS346_CONFIG_BIAS_SSN,
                                     caerBiasShiftedSourceGenerate(SHIFTSOURCE(1,33,SHIFTED_SOURCE)));
+
+                // Hardware filters
+                if (davis_info_.dvsHasBackgroundActivityFilter)
+                {
+                  caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_DVS, DAVIS_CONFIG_DVS_FILTER_BACKGROUND_ACTIVITY, current_config_.background_activity_filter_enabled);
+                  caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_DVS, DAVIS_CONFIG_DVS_FILTER_BACKGROUND_ACTIVITY_TIME, current_config_.background_activity_filter_time);
+
+                  caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_DVS, DAVIS_CONFIG_DVS_FILTER_REFRACTORY_PERIOD, current_config_.refractory_period_enabled);
+                  caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_DVS, DAVIS_CONFIG_DVS_FILTER_REFRACTORY_PERIOD_TIME, current_config_.refractory_period_time);
+                }
             }
             else
             {
@@ -461,6 +471,10 @@ void DavisRosDriver::callback(davis_ros_driver::DAVIS_ROS_DriverConfig &config, 
         current_config_.ADC_RefHigh_curr = config.ADC_RefHigh_curr;
         current_config_.ADC_RefLow_volt = config.ADC_RefLow_volt;
         current_config_.ADC_RefLow_curr = config.ADC_RefLow_curr;
+        current_config_.background_activity_filter_enabled = config.background_activity_filter_enabled;
+        current_config_.background_activity_filter_time = config.background_activity_filter_time;
+        current_config_.refractory_period_enabled = config.refractory_period_enabled;
+        current_config_.refractory_period_time = config.refractory_period_time;
     }
 
     // change streaming rate, if necessary
