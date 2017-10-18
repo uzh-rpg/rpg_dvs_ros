@@ -1,0 +1,8 @@
+<launch>
+    <!-- camera driver -->
+    <node name="davis_ros_driver" pkg="davis_ros_driver" type="davis_ros_driver" output="screen">
+        <rosparam command="load" file="$(find davis_ros_driver)/config/DAVIS240C.yaml" />
+        <!-- Set as master -->
+        <param name="master" type="bool" value="true" />
+    </node>
+</launch>
