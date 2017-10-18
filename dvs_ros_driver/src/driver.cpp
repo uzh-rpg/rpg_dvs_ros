@@ -44,9 +44,6 @@ DvsRosDriver::DvsRosDriver(ros::NodeHandle & nh, ros::NodeHandle nh_private) :
     }
     else
     {
-      printf("setting up custom things\n");
-      printf("is master: %d\n", master_);
-
       // configure as master or slave
       caerDeviceConfigSet(dvs128_handle, DVS128_CONFIG_DVS, DVS128_CONFIG_DVS_TS_MASTER, master_);
     }
@@ -324,16 +321,18 @@ void DvsRosDriver::readout()
             switch (type) {
                 // DVS128 only gives rising edge
                 case EXTERNAL_INPUT_RISING_EDGE:
+                  // this is acutally a falling edge!
                   //printf("delta T: %lld = %f FPS\n", delta, 1000000.0/delta);
-                  //last_timestamp = ts;
+                  last_timestamp = ts;
                   special_events_msg->ts = reset_time_ + ros::Duration().fromNSec(ts * 1000);
                   special_events_msg->polarity = true; // the DVS can only detect rising edges
                   special_event_pub_.publish(special_events_msg);
-                  //printf("RISING EDGE\n");
+                  //ROS_INFO("RISING EDGE");
                   break;
 
                 case EXTERNAL_INPUT_FALLING_EDGE:
-                  //printf("FALLING EDGE\n");
+                  // this is actually a rising edge
+                  ROS_WARN("FALLING EDGE - This can't happen according to the documentation!");
                   break;
 
                 default:
