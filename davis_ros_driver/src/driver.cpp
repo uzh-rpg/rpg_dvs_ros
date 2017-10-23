@@ -65,6 +65,7 @@ DavisRosDriver::DavisRosDriver(ros::NodeHandle & nh, ros::NodeHandle nh_private)
     ns = "/dvs";
 
   event_array_pub_ = nh_.advertise<dvs_msgs::EventArray>(ns + "/events", 10);
+  special_event_pub_ = nh_.advertise<dvs_msgs::SpecialEvent>(ns + "/special_events", 1);
   camera_info_pub_ = nh_.advertise<sensor_msgs::CameraInfo>(ns + "/camera_info", 1);
   imu_pub_ = nh_.advertise<sensor_msgs::Imu>(ns + "/imu", 10);
   image_pub_ = nh_.advertise<sensor_msgs::Image>(ns + "/image_raw", 1);
@@ -181,6 +182,10 @@ void DavisRosDriver::caerConnect()
 
   // initialize timestamps
   resetTimestamps();
+
+  // configure intput to generate special events on pin change
+  caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_EXTINPUT, DAVIS_CONFIG_EXTINPUT_DETECT_RISING_EDGES, true);
+  caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_EXTINPUT, DAVIS_CONFIG_EXTINPUT_DETECT_FALLING_EDGES, true);
 
   // spawn threads
   running_ = true;
@@ -499,6 +504,7 @@ void DavisRosDriver::readout()
     boost::posix_time::ptime next_send_time = boost::posix_time::microsec_clock::local_time();
 
     dvs_msgs::EventArrayPtr event_array_msg;
+    dvs_msgs::SpecialEventPtr special_events_msg(new dvs_msgs::SpecialEvent());
 
     while (running_)
     {
@@ -580,6 +586,46 @@ void DavisRosDriver::readout()
                         sensor_msgs::CameraInfoPtr camera_info_msg(new sensor_msgs::CameraInfo(camera_info_manager_->getCameraInfo()));
                         camera_info_pub_.publish(camera_info_msg);
                     }
+                }
+                else if (type == SPECIAL_EVENT)
+                {
+                    caerSpecialEventPacket special = (caerSpecialEventPacket) packetHeader;
+                    const int numEvents = caerEventPacketHeaderGetEventNumber(packetHeader);
+                    //printf("got %d special events:\n", numEvents);
+
+                    for (int j = 0; j < numEvents; j++)
+                    {
+                        caerSpecialEvent event = caerSpecialEventPacketGetEvent(special, j);
+                        int64_t ts = caerSpecialEventGetTimestamp64(event, special);
+                        uint8_t type = caerSpecialEventGetType(event);
+                        //int64_t delta = ts-last_timestamp;
+
+                        //printf("    event[%d]: type ", j);
+                        switch (type) {
+                            // DVS128 only gives rising edge
+                            case EXTERNAL_INPUT_RISING_EDGE:
+                                //printf("delta T: %lld = %f FPS\n", delta, 1000000.0/delta);
+                                //last_timestamp = ts;
+                                special_events_msg->ts = reset_time_ + ros::Duration().fromNSec(ts * 1000);
+                                special_events_msg->polarity = true;
+                                special_event_pub_.publish(special_events_msg);
+                                //ROS_INFO("RISING EDGE");
+                                break;
+
+                            case EXTERNAL_INPUT_FALLING_EDGE:
+                                //last_timestamp = ts;
+                                special_events_msg->ts = reset_time_ + ros::Duration().fromNSec(ts * 1000);
+                                special_events_msg->polarity = false;
+                                special_event_pub_.publish(special_events_msg);
+                                //ROS_INFO("FALLING EDGE");
+                                break;
+
+                            default:
+                                break;
+                                //printf("%d\n", type);
+                        }
+                    }
+
                 }
                 else if (type == IMU6_EVENT)
                 {
