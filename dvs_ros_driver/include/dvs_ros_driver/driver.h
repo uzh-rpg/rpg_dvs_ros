@@ -25,8 +25,8 @@
 
 // messages
 #include <dvs_msgs/Event.h>
-#include <dvs_msgs/SpecialEvent.h>
 #include <dvs_msgs/EventArray.h>
+#include <dvs_msgs/SpecialEvent.h>
 #include <std_msgs/Empty.h>
 #include <std_msgs/Time.h>
 

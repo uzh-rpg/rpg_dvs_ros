@@ -600,21 +600,24 @@ void DavisRosDriver::readout()
                         uint8_t type = caerSpecialEventGetType(event);
                         //int64_t delta = ts-last_timestamp;
 
+                        special_events_msg->ts = reset_time_ + ros::Duration().fromNSec(ts * 1000);
+                        special_events_msg->header.stamp = special_events_msg->ts; //ros::Time::now();
+                        special_events_msg->header.seq++;
+
                         //printf("    event[%d]: type ", j);
                         switch (type) {
                             // DVS128 only gives rising edge
                             case EXTERNAL_INPUT_RISING_EDGE:
                                 //printf("delta T: %lld = %f FPS\n", delta, 1000000.0/delta);
                                 //last_timestamp = ts;
-                                special_events_msg->ts = reset_time_ + ros::Duration().fromNSec(ts * 1000);
                                 special_events_msg->polarity = true;
                                 special_event_pub_.publish(special_events_msg);
                                 //ROS_INFO("RISING EDGE");
                                 break;
 
                             case EXTERNAL_INPUT_FALLING_EDGE:
+                                // this corresponds to the start of exposure using the (inverting) sync-circuit board (rev2)
                                 //last_timestamp = ts;
-                                special_events_msg->ts = reset_time_ + ros::Duration().fromNSec(ts * 1000);
                                 special_events_msg->polarity = false;
                                 special_event_pub_.publish(special_events_msg);
                                 //ROS_INFO("FALLING EDGE");

@@ -94,7 +94,7 @@ void Renderer::imageCallback(const sensor_msgs::Image::ConstPtr& msg)
     cv_bridge::CvImage cv_image;
     last_image_.copyTo(cv_image.image);
     cv_image.encoding = "bgr8";
-    std::cout << "publish image from callback" << std::endl;
+    //std::cout << "publish image from callback" << std::endl;
     image_pub_.publish(cv_image.toImageMsg());
   }
   used_last_image_ = false;

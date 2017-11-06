@@ -325,14 +325,13 @@ void DvsRosDriver::readout()
                   //printf("delta T: %lld = %f FPS\n", delta, 1000000.0/delta);
                   last_timestamp = ts;
                   special_events_msg->ts = reset_time_ + ros::Duration().fromNSec(ts * 1000);
-                  special_events_msg->polarity = true; // the DVS can only detect rising edges
+                  special_events_msg->polarity = false; // the DVS can only detect falling edges
                   special_event_pub_.publish(special_events_msg);
-                  //ROS_INFO("RISING EDGE");
                   break;
 
                 case EXTERNAL_INPUT_FALLING_EDGE:
                   // this is actually a rising edge
-                  ROS_WARN("FALLING EDGE - This can't happen according to the documentation!");
+                  ROS_WARN("RISING EDGE - This can't happen according to the documentation!");
                   break;
 
                 default:
