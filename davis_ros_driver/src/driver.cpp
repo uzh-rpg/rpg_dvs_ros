@@ -179,9 +179,6 @@ void DavisRosDriver::caerConnect()
   ros::NodeHandle nh_ns(ns);
   camera_info_manager_.reset(new camera_info_manager::CameraInfoManager(nh_ns, device_id_));
 
-  // initialize timestamps
-  resetTimestamps();
-
   // spawn threads
   running_ = true;
   parameter_thread_ = boost::shared_ptr<boost::thread>(new boost::thread(boost::bind(&DavisRosDriver::changeDvsParameters, this)));
@@ -189,6 +186,9 @@ void DavisRosDriver::caerConnect()
 
   // wait for driver to be ready
   ros::Duration(0.5).sleep();
+
+  // initialize timestamps
+  resetTimestamps();
 }
 
 void DavisRosDriver::onDisconnectUSB(void* driver)
