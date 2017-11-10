@@ -16,6 +16,7 @@
 #pragma once
 
 #include <vector>
+#include <numeric>
 
 namespace davis_ros_driver {
 
