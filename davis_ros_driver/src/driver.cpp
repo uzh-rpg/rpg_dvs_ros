@@ -174,6 +174,13 @@ void DavisRosDriver::caerConnect()
   // No configuration is sent automatically!
   caerDeviceSendDefaultConfig(davis_handle_);
 
+  // In case autoexposure is enabled, initialize the exposure time with the exposure value
+  // from the parameter server
+  if(current_config_.autoexposure_enabled)
+  {
+    caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_APS, DAVIS_CONFIG_APS_EXPOSURE, current_config_.exposure);
+  }
+
   // Re-send params from param server if not first connection
   parameter_bias_update_required_ = true;
   parameter_update_required_ = true;
