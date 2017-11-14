@@ -180,9 +180,6 @@ void DavisRosDriver::caerConnect()
   ros::NodeHandle nh_ns(ns);
   camera_info_manager_.reset(new camera_info_manager::CameraInfoManager(nh_ns, device_id_));
 
-  // initialize timestamps
-  resetTimestamps();
-
   // configure intput to generate special events on pin change
   caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_EXTINPUT, DAVIS_CONFIG_EXTINPUT_DETECT_RISING_EDGES, true);
   caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_EXTINPUT, DAVIS_CONFIG_EXTINPUT_DETECT_FALLING_EDGES, true);
@@ -194,6 +191,9 @@ void DavisRosDriver::caerConnect()
 
   // wait for driver to be ready
   ros::Duration(0.5).sleep();
+
+  // initialize timestamps
+  resetTimestamps();
 }
 
 void DavisRosDriver::onDisconnectUSB(void* driver)
