@@ -188,7 +188,7 @@ void DavisRosDriver::caerConnect()
   readout_thread_ = boost::shared_ptr<boost::thread>(new boost::thread(boost::bind(&DavisRosDriver::readout, this)));
 
   // wait for driver to be ready
-  ros::Duration(0.5).sleep();
+  ros::Duration(0.6).sleep();
 
   // initialize timestamps
   resetTimestamps();
