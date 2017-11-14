@@ -80,17 +80,20 @@ DavisRosDriver::DavisRosDriver(ros::NodeHandle & nh, ros::NodeHandle nh_private)
     reset_sub_ = nh_.subscribe((ns + "/reset_timestamps").c_str(), 1, &DavisRosDriver::resetTimestampsCallback, this);
   }
 
+  // Dynamic reconfigure
+  // It is important that the dynamic reconfigure callback is set before caerConnect().
+  // The dynamic reconfigure callback will be called directly when registered,
+  // which will initialize properly current_config_
+  dynamic_reconfigure_callback_ = boost::bind(&DavisRosDriver::callback, this, _1, _2);
+  server_.reset(new dynamic_reconfigure::Server<davis_ros_driver::DAVIS_ROS_DriverConfig>(nh_private));
+  server_->setCallback(dynamic_reconfigure_callback_);
+
   caerConnect();
   current_config_.streaming_rate = 30;
   delta_ = boost::posix_time::microseconds(1e6/current_config_.streaming_rate);
 
   imu_calibration_sub_ = nh_.subscribe((ns + "/calibrate_imu").c_str(), 1, &DavisRosDriver::imuCalibrationCallback, this);
   snapshot_sub_ = nh_.subscribe((ns + "/trigger_snapshot").c_str(), 1, &DavisRosDriver::snapshotCallback, this);
-
-  // Dynamic reconfigure
-  dynamic_reconfigure_callback_ = boost::bind(&DavisRosDriver::callback, this, _1, _2);
-  server_.reset(new dynamic_reconfigure::Server<davis_ros_driver::DAVIS_ROS_DriverConfig>(nh_private));
-  server_->setCallback(dynamic_reconfigure_callback_);
 
   // start timer to reset timestamps for synchronization
   if (reset_timestamps_delay > 0.0)
@@ -171,6 +174,13 @@ void DavisRosDriver::caerConnect()
   // No configuration is sent automatically!
   caerDeviceSendDefaultConfig(davis_handle_);
 
+  // In case autoexposure is enabled, initialize the exposure time with the exposure value
+  // from the parameter server
+  if(current_config_.autoexposure_enabled)
+  {
+    caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_APS, DAVIS_CONFIG_APS_EXPOSURE, current_config_.exposure);
+  }
+
   // Re-send params from param server if not first connection
   parameter_bias_update_required_ = true;
   parameter_update_required_ = true;
@@ -185,7 +195,7 @@ void DavisRosDriver::caerConnect()
   readout_thread_ = boost::shared_ptr<boost::thread>(new boost::thread(boost::bind(&DavisRosDriver::readout, this)));
 
   // wait for driver to be ready
-  ros::Duration(0.5).sleep();
+  ros::Duration(0.6).sleep();
 
   // initialize timestamps
   resetTimestamps();
@@ -696,10 +706,7 @@ void DavisRosDriver::readout()
                     // auto-exposure algorithm
                     if(current_config_.autoexposure_enabled)
                     {
-                        uint32_t current_exposure;
-                        caerDeviceConfigGet(davis_handle_, DAVIS_CONFIG_APS, DAVIS_CONFIG_APS_EXPOSURE, &current_exposure);
-
-                        const int new_exposure = computeNewExposure(msg.data, current_exposure);
+                        const int new_exposure = computeNewExposure(msg.data, exposure_time_microseconds);
                         caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_APS, DAVIS_CONFIG_APS_EXPOSURE, new_exposure);
                     }
                 }
@@ -719,7 +726,7 @@ void DavisRosDriver::readout()
 
 }
 
-int DavisRosDriver::computeNewExposure(const std::vector<uint8_t>& img_data, const uint32_t current_exposure) const
+int DavisRosDriver::computeNewExposure(const std::vector<uint8_t>& img_data, const int32_t current_exposure) const
 {
     const float desired_intensity = static_cast<float>(current_config_.autoexposure_desired_intensity);
     static constexpr int min_exposure = 10;
