@@ -505,6 +505,7 @@ void DavisRosDriver::readout()
 
     dvs_msgs::EventArrayPtr event_array_msg;
     dvs_msgs::SpecialEventPtr special_events_msg(new dvs_msgs::SpecialEvent());
+    uint32_t edge_event_seq = 0;
 
     while (running_)
     {
@@ -602,7 +603,8 @@ void DavisRosDriver::readout()
 
                         special_events_msg->ts = reset_time_ + ros::Duration().fromNSec(ts * 1000);
                         special_events_msg->header.stamp = special_events_msg->ts; //ros::Time::now();
-                        special_events_msg->header.seq++;
+
+                        // only increment sequence counter for falling/rising edge events for now, synchronizator expects it this way
 
                         //printf("    event[%d]: type ", j);
                         switch (type) {
@@ -610,7 +612,14 @@ void DavisRosDriver::readout()
                             case EXTERNAL_INPUT_RISING_EDGE:
                                 //printf("delta T: %lld = %f FPS\n", delta, 1000000.0/delta);
                                 //last_timestamp = ts;
+                                /*
+                                if (special_events_msg->polarity == true) {
+                                    printf("ERROR: Got two rising edges!\n");
+                                }
+                                */
                                 special_events_msg->polarity = true;
+                                edge_event_seq++;
+                                special_events_msg->header.seq = edge_event_seq;
                                 special_event_pub_.publish(special_events_msg);
                                 //ROS_INFO("RISING EDGE");
                                 break;
@@ -618,14 +627,21 @@ void DavisRosDriver::readout()
                             case EXTERNAL_INPUT_FALLING_EDGE:
                                 // this corresponds to the start of exposure using the (inverting) sync-circuit board (rev2)
                                 //last_timestamp = ts;
+                                /*
+                                if (special_events_msg->polarity == false) {
+                                    printf("ERROR: Got two falling edges!\n");
+                                }
+                                */
                                 special_events_msg->polarity = false;
+                                edge_event_seq++;
+                                special_events_msg->header.seq = edge_event_seq;
                                 special_event_pub_.publish(special_events_msg);
                                 //ROS_INFO("FALLING EDGE");
                                 break;
 
                             default:
+                                //printf("got unknown special event of type %d\n", type);
                                 break;
-                                //printf("%d\n", type);
                         }
                     }
 
