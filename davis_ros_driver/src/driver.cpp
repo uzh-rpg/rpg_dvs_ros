@@ -330,6 +330,25 @@ void DavisRosDriver::changeDvsParameters()
 
                 if (current_config_.imu_acc_scale >= 0 && current_config_.imu_acc_scale <= 3)
                     caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_IMU, DAVIS_CONFIG_IMU_ACCEL_FULL_SCALE, current_config_.imu_acc_scale);
+
+                if (current_config_.imu_low_pass_filter >= 0 && current_config_.imu_low_pass_filter <= 6)
+                {
+                    caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_IMU, DAVIS_CONFIG_IMU_DIGITAL_LOW_PASS_FILTER, current_config_.imu_low_pass_filter);
+
+                    if(current_config_.imu_low_pass_filter == 0)
+                    {
+                      // When the low pass filter is disabled, the output frequency of IMU events
+                      // is raised to 8KHz. To keep it to 1 kHz, we use the sample rate divider
+                      // (setting its value to 7 divides the frequency by 8).
+                      caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_IMU, DAVIS_CONFIG_IMU_SAMPLE_RATE_DIVIDER, 7);
+                    }
+                    else
+                    {
+                      // When the low pass filter is enabled, the gyroscope output rate is set to 1 kHz,
+                      // so we should not use the sample rate divider, in order to keep the IMU output rate to 1 kHz.
+                      caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_IMU, DAVIS_CONFIG_IMU_SAMPLE_RATE_DIVIDER, 0);
+                    }
+                }
             }
             /*
        * Set Sensor-dependent Biases
@@ -446,8 +465,8 @@ void DavisRosDriver::callback(davis_ros_driver::DAVIS_ROS_DriverConfig &config, 
             current_config_.autoexposure_enabled != config.autoexposure_enabled || current_config_.autoexposure_gain != config.autoexposure_gain ||
             current_config_.aps_enabled != config.aps_enabled || current_config_.dvs_enabled != config.dvs_enabled ||
             current_config_.imu_enabled != config.imu_enabled || current_config_.imu_acc_scale != config.imu_acc_scale ||
-            current_config_.imu_gyro_scale != config.imu_gyro_scale || current_config_.max_events != config.max_events ||
-            current_config_.autoexposure_desired_intensity != config.autoexposure_desired_intensity)
+            current_config_.imu_gyro_scale != config.imu_gyro_scale || current_config_.imu_low_pass_filter != config.imu_low_pass_filter ||
+            current_config_.max_events != config.max_events || current_config_.autoexposure_desired_intensity != config.autoexposure_desired_intensity)
     {
         current_config_.exposure = config.exposure;
         current_config_.frame_delay = config.frame_delay;
@@ -462,6 +481,7 @@ void DavisRosDriver::callback(davis_ros_driver::DAVIS_ROS_DriverConfig &config, 
 
         current_config_.imu_acc_scale = config.imu_acc_scale;
         current_config_.imu_gyro_scale = config.imu_gyro_scale;
+        current_config_.imu_low_pass_filter = config.imu_low_pass_filter;
 
         current_config_.max_events = config.max_events;
 
