@@ -193,11 +193,12 @@ void DavisRosDriver::caerConnect()
   // configure intput to generate special events on pin change
   caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_EXTINPUT, DAVIS_CONFIG_EXTINPUT_DETECT_RISING_EDGES, true);
   caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_EXTINPUT, DAVIS_CONFIG_EXTINPUT_DETECT_FALLING_EDGES, true);
+  caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_MUX, DAVIS_CONFIG_MUX_DROP_EXTINPUT_ON_TRANSFER_STALL, false); // don't drop special events!
 
   // spawn threads
   running_ = true;
   parameter_thread_ = boost::shared_ptr<boost::thread>(new boost::thread(boost::bind(&DavisRosDriver::changeDvsParameters, this)));
-  readout_thread_ = boost::shared_ptr<boost::thread>(new boost::thread(boost::bind(&DavisRosDriver::readout, this)));
+  readout_thread_   = boost::shared_ptr<boost::thread>(new boost::thread(boost::bind(&DavisRosDriver::readout, this)));
 
   // wait for driver to be ready
   ros::Duration(0.6).sleep();
@@ -521,9 +522,11 @@ void DavisRosDriver::readout()
     {
         try
         {
+            // this blocks until data is available
             caerEventPacketContainer packetContainer = caerDeviceDataGet(davis_handle_);
             if (packetContainer == NULL)
             {
+                ROS_WARN("got empty packet container from libcaer");
                 continue; // Skip if nothing there.
             }
 
@@ -534,6 +537,7 @@ void DavisRosDriver::readout()
                 caerEventPacketHeader packetHeader = caerEventPacketContainerGetEventPacket(packetContainer, i);
                 if (packetHeader == NULL)
                 {
+                    //ROS_WARN("got empty packet header for packet %d from libcaer", i);
                     continue; // Skip if nothing there.
                 }
 
@@ -682,11 +686,11 @@ void DavisRosDriver::readout()
                         {
                             // convert from g's to m/s^2 and align axes with camera frame
                             msg.linear_acceleration.x = -caerIMU6EventGetAccelX(event) * STANDARD_GRAVITY;
-                            msg.linear_acceleration.y = caerIMU6EventGetAccelY(event) * STANDARD_GRAVITY;
+                            msg.linear_acceleration.y =  caerIMU6EventGetAccelY(event) * STANDARD_GRAVITY;
                             msg.linear_acceleration.z = -caerIMU6EventGetAccelZ(event) * STANDARD_GRAVITY;
                             // convert from deg/s to rad/s and align axes with camera frame
                             msg.angular_velocity.x = -caerIMU6EventGetGyroX(event) / 180.0 * M_PI;
-                            msg.angular_velocity.y = caerIMU6EventGetGyroY(event) / 180.0 * M_PI;
+                            msg.angular_velocity.y =  caerIMU6EventGetGyroY(event) / 180.0 * M_PI;
                             msg.angular_velocity.z = -caerIMU6EventGetGyroZ(event) / 180.0 * M_PI;
                         }
 
@@ -783,6 +787,7 @@ void DavisRosDriver::readout()
         }
         catch(boost::thread_interrupted&)
         {
+            ROS_WARN("readout thread interrupted");
             return;
         }
     }

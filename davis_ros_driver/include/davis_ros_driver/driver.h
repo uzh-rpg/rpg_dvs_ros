@@ -52,7 +52,7 @@ public:
   ~DavisRosDriver();
   void dataStop();
 
-  static void onDisconnectUSB(void*);   
+  static void onDisconnectUSB(void*);
   
 private:
   void changeDvsParameters();
@@ -71,7 +71,7 @@ private:
   ros::Publisher image_pub_;
   ros::Publisher exposure_pub_;
   caerDeviceHandle davis_handle_;
-  
+
   std::string ns;
 
   volatile bool running_;
