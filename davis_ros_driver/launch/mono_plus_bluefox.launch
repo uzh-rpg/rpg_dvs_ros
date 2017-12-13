@@ -1,0 +1,41 @@
+<launch>
+    <!-- DAVIS driver -->
+    <node name="davis_ros_driver" pkg="davis_ros_driver" type="davis_ros_driver" output="screen">
+        <rosparam command="load" file="$(find davis_ros_driver)/config/DAVIS240C.yaml" />
+        <!-- Set as master -->
+        <param name="master" type="bool" value="true" />
+
+        <!-- <param name="dvs_enabled" type="bool" value="false" /> -->
+        <!-- <param name="imu_enabled" type="bool" value="false" /> -->
+
+        <!-- <param name="ADC_RefHigh_volt" value="26" /> -->
+    </node>
+
+    <!-- bluefox driver -->
+    <node pkg="bluefox_ros" type="bluefox_ros_node" name="camera" clear_params="true" output="screen">
+        <rosparam file="$(find bluefox_ros)/parameters/u3gpio.yaml"/>
+
+        <!-- leave empty if any camera can be loaded -->
+        <param name="serial_nr" type="str" value="" />
+
+        <param name="fps" value="40" />
+        <param name="gain" value="12.0" />
+        <param name="exp_time" value="400" />
+        <param name="never_change_fps" value="true" />
+
+        <!-- internal camera control -->
+        <param name="internal_exposure_control" value="false" />
+        <param name="internal_gain_control" value="false" />
+        <param name="hdr_mode" value="false" />
+        <param name="hdr_setting" value="3" />
+
+        <!-- customized camera control -->
+        <!-- change AutoExposureGain to MeanIntensityAE to use the exposure control from Mathis Kappeler-->
+        <!-- comment it out to use the internal camera control -->
+        <!-- <param name="cam_ctrl_mode" value="AutoExposureGain" /> -->
+        <!-- uncomment the following parameter if the default setting does not perform well enough -->
+        <!-- <param name="ae_method" value="Percentile" /> -->
+
+        <param name="rpg_external_camera_trigger" value="false" />
+    </node>
+</launch>
