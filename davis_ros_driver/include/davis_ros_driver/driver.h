@@ -60,7 +60,7 @@ private:
   void resetTimestamps();
   void caerConnect();
   int computeNewExposure(const std::vector<uint8_t>& img_data,
-                          const int32_t current_exposure) const;
+                          const uint32_t current_exposure) const;
 
   ros::NodeHandle nh_;
   ros::Publisher event_array_pub_;

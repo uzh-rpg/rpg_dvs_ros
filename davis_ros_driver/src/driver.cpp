@@ -726,7 +726,11 @@ void DavisRosDriver::readout()
                     // auto-exposure algorithm
                     if(current_config_.autoexposure_enabled)
                     {
-                        const int new_exposure = computeNewExposure(msg.data, exposure_time_microseconds);
+                        // using the requested exposure instead of the actual, measured one gives more stable results
+                        uint32_t current_exposure;
+                        caerDeviceConfigGet(davis_handle_, DAVIS_CONFIG_APS, DAVIS_CONFIG_APS_EXPOSURE, &current_exposure);
+                        const int new_exposure = computeNewExposure(msg.data, current_exposure);
+
                         caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_APS, DAVIS_CONFIG_APS_EXPOSURE, new_exposure);
                     }
                 }
@@ -746,7 +750,7 @@ void DavisRosDriver::readout()
 
 }
 
-int DavisRosDriver::computeNewExposure(const std::vector<uint8_t>& img_data, const int32_t current_exposure) const
+int DavisRosDriver::computeNewExposure(const std::vector<uint8_t>& img_data, const uint32_t current_exposure) const
 {
     const float desired_intensity = static_cast<float>(current_config_.autoexposure_desired_intensity);
     static constexpr int min_exposure = 10;
