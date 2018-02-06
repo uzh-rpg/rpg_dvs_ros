@@ -622,28 +622,15 @@ void DavisRosDriver::readout()
                         caerIMU6Event event = caerIMU6EventPacketGetEvent(imu, j);
 
                         sensor_msgs::Imu msg;
-                        if (davis_info_.chipID == DAVIS_CHIP_DAVIS346B)
-                        {
-                            // convert from g's to m/s^2 and align axes with camera frame
-                            msg.linear_acceleration.x = -caerIMU6EventGetAccelY(event) * STANDARD_GRAVITY;
-                            msg.linear_acceleration.y = -caerIMU6EventGetAccelX(event) * STANDARD_GRAVITY;
-                            msg.linear_acceleration.z = -caerIMU6EventGetAccelZ(event) * STANDARD_GRAVITY;
-                            // convert from deg/s to rad/s and align axes with camera frame
-                            msg.angular_velocity.x = -caerIMU6EventGetGyroY(event) / 180.0 * M_PI;
-                            msg.angular_velocity.y = -caerIMU6EventGetGyroX(event) / 180.0 * M_PI;
-                            msg.angular_velocity.z = -caerIMU6EventGetGyroZ(event) / 180.0 * M_PI;
-                        }
-                        else
-                        {
-                            // convert from g's to m/s^2 and align axes with camera frame
-                            msg.linear_acceleration.x = -caerIMU6EventGetAccelX(event) * STANDARD_GRAVITY;
-                            msg.linear_acceleration.y = caerIMU6EventGetAccelY(event) * STANDARD_GRAVITY;
-                            msg.linear_acceleration.z = -caerIMU6EventGetAccelZ(event) * STANDARD_GRAVITY;
-                            // convert from deg/s to rad/s and align axes with camera frame
-                            msg.angular_velocity.x = -caerIMU6EventGetGyroX(event) / 180.0 * M_PI;
-                            msg.angular_velocity.y = caerIMU6EventGetGyroY(event) / 180.0 * M_PI;
-                            msg.angular_velocity.z = -caerIMU6EventGetGyroZ(event) / 180.0 * M_PI;
-                        }
+                        
+                        // convert from g's to m/s^2 and align axes with camera frame
+                        msg.linear_acceleration.x = -caerIMU6EventGetAccelX(event) * STANDARD_GRAVITY;
+                        msg.linear_acceleration.y = caerIMU6EventGetAccelY(event) * STANDARD_GRAVITY;
+                        msg.linear_acceleration.z = -caerIMU6EventGetAccelZ(event) * STANDARD_GRAVITY;
+                        // convert from deg/s to rad/s and align axes with camera frame
+                        msg.angular_velocity.x = -caerIMU6EventGetGyroX(event) / 180.0 * M_PI;
+                        msg.angular_velocity.y = caerIMU6EventGetGyroY(event) / 180.0 * M_PI;
+                        msg.angular_velocity.z = -caerIMU6EventGetGyroZ(event) / 180.0 * M_PI;
 
                         // no orientation estimate: http://docs.ros.org/api/sensor_msgs/html/msg/Imu.html
                         msg.orientation_covariance[0] = -1.0;
