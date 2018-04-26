@@ -23,20 +23,21 @@ cs_add_library(dvs_renderer_nodelet
   src/renderer.cpp
 )
 
-# link the executable to the necesarry libs
+# link the executable to the necessary libs
 target_link_libraries(dvs_renderer
-   ${catkin_LIBRARIES}
-   ${OpenCV_LIBRARIES}
+  ${catkin_LIBRARIES}
+  ${OpenCV_LIBRARIES}
 )
 
 target_link_libraries(dvs_renderer_nodelet
-   ${catkin_LIBRARIES}
-   ${OpenCV_LIBRARIES}
+  ${catkin_LIBRARIES}
+  ${OpenCV_LIBRARIES}
 )
 
+# install the executable
 install(
-   TARGETS dvs_renderer
-   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+  TARGETS dvs_renderer
+  RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 
 # Install other support files for installation
