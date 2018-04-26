@@ -34,8 +34,6 @@ target_link_libraries(dvs_renderer_nodelet
    ${OpenCV_LIBRARIES}
 )
 
-cs_install()
-
 install(
    TARGETS dvs_renderer
    RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
@@ -45,3 +43,6 @@ install(
 install(FILES dvs_renderer_nodelet.xml launch/nodelet_stereo.launch launch/nodelet_mono.launch
   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
 )
+
+cs_install()
+cs_export()
