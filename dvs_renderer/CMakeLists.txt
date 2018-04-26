@@ -36,6 +36,11 @@ target_link_libraries(dvs_renderer_nodelet
 
 cs_install()
 
+install(
+   TARGETS dvs_renderer
+   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
+
 # Install other support files for installation
 install(FILES dvs_renderer_nodelet.xml launch/nodelet_stereo.launch launch/nodelet_mono.launch
   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
