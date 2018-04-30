@@ -33,6 +33,10 @@ target_link_libraries(davis_ros_driver_nodelet
   ${Boost_LIBRARIES}
 )
 
+# CMake Indexing
+FILE(GLOB_RECURSE LibFiles "include/*")
+add_custom_target(headers SOURCES ${LibFiles})
+
 # Install the nodelet library
 cs_install()
 
