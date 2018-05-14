@@ -737,7 +737,8 @@ void DavisRosDriver::readout()
 
 }
 
-int DavisRosDriver::computeNewExposure(const std::vector<uint8_t>& img_data, const uint32_t current_exposure) const
+int DavisRosDriver::computeNewExposure(const std::vector<uint8_t>& img_data,
+                                       const uint32_t current_exposure) const
 {
     const float desired_intensity = static_cast<float>(current_config_.autoexposure_desired_intensity);
     static constexpr int min_exposure = 10;
@@ -747,9 +748,10 @@ int DavisRosDriver::computeNewExposure(const std::vector<uint8_t>& img_data, con
     const float current_intensity = trim_mean(img_data, proportion_to_cut);
 
     const float err = desired_intensity - current_intensity;
-    const float delta_exposure = static_cast<float>(current_exposure) * static_cast<float>(current_config_.autoexposure_gain) / 1000.f * err;
+    const float delta_exposure = static_cast<float>(current_exposure) *
+        static_cast<float>(current_config_.autoexposure_gain) / 1000.f * err;
 
-    const int new_exposure = static_cast<int> (static_cast<float>(current_exposure) + delta_exposure + 0.5f);
+    const int new_exposure = static_cast<int>(static_cast<float>(current_exposure) + delta_exposure + 0.5f);
 
     return clip(new_exposure, min_exposure, max_exposure);
 }
