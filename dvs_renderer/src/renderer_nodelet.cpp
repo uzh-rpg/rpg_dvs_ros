@@ -26,6 +26,10 @@ void DvsRendererNodelet::onInit()
   NODELET_INFO_STREAM("Initialized " <<  getName() << " nodelet.");
 }
 
+#ifndef PLUGINLIB_EXPORT_CLASS
+PLUGINLIB_DECLARE_CLASS(dvs_renderer, DvsRendererNodelet, dvs_renderer::DvsRendererNodelet, nodelet::Nodelet);
+#else
 PLUGINLIB_EXPORT_CLASS(dvs_renderer::DvsRendererNodelet, nodelet::Nodelet);
+#endif
 
 }
