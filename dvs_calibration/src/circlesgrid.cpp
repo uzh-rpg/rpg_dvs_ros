@@ -54,10 +54,8 @@
 #  endif
 #endif
 
-//using namespace cv;
-
 #ifdef DEBUG_CIRCLES
-void drawcv::Points(const std::vector<cv::Point2f> &points, cv::Mat &outImage, int radius = 2,  cv::Scalar color = cv::Scalar::all(255), int thickness = -1)
+void drawPoints(const std::vector<cv::Point2f> &points, cv::Mat &outImage, int radius = 2,  cv::Scalar color = cv::Scalar::all(255), int thickness = -1)
 {
   for(size_t i=0; i<points.size(); i++)
   {
@@ -69,7 +67,7 @@ void drawcv::Points(const std::vector<cv::Point2f> &points, cv::Mat &outImage, i
 void CirclesGridClusterFinder::hierarchicalClustering(const std::vector<cv::Point2f> &points, const cv::Size &patternSz, std::vector<cv::Point2f> &patternPoints)
 {
 #ifdef HAVE_TEGRA_OPTIMIZATION
-    if(tegra::useTegra() && tegra::hierarchicalClustering(points, patternSz, patterncv::Points))
+    if(tegra::useTegra() && tegra::hierarchicalClustering(points, patternSz, patternPoints))
         return;
 #endif
     int j, n = (int)points.size();
