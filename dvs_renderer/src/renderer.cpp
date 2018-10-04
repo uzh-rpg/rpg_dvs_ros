@@ -147,8 +147,16 @@ void Renderer::eventsCallback(const dvs_msgs::EventArray::ConstPtr& msg)
     else
     {
       cv_image.encoding = "mono8";
-      cv_image.image = cv::Mat(msg->height, msg->width, CV_8U);
-      cv_image.image = cv::Scalar(128);
+      if (last_image_.rows == msg->height && last_image_.cols == msg->width)
+      {
+        cv::cvtColor(last_image_, cv_image.image, CV_BGR2GRAY);
+        used_last_image_ = true;
+      }
+      else
+      {
+        cv_image.image = cv::Mat(msg->height, msg->width, CV_8U);
+        cv_image.image = cv::Scalar(128);
+      }
 
       cv::Mat on_events = cv::Mat(msg->height, msg->width, CV_8U);
       on_events = cv::Scalar(0);
