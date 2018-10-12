@@ -4,7 +4,7 @@
   <version>0.0.0</version>
   <description>The dvs_calibration_gui package</description>
   <maintainer email="elias.mueggler@gmail.com">Matthias Fässler </maintainer>
-  <license>GNU GPL</license>
+  <license>MIT</license>
   
   <buildtool_depend>catkin</buildtool_depend>
   

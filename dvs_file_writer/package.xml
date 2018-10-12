@@ -4,7 +4,7 @@
   <version>0.0.0</version>
   <description>The dvs_file_writer package</description>
   <maintainer email="mueggler@ifi.uzh.ch">Elias Mueggler</maintainer>
-  <license>GNU GPL</license>
+  <license>MIT</license>
 
   <buildtool_depend>catkin</buildtool_depend>
   <buildtool_depend>catkin_simple</buildtool_depend>
