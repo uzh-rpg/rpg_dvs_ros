@@ -66,7 +66,7 @@ DavisRosDriver::DavisRosDriver(ros::NodeHandle & nh, ros::NodeHandle nh_private)
 
   event_array_pub_ = nh_.advertise<dvs_msgs::EventArray>(ns + "/events", 10);
   camera_info_pub_ = nh_.advertise<sensor_msgs::CameraInfo>(ns + "/camera_info", 1);
-  imu_pub_ = nh_.advertise<sensor_msgs::Imu>(ns + "/imu", 10);
+  imu_pub_ = nh_.advertise<sensor_msgs::Imu>(ns + "/imu", 1000);
   image_pub_ = nh_.advertise<sensor_msgs::Image>(ns + "/image_raw", 1);
   exposure_pub_ = nh_.advertise<std_msgs::Int32>(ns + "/exposure", 10);
 
