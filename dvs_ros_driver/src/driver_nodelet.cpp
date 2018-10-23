@@ -14,6 +14,10 @@ void DvsRosDriverNodelet::onInit()
   NODELET_INFO_STREAM("Initialized " <<  getName() << " nodelet.");
 }
 
+#ifndef PLUGINLIB_EXPORT_CLASS
 PLUGINLIB_DECLARE_CLASS(dvs_ros_driver, DvsRosDriverNodelet, dvs_ros_driver::DvsRosDriverNodelet, nodelet::Nodelet);
+#else
+PLUGINLIB_EXPORT_CLASS(dvs_ros_driver::DvsRosDriverNodelet, nodelet::Nodelet);
+#endif
 
 }
