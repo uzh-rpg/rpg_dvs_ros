@@ -14,6 +14,6 @@ void DavisRosDriverNodelet::onInit()
   NODELET_INFO_STREAM("Initialized " <<  getName() << " nodelet.");
 }
 
-PLUGINLIB_DECLARE_CLASS(davis_ros_driver, DavisRosDriverNodelet, davis_ros_driver::DavisRosDriverNodelet, nodelet::Nodelet);
+PLUGINLIB_EXPORT_CLASS(davis_ros_driver::DavisRosDriverNodelet, nodelet::Nodelet);
 
 }
