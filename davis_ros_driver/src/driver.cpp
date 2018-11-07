@@ -299,6 +299,9 @@ void DavisRosDriver::changeDvsParameters()
                 if(!current_config_.autoexposure_enabled) {
                     caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_APS, DAVIS_CONFIG_APS_EXPOSURE, current_config_.exposure);
                 }
+                
+                caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_APS, DAVIS_CONFIG_APS_FRAME_MODE, current_config_.frame_mode);
+                caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_APS, DAVIS_CONFIG_APS_FRAME_INTERVAL, current_config_.frame_interval);
 
                 caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_APS, DAVIS_CONFIG_APS_RUN, current_config_.aps_enabled);
                 caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_DVS, DAVIS_CONFIG_DVS_RUN, current_config_.dvs_enabled);
@@ -439,7 +442,8 @@ void DavisRosDriver::changeDvsParameters()
 void DavisRosDriver::callback(davis_ros_driver::DAVIS_ROS_DriverConfig &config, uint32_t level)
 {
     // did any DVS bias setting change?
-    if (current_config_.exposure != config.exposure || 
+    if (current_config_.exposure != config.exposure ||
+            current_config_.frame_mode != config.frame_mode || current_config_.frame_interval != config.frame_interval ||
             current_config_.autoexposure_enabled != config.autoexposure_enabled || current_config_.autoexposure_gain != config.autoexposure_gain ||
             current_config_.aps_enabled != config.aps_enabled || current_config_.dvs_enabled != config.dvs_enabled ||
             current_config_.imu_enabled != config.imu_enabled || current_config_.imu_acc_scale != config.imu_acc_scale ||
@@ -447,6 +451,9 @@ void DavisRosDriver::callback(davis_ros_driver::DAVIS_ROS_DriverConfig &config, 
             current_config_.max_events != config.max_events || current_config_.autoexposure_desired_intensity != config.autoexposure_desired_intensity)
     {
         current_config_.exposure = config.exposure;
+        
+        current_config_.frame_mode = config.frame_mode;
+        current_config_.frame_interval = config.frame_interval;
 
         current_config_.autoexposure_enabled = config.autoexposure_enabled;
         current_config_.autoexposure_gain = config.autoexposure_gain;
