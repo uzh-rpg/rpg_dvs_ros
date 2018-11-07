@@ -300,11 +300,8 @@ void DavisRosDriver::changeDvsParameters()
                     caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_APS, DAVIS_CONFIG_APS_EXPOSURE, current_config_.exposure);
                 }
 
-                caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_APS, DAVIS_CONFIG_APS_FRAME_DELAY, current_config_.frame_delay);
-
                 caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_APS, DAVIS_CONFIG_APS_RUN, current_config_.aps_enabled);
                 caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_DVS, DAVIS_CONFIG_DVS_RUN, current_config_.dvs_enabled);
-                caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_IMU, DAVIS_CONFIG_IMU_RUN, current_config_.imu_enabled);
 
                 if (current_config_.imu_gyro_scale >= 0 && current_config_.imu_gyro_scale <= 3)
                     caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_IMU, DAVIS_CONFIG_IMU_GYRO_FULL_SCALE, current_config_.imu_gyro_scale);
@@ -442,7 +439,7 @@ void DavisRosDriver::changeDvsParameters()
 void DavisRosDriver::callback(davis_ros_driver::DAVIS_ROS_DriverConfig &config, uint32_t level)
 {
     // did any DVS bias setting change?
-    if (current_config_.exposure != config.exposure || current_config_.frame_delay != config.frame_delay ||
+    if (current_config_.exposure != config.exposure || 
             current_config_.autoexposure_enabled != config.autoexposure_enabled || current_config_.autoexposure_gain != config.autoexposure_gain ||
             current_config_.aps_enabled != config.aps_enabled || current_config_.dvs_enabled != config.dvs_enabled ||
             current_config_.imu_enabled != config.imu_enabled || current_config_.imu_acc_scale != config.imu_acc_scale ||
@@ -450,7 +447,6 @@ void DavisRosDriver::callback(davis_ros_driver::DAVIS_ROS_DriverConfig &config, 
             current_config_.max_events != config.max_events || current_config_.autoexposure_desired_intensity != config.autoexposure_desired_intensity)
     {
         current_config_.exposure = config.exposure;
-        current_config_.frame_delay = config.frame_delay;
 
         current_config_.autoexposure_enabled = config.autoexposure_enabled;
         current_config_.autoexposure_gain = config.autoexposure_gain;
