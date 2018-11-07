@@ -300,11 +300,11 @@ void DavisRosDriver::changeDvsParameters()
                     caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_APS, DAVIS_CONFIG_APS_EXPOSURE, current_config_.exposure);
                 }
 
-                caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_APS, DAVIS_CONFIG_APS_FRAME_INTERVAL, current_config_.frame_delay);
+//                caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_APS, DAVIS_CONFIG_APS_FRAME_INTERVAL, current_config_.frame_delay);
 
                 caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_APS, DAVIS_CONFIG_APS_RUN, current_config_.aps_enabled);
                 caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_DVS, DAVIS_CONFIG_DVS_RUN, current_config_.dvs_enabled);
-                caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_IMU, DAVIS_CONFIG_IMU_RUN_ACCELEROMETER, current_config_.imu_enabled);
+//                caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_IMU, DAVIS_CONFIG_IMU_RUN_ACCELEROMETER, current_config_.imu_enabled);
 
                 if (current_config_.imu_gyro_scale >= 0 && current_config_.imu_gyro_scale <= 3)
                     caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_IMU, DAVIS_CONFIG_IMU_GYRO_FULL_SCALE, current_config_.imu_gyro_scale);
