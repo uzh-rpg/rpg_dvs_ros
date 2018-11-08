@@ -65,7 +65,7 @@ void Renderer::imageCallback(const sensor_msgs::Image::ConstPtr& msg)
 
   try
   {
-    cv_ptr = cv_bridge::toCvCopy(msg, sensor_msgs::image_encodings::MONO8);
+    cv_ptr = cv_bridge::toCvCopy(msg, sensor_msgs::image_encodings::RGB8);
   }
   catch (cv_bridge::Exception& e)
   {
@@ -74,7 +74,7 @@ void Renderer::imageCallback(const sensor_msgs::Image::ConstPtr& msg)
   }
 
   // convert from grayscale to color image
-  cv::cvtColor(cv_ptr->image, last_image_, CV_GRAY2BGR);
+  cv::cvtColor(cv_ptr->image, last_image_, cv::COLOR_RGB2BGR);
 
   if (!used_last_image_)
   {
