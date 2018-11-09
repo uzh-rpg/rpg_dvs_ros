@@ -409,6 +409,14 @@ void DavisRosDriver::changeDvsParameters()
                   caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_DVS, DAVIS_CONFIG_DVS_FILTER_REFRACTORY_PERIOD_TIME, current_config_.refractory_period_time);
                 }
                 
+                if (davis_info_.dvsHasROIFilter)
+                {
+                  caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_DVS, DAVIS_CONFIG_DVS_FILTER_ROI_START_COLUMN, current_config_.roi_start_column);
+                  caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_DVS, DAVIS_CONFIG_DVS_FILTER_ROI_START_ROW, current_config_.roi_start_row);
+                  caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_DVS, DAVIS_CONFIG_DVS_FILTER_ROI_END_COLUMN, current_config_.roi_end_column);
+                  caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_DVS, DAVIS_CONFIG_DVS_FILTER_ROI_END_ROW, current_config_.roi_end_row);
+                }
+                
                 if (davis_info_.dvsHasSkipFilter)
                 {
                   caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_DVS, DAVIS_CONFIG_DVS_FILTER_SKIP_EVENTS, current_config_.skip_enabled);
@@ -511,6 +519,10 @@ void DavisRosDriver::callback(davis_ros_driver::DAVIS_ROS_DriverConfig &config, 
         current_config_.background_activity_filter_time = config.background_activity_filter_time;
         current_config_.refractory_period_enabled = config.refractory_period_enabled;
         current_config_.refractory_period_time = config.refractory_period_time;
+        current_config_.roi_start_column = config.roi_start_column;
+        current_config_.roi_start_row = config.roi_start_row;
+        current_config_.roi_end_column = config.roi_end_column;
+        current_config_.roi_end_row = config.roi_end_row;
         current_config_.skip_enabled = config.skip_enabled;
         current_config_.skip_every = config.skip_every;
         current_config_.polarity_flatten = config.polarity_flatten;
