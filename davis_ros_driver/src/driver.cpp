@@ -400,6 +400,27 @@ void DavisRosDriver::changeDvsParameters()
                                     caerBiasShiftedSourceGenerate(SHIFTSOURCE(1,33,SHIFTED_SOURCE)));
 
                 // Hardware filters
+                if (davis_info_.dvsHasPixelFilter)
+                {
+                  caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_DVS, DAVIS_CONFIG_DVS_FILTER_PIXEL_0_ROW, current_config_.pixel_0_row);
+                  caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_DVS, DAVIS_CONFIG_DVS_FILTER_PIXEL_0_COLUMN, current_config_.pixel_0_column);
+                  caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_DVS, DAVIS_CONFIG_DVS_FILTER_PIXEL_1_ROW, current_config_.pixel_1_row);
+                  caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_DVS, DAVIS_CONFIG_DVS_FILTER_PIXEL_1_COLUMN, current_config_.pixel_1_column);
+                  caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_DVS, DAVIS_CONFIG_DVS_FILTER_PIXEL_2_ROW, current_config_.pixel_2_row);
+                  caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_DVS, DAVIS_CONFIG_DVS_FILTER_PIXEL_2_COLUMN, current_config_.pixel_2_column);
+                  caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_DVS, DAVIS_CONFIG_DVS_FILTER_PIXEL_3_ROW, current_config_.pixel_3_row);
+                  caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_DVS, DAVIS_CONFIG_DVS_FILTER_PIXEL_3_COLUMN, current_config_.pixel_3_column);
+                  caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_DVS, DAVIS_CONFIG_DVS_FILTER_PIXEL_4_ROW, current_config_.pixel_4_row);
+                  caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_DVS, DAVIS_CONFIG_DVS_FILTER_PIXEL_4_COLUMN, current_config_.pixel_4_column);
+                  caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_DVS, DAVIS_CONFIG_DVS_FILTER_PIXEL_5_ROW, current_config_.pixel_5_row);
+                  caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_DVS, DAVIS_CONFIG_DVS_FILTER_PIXEL_5_COLUMN, current_config_.pixel_5_column);
+                  caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_DVS, DAVIS_CONFIG_DVS_FILTER_PIXEL_6_ROW, current_config_.pixel_6_row);
+                  caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_DVS, DAVIS_CONFIG_DVS_FILTER_PIXEL_6_COLUMN, current_config_.pixel_6_column);
+                  caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_DVS, DAVIS_CONFIG_DVS_FILTER_PIXEL_7_ROW, current_config_.pixel_7_row);
+                  caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_DVS, DAVIS_CONFIG_DVS_FILTER_PIXEL_7_COLUMN, current_config_.pixel_7_column);
+                  caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_DVS, DAVIS_CONFIG_DVS_FILTER_PIXEL_AUTO_TRAIN, current_config_.pixel_auto_train);
+                }
+                
                 if (davis_info_.dvsHasBackgroundActivityFilter)
                 {
                   caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_DVS, DAVIS_CONFIG_DVS_FILTER_BACKGROUND_ACTIVITY, current_config_.background_activity_filter_enabled);
@@ -528,6 +549,23 @@ void DavisRosDriver::callback(davis_ros_driver::DAVIS_ROS_DriverConfig &config, 
         current_config_.polarity_flatten = config.polarity_flatten;
         current_config_.polarity_suppress = config.polarity_suppress;
         current_config_.polarity_suppress_type = config.polarity_suppress_type;
+        current_config_.pixel_0_row = config.pixel_0_row;
+        current_config_.pixel_0_column = config.pixel_0_column;
+        current_config_.pixel_1_row = config.pixel_1_row;
+        current_config_.pixel_1_column = config.pixel_1_column;
+        current_config_.pixel_2_row = config.pixel_2_row;
+        current_config_.pixel_2_column = config.pixel_2_column;
+        current_config_.pixel_3_row = config.pixel_3_row;
+        current_config_.pixel_3_column = config.pixel_3_column;
+        current_config_.pixel_4_row = config.pixel_4_row;
+        current_config_.pixel_4_column = config.pixel_4_column;
+        current_config_.pixel_5_row = config.pixel_5_row;
+        current_config_.pixel_5_column = config.pixel_5_column;
+        current_config_.pixel_6_row = config.pixel_6_row;
+        current_config_.pixel_6_column = config.pixel_6_column;
+        current_config_.pixel_7_row = config.pixel_7_row;
+        current_config_.pixel_7_column = config.pixel_7_column;
+        current_config_.pixel_auto_train = config.pixel_auto_train;
     }
 
     // change streaming rate, if necessary
