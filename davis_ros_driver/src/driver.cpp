@@ -414,6 +414,13 @@ void DavisRosDriver::changeDvsParameters()
                   caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_DVS, DAVIS_CONFIG_DVS_FILTER_SKIP_EVENTS, current_config_.skip_enabled);
                   caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_DVS, DAVIS_CONFIG_DVS_FILTER_SKIP_EVENTS_EVERY, current_config_.skip_every);
                 }
+                
+                if (davis_info_.dvsHasPolarityFilter)
+                {
+                  caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_DVS, DAVIS_CONFIG_DVS_FILTER_POLARITY_FLATTEN, current_config_.polarity_flatten);
+                  caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_DVS, DAVIS_CONFIG_DVS_FILTER_POLARITY_SUPPRESS, current_config_.polarity_suppress);
+                  caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_DVS, DAVIS_CONFIG_DVS_FILTER_POLARITY_SUPPRESS_TYPE, current_config_.polarity_suppress_type);
+                }
             }
             else
             {
@@ -506,6 +513,9 @@ void DavisRosDriver::callback(davis_ros_driver::DAVIS_ROS_DriverConfig &config, 
         current_config_.refractory_period_time = config.refractory_period_time;
         current_config_.skip_enabled = config.skip_enabled;
         current_config_.skip_every = config.skip_every;
+        current_config_.polarity_flatten = config.polarity_flatten;
+        current_config_.polarity_suppress = config.polarity_suppress;
+        current_config_.polarity_suppress_type = config.polarity_suppress_type;
     }
 
     // change streaming rate, if necessary
