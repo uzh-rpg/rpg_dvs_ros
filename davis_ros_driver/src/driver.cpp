@@ -408,6 +408,12 @@ void DavisRosDriver::changeDvsParameters()
                   caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_DVS, DAVIS_CONFIG_DVS_FILTER_REFRACTORY_PERIOD, current_config_.refractory_period_enabled);
                   caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_DVS, DAVIS_CONFIG_DVS_FILTER_REFRACTORY_PERIOD_TIME, current_config_.refractory_period_time);
                 }
+                
+                if (davis_info_.dvsHasSkipFilter)
+                {
+                  caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_DVS, DAVIS_CONFIG_DVS_FILTER_SKIP_EVENTS, current_config_.skip_enabled);
+                  caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_DVS, DAVIS_CONFIG_DVS_FILTER_SKIP_EVENTS_EVERY, current_config_.skip_every);
+                }
             }
             else
             {
@@ -498,6 +504,8 @@ void DavisRosDriver::callback(davis_ros_driver::DAVIS_ROS_DriverConfig &config, 
         current_config_.background_activity_filter_time = config.background_activity_filter_time;
         current_config_.refractory_period_enabled = config.refractory_period_enabled;
         current_config_.refractory_period_time = config.refractory_period_time;
+        current_config_.skip_enabled = config.skip_enabled;
+        current_config_.skip_every = config.skip_every;
     }
 
     // change streaming rate, if necessary
