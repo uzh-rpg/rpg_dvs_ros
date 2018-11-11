@@ -710,17 +710,26 @@ void DavisRosDriver::readout()
                     sensor_msgs::Image msg;
                     
                     // get image metadata
+                    caer_frame_event_color_channels frame_channels = caerFrameEventGetChannelNumber(event);
                     const int32_t frame_width = caerFrameEventGetLengthX(event);
                     const int32_t frame_height = caerFrameEventGetLengthY(event);
                     
                     // set message metadata
-                    msg.encoding = "mono8";
                     msg.width = frame_width;
                     msg.height = frame_height;
-                    msg.step = frame_width;
+                    msg.step = frame_width * frame_channels;
+                    
+                    if (frame_channels==1)
+                    {
+                      msg.encoding = "mono8";
+                    }
+                    else if (frame_channels==3)
+                    {
+                      msg.encoding = "rgb8";
+                    }
                     
                     // set message data
-                    for (int img_y=0; img_y<frame_height; img_y++)
+                    for (int img_y=0; img_y<frame_height*frame_channels; img_y++)
                     {
                         for (int img_x=0; img_x<frame_width; img_x++)
                         {
