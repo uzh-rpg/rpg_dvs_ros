@@ -23,6 +23,9 @@ Renderer::Renderer(ros::NodeHandle & nh, ros::NodeHandle nh_private) : nh_(nh),
   image_sub_ = it_.subscribe("image", 1, &Renderer::imageCallback, this);
   image_pub_ = it_.advertise("dvs_rendering", 1);
   undistorted_image_pub_ = it_.advertise("dvs_undistorted", 1);
+  image_raw_pub_ = it_.advertise("dvs_image_raw", 1);
+
+  used_last_image_ = false;
 
   for (int i = 0; i < 2; ++i)
     for (int k = 0; k < 2; ++k)
@@ -41,6 +44,7 @@ Renderer::~Renderer()
 {
   image_pub_.shutdown();
   undistorted_image_pub_.shutdown();
+  image_raw_pub_.shutdown();
 }
 
 void Renderer::cameraInfoCallback(const sensor_msgs::CameraInfo::ConstPtr& msg)
@@ -75,8 +79,9 @@ void Renderer::imageCallback(const sensor_msgs::Image::ConstPtr& msg)
 
   // convert from grayscale to color image
   cv::cvtColor(cv_ptr->image, last_image_, CV_GRAY2BGR);
+  cv_ptr->image.copyTo(image_raw_);
 
-  if (!used_last_image_)
+  if (!used_last_image_ && false)
   {
     cv_bridge::CvImage cv_image;
     last_image_.copyTo(cv_image.image);
@@ -111,7 +116,7 @@ void Renderer::eventsCallback(const dvs_msgs::EventArray::ConstPtr& msg)
     {
       cv_image.encoding = "bgr8";
 
-      if (last_image_.rows == msg->height && last_image_.cols == msg->width)
+      if (last_image_.rows == msg->height && last_image_.cols == msg->width && false)
       {
         last_image_.copyTo(cv_image.image);
         used_last_image_ = true;
@@ -119,7 +124,7 @@ void Renderer::eventsCallback(const dvs_msgs::EventArray::ConstPtr& msg)
       else
       {
         cv_image.image = cv::Mat(msg->height, msg->width, CV_8UC3);
-        cv_image.image = cv::Scalar(0,0,0);
+        cv_image.image = cv::Scalar(255, 255 ,255);
       }
 
       for (int i = 0; i < msg->events.size(); ++i)
@@ -128,7 +133,7 @@ void Renderer::eventsCallback(const dvs_msgs::EventArray::ConstPtr& msg)
         const int y = msg->events[i].y;
 
         cv_image.image.at<cv::Vec3b>(cv::Point(x, y)) = (
-            msg->events[i].polarity == true ? cv::Vec3b(255, 0, 0) : cv::Vec3b(0, 0, 255));
+            msg->events[i].polarity == false ? cv::Vec3b(255, 0, 0) : cv::Vec3b(0, 0, 255));
       }
     }
     else
@@ -171,7 +176,16 @@ void Renderer::eventsCallback(const dvs_msgs::EventArray::ConstPtr& msg)
       cv_image.image -= off_events;
     }
 
+    cv_bridge::CvImage cv_image_raw;
+    if (msg->events.size() > 0)
+	{
+    	cv_image_raw.header.stamp = msg->events[msg->events.size()/2].ts;
+	}
+    cv_image_raw.encoding = "mono8";
+    image_raw_.copyTo(cv_image_raw.image);
     image_pub_.publish(cv_image.toImageMsg());
+    image_raw_pub_.publish(cv_image_raw.toImageMsg());
+
 
     if (got_camera_info_ && undistorted_image_pub_.getNumSubscribers() > 0)
     {

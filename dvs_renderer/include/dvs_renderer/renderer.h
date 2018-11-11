@@ -44,9 +44,11 @@ private:
 
   image_transport::Publisher image_pub_;
   image_transport::Publisher undistorted_image_pub_;
+  image_transport::Publisher image_raw_pub_;
 
   image_transport::Subscriber image_sub_;
   cv::Mat last_image_;
+  cv::Mat image_raw_;
   bool used_last_image_;
 
   struct EventStats {
