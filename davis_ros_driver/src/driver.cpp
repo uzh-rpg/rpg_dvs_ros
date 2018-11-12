@@ -450,6 +450,12 @@ void DavisRosDriver::changeDvsParameters()
                   caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_DVS, DAVIS_CONFIG_DVS_FILTER_POLARITY_SUPPRESS, current_config_.polarity_suppress);
                   caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_DVS, DAVIS_CONFIG_DVS_FILTER_POLARITY_SUPPRESS_TYPE, current_config_.polarity_suppress_type);
                 }
+                
+                // APS region of interest
+                caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_APS, DAVIS_CONFIG_APS_START_COLUMN_0, current_config_.aps_roi_start_column);
+                caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_APS, DAVIS_CONFIG_APS_START_ROW_0, current_config_.aps_roi_start_row);
+                caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_APS, DAVIS_CONFIG_APS_END_COLUMN_0, current_config_.aps_roi_end_column);
+                caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_APS, DAVIS_CONFIG_APS_END_ROW_0, current_config_.aps_roi_end_row);
             }
             else
             {
@@ -544,6 +550,10 @@ void DavisRosDriver::callback(davis_ros_driver::DAVIS_ROS_DriverConfig &config, 
         current_config_.roi_start_row = config.roi_start_row;
         current_config_.roi_end_column = config.roi_end_column;
         current_config_.roi_end_row = config.roi_end_row;
+        current_config_.aps_roi_start_column = config.aps_roi_start_column;
+        current_config_.aps_roi_start_row = config.aps_roi_start_row;
+        current_config_.aps_roi_end_column = config.aps_roi_end_column;
+        current_config_.aps_roi_end_row = config.aps_roi_end_row;
         current_config_.skip_enabled = config.skip_enabled;
         current_config_.skip_every = config.skip_every;
         current_config_.polarity_flatten = config.polarity_flatten;
@@ -736,18 +746,28 @@ void DavisRosDriver::readout()
                     uint16_t* image = caerFrameEventGetPixelArrayUnsafe(event);
 
                     sensor_msgs::Image msg;
-
-                    // meta information
-                    msg.encoding = "mono8";
-                    msg.width = davis_info_.apsSizeX;
-                    msg.height = davis_info_.apsSizeY;
-                    msg.step = davis_info_.apsSizeX;
-
-                    // image data
+                    
+                    // get image metadata
+                    caer_frame_event_color_channels frame_channels = caerFrameEventGetChannelNumber(event);
                     const int32_t frame_width = caerFrameEventGetLengthX(event);
-                    const int32_t frame_height= caerFrameEventGetLengthY(event);
-
-                    for (int img_y=0; img_y<frame_height; img_y++)
+                    const int32_t frame_height = caerFrameEventGetLengthY(event);
+                    
+                    // set message metadata
+                    msg.width = frame_width;
+                    msg.height = frame_height;
+                    msg.step = frame_width * frame_channels;
+                    
+                    if (frame_channels==1)
+                    {
+                      msg.encoding = "mono8";
+                    }
+                    else if (frame_channels==3)
+                    {
+                      msg.encoding = "rgb8";
+                    }
+                    
+                    // set message data
+                    for (int img_y=0; img_y<frame_height*frame_channels; img_y++)
                     {
                         for (int img_x=0; img_x<frame_width; img_x++)
                         {
