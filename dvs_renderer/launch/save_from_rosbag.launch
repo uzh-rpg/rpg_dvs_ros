@@ -9,19 +9,20 @@
 
   <!-- Save images to disk -->
   <node name="image_saver" pkg="image_view" type="image_saver" respawn="false" output="screen">
-    <remap from="image" to="dvs_image_raw"/>
+    <remap from="image" to="event_image"/>
     <param name="filename_format" value="/home/cedric/Documents/phd/data/image_raw/image%04d.png" />
   </node>
   
   <!-- Save images to disk -->
   <node name="image_saver2" pkg="image_view" type="image_saver" respawn="false" output="screen">
-    <remap from="image" to="dvs_rendering"/>
+    <remap from="image" to="dvs_image_raw"/>
     <param name="filename_format" value="/home/cedric/Documents/phd/data/events_red_blue/image%04d.png" />
   </node>
 
-  <!-- display -->
+  <!-- display 
   <node name="image_view_left" pkg="image_view" type="image_view">
-  	<remap from="image" to="dvs_rendering"/>
+  	<remap from="image" to="image_raw"/>
   </node>
+  -->
 
 </launch>
