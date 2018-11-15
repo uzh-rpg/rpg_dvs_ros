@@ -407,6 +407,13 @@ void DavisRosDriver::changeDvsParameters()
                   // if using auto train, update the configuration with hardware values
                   if (current_config_.pixel_auto_train)
                   {
+                    ROS_INFO("Auto-training hot-pixel filter...");
+                    while(current_config_.pixel_auto_train)
+                    {
+                      boost::this_thread::sleep(boost::posix_time::milliseconds(100));
+                      caerDeviceConfigGet(davis_handle_, DAVIS_CONFIG_DVS, DAVIS_CONFIG_DVS_FILTER_PIXEL_AUTO_TRAIN, (uint32_t*)&current_config_.pixel_auto_train);
+                    }
+                  
                     caerDeviceConfigGet(davis_handle_, DAVIS_CONFIG_DVS, DAVIS_CONFIG_DVS_FILTER_PIXEL_0_ROW, (uint32_t*)&current_config_.pixel_0_row);
                     caerDeviceConfigGet(davis_handle_, DAVIS_CONFIG_DVS, DAVIS_CONFIG_DVS_FILTER_PIXEL_0_COLUMN, (uint32_t*)&current_config_.pixel_0_column);
                     caerDeviceConfigGet(davis_handle_, DAVIS_CONFIG_DVS, DAVIS_CONFIG_DVS_FILTER_PIXEL_1_ROW, (uint32_t*)&current_config_.pixel_1_row);
@@ -427,6 +434,7 @@ void DavisRosDriver::changeDvsParameters()
                     boost::recursive_mutex::scoped_lock lock(config_mutex);
                     server_->updateConfig(current_config_);
                     lock.unlock();
+                    ROS_INFO("Done auto-training hot-pixel filter.");
                   }
                   else // apply current configuration to hardware
                   {
