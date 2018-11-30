@@ -47,6 +47,10 @@ private:
 
   image_transport::Subscriber image_sub_;
   cv::Mat last_image_;
+  cv::Mat latest_event_image_;
+
+  bool initialised_;
+
   bool used_last_image_;
 
   struct EventStats {
