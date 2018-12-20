@@ -11,7 +11,7 @@ file(MAKE_DIRECTORY ${CATKIN_DEVEL_PREFIX}/include/libcaer)
 
 ExternalProject_Add(libcaer_src
   GIT_REPOSITORY https://gitlab.com/inivation/libcaer.git
-  GIT_TAG 3.0.0
+  GIT_TAG 3.1.0
   UPDATE_COMMAND ""
   CMAKE_ARGS -DCMAKE_INSTALL_PREFIX:PATH=${CATKIN_DEVEL_PREFIX} -DCMAKE_BUILD_TYPE:STRING=Release -DBUILD_SHARED_LIBS=ON
   BUILD_COMMAND make
