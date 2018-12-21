@@ -11,11 +11,11 @@ file(MAKE_DIRECTORY ${CATKIN_DEVEL_PREFIX}/include/libcaer)
 
 ExternalProject_Add(libcaer_src
   GIT_REPOSITORY https://gitlab.com/inivation/libcaer.git
-  GIT_TAG 3.1.0
+  GIT_TAG ff0e741fcfc0b59a41f87679d59620e3cc3b3a7e
   UPDATE_COMMAND ""
-  CMAKE_ARGS -DCMAKE_INSTALL_PREFIX:PATH=${CATKIN_DEVEL_PREFIX} -DCMAKE_BUILD_TYPE:STRING=Release -DBUILD_SHARED_LIBS=ON
+  CMAKE_ARGS -DCMAKE_INSTALL_PREFIX:PATH=${CATKIN_DEVEL_PREFIX} -DCMAKE_BUILD_TYPE:STRING=Release -DBUILD_SHARED_LIBS=ON -DUDEV_INSTALL=0
   BUILD_COMMAND make
-  INSTALL_COMMAND sudo make install # libcaer puts udev rules in `/lib/udev/rules.d/` and I can't deal with it more gracefully
+  INSTALL_COMMAND make install
 )
 
 cs_add_library(${PROJECT_NAME} src/dependency_tracker.cc)
