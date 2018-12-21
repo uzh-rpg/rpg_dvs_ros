@@ -72,7 +72,7 @@ DavisRosDriver::DavisRosDriver(ros::NodeHandle & nh, ros::NodeHandle nh_private)
   // The dynamic reconfigure callback will be called directly when registered,
   // which will initialize properly current_config_
   dynamic_reconfigure_callback_ = boost::bind(&DavisRosDriver::callback, this, _1, _2);
-  server_.reset(new dynamic_reconfigure::Server<davis_ros_driver::DAVIS_ROS_DriverConfig>(nh_private));
+  server_.reset(new dynamic_reconfigure::Server<davis_ros_driver::DAVIS_ROS_DriverConfig>(config_mutex, nh_private));
   server_->setCallback(dynamic_reconfigure_callback_);
 
   caerConnect();
@@ -299,12 +299,15 @@ void DavisRosDriver::changeDvsParameters()
                 if(!current_config_.autoexposure_enabled) {
                     caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_APS, DAVIS_CONFIG_APS_EXPOSURE, current_config_.exposure);
                 }
-
-                caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_APS, DAVIS_CONFIG_APS_FRAME_DELAY, current_config_.frame_delay);
+                
+                caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_APS, DAVIS_CONFIG_APS_FRAME_MODE, current_config_.frame_mode);
+                caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_APS, DAVIS_CONFIG_APS_FRAME_INTERVAL, current_config_.frame_interval);
 
                 caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_APS, DAVIS_CONFIG_APS_RUN, current_config_.aps_enabled);
                 caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_DVS, DAVIS_CONFIG_DVS_RUN, current_config_.dvs_enabled);
-                caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_IMU, DAVIS_CONFIG_IMU_RUN, current_config_.imu_enabled);
+                caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_IMU, DAVIS_CONFIG_IMU_RUN_ACCELEROMETER, current_config_.imu_enabled);
+                caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_IMU, DAVIS_CONFIG_IMU_RUN_GYROSCOPE, current_config_.imu_enabled);
+                caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_IMU, DAVIS_CONFIG_IMU_RUN_TEMPERATURE, current_config_.imu_enabled);
 
                 if (current_config_.imu_gyro_scale >= 0 && current_config_.imu_gyro_scale <= 3)
                     caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_IMU, DAVIS_CONFIG_IMU_GYRO_FULL_SCALE, current_config_.imu_gyro_scale);
@@ -397,6 +400,63 @@ void DavisRosDriver::changeDvsParameters()
                                     caerBiasShiftedSourceGenerate(SHIFTSOURCE(1,33,SHIFTED_SOURCE)));
 
                 // Hardware filters
+                if (davis_info_.dvsHasPixelFilter)
+                {
+                  caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_DVS, DAVIS_CONFIG_DVS_FILTER_PIXEL_AUTO_TRAIN, current_config_.pixel_auto_train);
+                  
+                  // if using auto train, update the configuration with hardware values
+                  if (current_config_.pixel_auto_train)
+                  {
+                    ROS_INFO("Auto-training hot-pixel filter...");
+                    while(current_config_.pixel_auto_train)
+                    {
+                      boost::this_thread::sleep(boost::posix_time::milliseconds(100));
+                      caerDeviceConfigGet(davis_handle_, DAVIS_CONFIG_DVS, DAVIS_CONFIG_DVS_FILTER_PIXEL_AUTO_TRAIN, (uint32_t*)&current_config_.pixel_auto_train);
+                    }
+                  
+                    caerDeviceConfigGet(davis_handle_, DAVIS_CONFIG_DVS, DAVIS_CONFIG_DVS_FILTER_PIXEL_0_ROW, (uint32_t*)&current_config_.pixel_0_row);
+                    caerDeviceConfigGet(davis_handle_, DAVIS_CONFIG_DVS, DAVIS_CONFIG_DVS_FILTER_PIXEL_0_COLUMN, (uint32_t*)&current_config_.pixel_0_column);
+                    caerDeviceConfigGet(davis_handle_, DAVIS_CONFIG_DVS, DAVIS_CONFIG_DVS_FILTER_PIXEL_1_ROW, (uint32_t*)&current_config_.pixel_1_row);
+                    caerDeviceConfigGet(davis_handle_, DAVIS_CONFIG_DVS, DAVIS_CONFIG_DVS_FILTER_PIXEL_1_COLUMN, (uint32_t*)&current_config_.pixel_1_column);
+                    caerDeviceConfigGet(davis_handle_, DAVIS_CONFIG_DVS, DAVIS_CONFIG_DVS_FILTER_PIXEL_2_ROW, (uint32_t*)&current_config_.pixel_2_row);
+                    caerDeviceConfigGet(davis_handle_, DAVIS_CONFIG_DVS, DAVIS_CONFIG_DVS_FILTER_PIXEL_2_COLUMN, (uint32_t*)&current_config_.pixel_2_column);
+                    caerDeviceConfigGet(davis_handle_, DAVIS_CONFIG_DVS, DAVIS_CONFIG_DVS_FILTER_PIXEL_3_ROW, (uint32_t*)&current_config_.pixel_3_row);
+                    caerDeviceConfigGet(davis_handle_, DAVIS_CONFIG_DVS, DAVIS_CONFIG_DVS_FILTER_PIXEL_3_COLUMN, (uint32_t*)&current_config_.pixel_3_column);
+                    caerDeviceConfigGet(davis_handle_, DAVIS_CONFIG_DVS, DAVIS_CONFIG_DVS_FILTER_PIXEL_4_ROW, (uint32_t*)&current_config_.pixel_4_row);
+                    caerDeviceConfigGet(davis_handle_, DAVIS_CONFIG_DVS, DAVIS_CONFIG_DVS_FILTER_PIXEL_4_COLUMN, (uint32_t*)&current_config_.pixel_4_column);
+                    caerDeviceConfigGet(davis_handle_, DAVIS_CONFIG_DVS, DAVIS_CONFIG_DVS_FILTER_PIXEL_5_ROW, (uint32_t*)&current_config_.pixel_5_row);
+                    caerDeviceConfigGet(davis_handle_, DAVIS_CONFIG_DVS, DAVIS_CONFIG_DVS_FILTER_PIXEL_5_COLUMN, (uint32_t*)&current_config_.pixel_5_column);
+                    caerDeviceConfigGet(davis_handle_, DAVIS_CONFIG_DVS, DAVIS_CONFIG_DVS_FILTER_PIXEL_6_ROW, (uint32_t*)&current_config_.pixel_6_row);
+                    caerDeviceConfigGet(davis_handle_, DAVIS_CONFIG_DVS, DAVIS_CONFIG_DVS_FILTER_PIXEL_6_COLUMN, (uint32_t*)&current_config_.pixel_6_column);
+                    caerDeviceConfigGet(davis_handle_, DAVIS_CONFIG_DVS, DAVIS_CONFIG_DVS_FILTER_PIXEL_7_ROW, (uint32_t*)&current_config_.pixel_7_row);
+                    caerDeviceConfigGet(davis_handle_, DAVIS_CONFIG_DVS, DAVIS_CONFIG_DVS_FILTER_PIXEL_7_COLUMN, (uint32_t*)&current_config_.pixel_7_column);
+                    
+                    boost::recursive_mutex::scoped_lock lock(config_mutex);
+                    server_->updateConfig(current_config_);
+                    lock.unlock();
+                    ROS_INFO("Done auto-training hot-pixel filter.");
+                  }
+                  else // apply current configuration to hardware
+                  {
+                    caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_DVS, DAVIS_CONFIG_DVS_FILTER_PIXEL_0_ROW, current_config_.pixel_0_row);
+                    caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_DVS, DAVIS_CONFIG_DVS_FILTER_PIXEL_0_COLUMN, current_config_.pixel_0_column);
+                    caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_DVS, DAVIS_CONFIG_DVS_FILTER_PIXEL_1_ROW, current_config_.pixel_1_row);
+                    caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_DVS, DAVIS_CONFIG_DVS_FILTER_PIXEL_1_COLUMN, current_config_.pixel_1_column);
+                    caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_DVS, DAVIS_CONFIG_DVS_FILTER_PIXEL_2_ROW, current_config_.pixel_2_row);
+                    caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_DVS, DAVIS_CONFIG_DVS_FILTER_PIXEL_2_COLUMN, current_config_.pixel_2_column);
+                    caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_DVS, DAVIS_CONFIG_DVS_FILTER_PIXEL_3_ROW, current_config_.pixel_3_row);
+                    caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_DVS, DAVIS_CONFIG_DVS_FILTER_PIXEL_3_COLUMN, current_config_.pixel_3_column);
+                    caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_DVS, DAVIS_CONFIG_DVS_FILTER_PIXEL_4_ROW, current_config_.pixel_4_row);
+                    caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_DVS, DAVIS_CONFIG_DVS_FILTER_PIXEL_4_COLUMN, current_config_.pixel_4_column);
+                    caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_DVS, DAVIS_CONFIG_DVS_FILTER_PIXEL_5_ROW, current_config_.pixel_5_row);
+                    caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_DVS, DAVIS_CONFIG_DVS_FILTER_PIXEL_5_COLUMN, current_config_.pixel_5_column);
+                    caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_DVS, DAVIS_CONFIG_DVS_FILTER_PIXEL_6_ROW, current_config_.pixel_6_row);
+                    caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_DVS, DAVIS_CONFIG_DVS_FILTER_PIXEL_6_COLUMN, current_config_.pixel_6_column);
+                    caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_DVS, DAVIS_CONFIG_DVS_FILTER_PIXEL_7_ROW, current_config_.pixel_7_row);
+                    caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_DVS, DAVIS_CONFIG_DVS_FILTER_PIXEL_7_COLUMN, current_config_.pixel_7_column);
+                  }
+                }
+                
                 if (davis_info_.dvsHasBackgroundActivityFilter)
                 {
                   caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_DVS, DAVIS_CONFIG_DVS_FILTER_BACKGROUND_ACTIVITY, current_config_.background_activity_filter_enabled);
@@ -405,6 +465,33 @@ void DavisRosDriver::changeDvsParameters()
                   caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_DVS, DAVIS_CONFIG_DVS_FILTER_REFRACTORY_PERIOD, current_config_.refractory_period_enabled);
                   caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_DVS, DAVIS_CONFIG_DVS_FILTER_REFRACTORY_PERIOD_TIME, current_config_.refractory_period_time);
                 }
+                
+                if (davis_info_.dvsHasROIFilter)
+                {
+                  caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_DVS, DAVIS_CONFIG_DVS_FILTER_ROI_START_COLUMN, current_config_.roi_start_column);
+                  caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_DVS, DAVIS_CONFIG_DVS_FILTER_ROI_START_ROW, current_config_.roi_start_row);
+                  caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_DVS, DAVIS_CONFIG_DVS_FILTER_ROI_END_COLUMN, current_config_.roi_end_column);
+                  caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_DVS, DAVIS_CONFIG_DVS_FILTER_ROI_END_ROW, current_config_.roi_end_row);
+                }
+                
+                if (davis_info_.dvsHasSkipFilter)
+                {
+                  caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_DVS, DAVIS_CONFIG_DVS_FILTER_SKIP_EVENTS, current_config_.skip_enabled);
+                  caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_DVS, DAVIS_CONFIG_DVS_FILTER_SKIP_EVENTS_EVERY, current_config_.skip_every);
+                }
+                
+                if (davis_info_.dvsHasPolarityFilter)
+                {
+                  caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_DVS, DAVIS_CONFIG_DVS_FILTER_POLARITY_FLATTEN, current_config_.polarity_flatten);
+                  caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_DVS, DAVIS_CONFIG_DVS_FILTER_POLARITY_SUPPRESS, current_config_.polarity_suppress);
+                  caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_DVS, DAVIS_CONFIG_DVS_FILTER_POLARITY_SUPPRESS_TYPE, current_config_.polarity_suppress_type);
+                }
+                
+                // APS region of interest
+                caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_APS, DAVIS_CONFIG_APS_START_COLUMN_0, current_config_.aps_roi_start_column);
+                caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_APS, DAVIS_CONFIG_APS_START_ROW_0, current_config_.aps_roi_start_row);
+                caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_APS, DAVIS_CONFIG_APS_END_COLUMN_0, current_config_.aps_roi_end_column);
+                caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_APS, DAVIS_CONFIG_APS_END_ROW_0, current_config_.aps_roi_end_row);
             }
             else
             {
@@ -442,7 +529,8 @@ void DavisRosDriver::changeDvsParameters()
 void DavisRosDriver::callback(davis_ros_driver::DAVIS_ROS_DriverConfig &config, uint32_t level)
 {
     // did any DVS bias setting change?
-    if (current_config_.exposure != config.exposure || current_config_.frame_delay != config.frame_delay ||
+    if (current_config_.exposure != config.exposure ||
+            current_config_.frame_mode != config.frame_mode || current_config_.frame_interval != config.frame_interval ||
             current_config_.autoexposure_enabled != config.autoexposure_enabled || current_config_.autoexposure_gain != config.autoexposure_gain ||
             current_config_.aps_enabled != config.aps_enabled || current_config_.dvs_enabled != config.dvs_enabled ||
             current_config_.imu_enabled != config.imu_enabled || current_config_.imu_acc_scale != config.imu_acc_scale ||
@@ -450,7 +538,9 @@ void DavisRosDriver::callback(davis_ros_driver::DAVIS_ROS_DriverConfig &config, 
             current_config_.max_events != config.max_events || current_config_.autoexposure_desired_intensity != config.autoexposure_desired_intensity)
     {
         current_config_.exposure = config.exposure;
-        current_config_.frame_delay = config.frame_delay;
+        
+        current_config_.frame_mode = config.frame_mode;
+        current_config_.frame_interval = config.frame_interval;
 
         current_config_.autoexposure_enabled = config.autoexposure_enabled;
         current_config_.autoexposure_gain = config.autoexposure_gain;
@@ -492,6 +582,36 @@ void DavisRosDriver::callback(davis_ros_driver::DAVIS_ROS_DriverConfig &config, 
         current_config_.background_activity_filter_time = config.background_activity_filter_time;
         current_config_.refractory_period_enabled = config.refractory_period_enabled;
         current_config_.refractory_period_time = config.refractory_period_time;
+        current_config_.roi_start_column = config.roi_start_column;
+        current_config_.roi_start_row = config.roi_start_row;
+        current_config_.roi_end_column = config.roi_end_column;
+        current_config_.roi_end_row = config.roi_end_row;
+        current_config_.aps_roi_start_column = config.aps_roi_start_column;
+        current_config_.aps_roi_start_row = config.aps_roi_start_row;
+        current_config_.aps_roi_end_column = config.aps_roi_end_column;
+        current_config_.aps_roi_end_row = config.aps_roi_end_row;
+        current_config_.skip_enabled = config.skip_enabled;
+        current_config_.skip_every = config.skip_every;
+        current_config_.polarity_flatten = config.polarity_flatten;
+        current_config_.polarity_suppress = config.polarity_suppress;
+        current_config_.polarity_suppress_type = config.polarity_suppress_type;
+        current_config_.pixel_0_row = config.pixel_0_row;
+        current_config_.pixel_0_column = config.pixel_0_column;
+        current_config_.pixel_1_row = config.pixel_1_row;
+        current_config_.pixel_1_column = config.pixel_1_column;
+        current_config_.pixel_2_row = config.pixel_2_row;
+        current_config_.pixel_2_column = config.pixel_2_column;
+        current_config_.pixel_3_row = config.pixel_3_row;
+        current_config_.pixel_3_column = config.pixel_3_column;
+        current_config_.pixel_4_row = config.pixel_4_row;
+        current_config_.pixel_4_column = config.pixel_4_column;
+        current_config_.pixel_5_row = config.pixel_5_row;
+        current_config_.pixel_5_column = config.pixel_5_column;
+        current_config_.pixel_6_row = config.pixel_6_row;
+        current_config_.pixel_6_column = config.pixel_6_column;
+        current_config_.pixel_7_row = config.pixel_7_row;
+        current_config_.pixel_7_column = config.pixel_7_column;
+        current_config_.pixel_auto_train = config.pixel_auto_train;
     }
 
     // change streaming rate, if necessary
@@ -662,18 +782,28 @@ void DavisRosDriver::readout()
                     uint16_t* image = caerFrameEventGetPixelArrayUnsafe(event);
 
                     sensor_msgs::Image msg;
-
-                    // meta information
-                    msg.encoding = "mono8";
-                    msg.width = davis_info_.apsSizeX;
-                    msg.height = davis_info_.apsSizeY;
-                    msg.step = davis_info_.apsSizeX;
-
-                    // image data
+                    
+                    // get image metadata
+                    caer_frame_event_color_channels frame_channels = caerFrameEventGetChannelNumber(event);
                     const int32_t frame_width = caerFrameEventGetLengthX(event);
-                    const int32_t frame_height= caerFrameEventGetLengthY(event);
-
-                    for (int img_y=0; img_y<frame_height; img_y++)
+                    const int32_t frame_height = caerFrameEventGetLengthY(event);
+                    
+                    // set message metadata
+                    msg.width = frame_width;
+                    msg.height = frame_height;
+                    msg.step = frame_width * frame_channels;
+                    
+                    if (frame_channels==1)
+                    {
+                      msg.encoding = "mono8";
+                    }
+                    else if (frame_channels==3)
+                    {
+                      msg.encoding = "rgb8";
+                    }
+                    
+                    // set message data
+                    for (int img_y=0; img_y<frame_height*frame_channels; img_y++)
                     {
                         for (int img_x=0; img_x<frame_width; img_x++)
                         {

@@ -61,6 +61,7 @@ private:
 
   volatile bool running_;
 
+  boost::recursive_mutex config_mutex;
   boost::shared_ptr<dynamic_reconfigure::Server<davis_ros_driver::DAVIS_ROS_DriverConfig> > server_;
   dynamic_reconfigure::Server<davis_ros_driver::DAVIS_ROS_DriverConfig>::CallbackType dynamic_reconfigure_callback_;
 
