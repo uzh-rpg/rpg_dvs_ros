@@ -65,6 +65,8 @@ void Renderer::imageCallback(const sensor_msgs::Image::ConstPtr& msg)
 
   try
   {
+    std::cout << "aps dimensions = " << msg->height << ", " << msg->width << std::endl;
+    std::cout << "aps encoding = " << msg->encoding << std::endl;
     cv_ptr = cv_bridge::toCvCopy(msg, sensor_msgs::image_encodings::RGB8);
   }
   catch (cv_bridge::Exception& e)
@@ -74,13 +76,14 @@ void Renderer::imageCallback(const sensor_msgs::Image::ConstPtr& msg)
   }
 
   // convert from grayscale to color image
-  cv::cvtColor(cv_ptr->image, last_image_, cv::COLOR_RGB2BGR);
-
+//  cv::cvtColor(cv_ptr->image, last_image_, cv::COLOR_RGB2BGR);
+  cv_ptr->image.copyTo(last_image_);
   if (!used_last_image_)
   {
     cv_bridge::CvImage cv_image;
     last_image_.copyTo(cv_image.image);
-    cv_image.encoding = "bgr8";
+ //   cv_image.encoding = "bgr8";
+    cv_image.encoding = "mono8";
     std::cout << "publish image from callback" << std::endl;
     image_pub_.publish(cv_image.toImageMsg());
   }
@@ -97,7 +100,7 @@ void Renderer::eventsCallback(const dvs_msgs::EventArray::ConstPtr& msg)
 
   publishStats();
   image_tracking_.eventsCallback(msg);
-
+std::cout << "event dimensions = " << msg->height << ", " << msg->width << std::endl;
   // only create image if at least one subscriber
   if (image_pub_.getNumSubscribers() > 0)
   {
@@ -137,6 +140,7 @@ void Renderer::eventsCallback(const dvs_msgs::EventArray::ConstPtr& msg)
       if (last_image_.rows == msg->height && last_image_.cols == msg->width)
       {
         cv::cvtColor(last_image_, cv_image.image, CV_BGR2GRAY);
+//  	last_image_.copyTo(cv_image.image);
         used_last_image_ = true;
       }
       else
