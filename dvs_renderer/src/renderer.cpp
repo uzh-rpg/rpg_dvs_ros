@@ -19,7 +19,6 @@ Renderer::Renderer(ros::NodeHandle & nh, ros::NodeHandle nh_private) : nh_(nh),
 
   // setup subscribers and publishers
   event_sub_ = nh_.subscribe("events", 1, &Renderer::eventsCallback, this);
-
   camera_info_sub_ = nh_.subscribe("camera_info", 1, &Renderer::cameraInfoCallback, this);
 
   image_transport::ImageTransport it_(nh_);
@@ -89,8 +88,6 @@ void Renderer::imageCallback(const sensor_msgs::Image::ConstPtr& msg)
       cv::cvtColor(cv_ptr->image, last_image_, CV_GRAY2BGR);
     }
   }
-
-  std::cout << msg->encoding << std::endl;
 
   if (!used_last_image_)
   {
