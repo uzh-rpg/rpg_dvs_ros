@@ -9,14 +9,15 @@
   <buildtool_depend>catkin</buildtool_depend>
   <buildtool_depend>catkin_simple</buildtool_depend>
 
-  <depend>roscpp</depend>
-  <depend>libcaer_catkin</depend>
-  <depend>dvs_msgs</depend>
-  <depend>std_msgs</depend>
-  <depend>sensor_msgs</depend>
-  <depend>dynamic_reconfigure</depend>
   <depend>camera_info_manager</depend>
+  <depend>cv_bridge</depend>
+  <depend>dvs_msgs</depend>
+  <depend>dynamic_reconfigure</depend>
+  <depend>libcaer_catkin</depend>
   <depend>nodelet</depend>
+  <depend>roscpp</depend>
+  <depend>sensor_msgs</depend>
+  <depend>std_msgs</depend>
 
   <export>
     <nodelet plugin="${prefix}/davis_ros_driver_nodelet.xml"/>

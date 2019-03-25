@@ -1,0 +1,6 @@
+{DiffBn_coarse: 3, DiffBn_fine: 109, OFFBn_coarse: 4, OFFBn_fine: 53, ONBn_coarse: 2,
+  ONBn_fine: 202, PrBp_coarse: 5, PrBp_fine: 58, PrSFBp_coarse: 6, PrSFBp_fine: 16,
+  RefrBp_coarse: 3, RefrBp_fine: 25, aps_enabled: true, dvs_enabled: true, exposure: 1000,
+  frame_interval: 25000, imu_acc_scale: 3, imu_enabled: true, imu_gyro_scale: 3, max_events: 0,
+  streaming_rate: 60}
+

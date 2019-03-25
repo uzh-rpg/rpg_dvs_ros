@@ -3,6 +3,10 @@
 #include "davis_ros_driver/driver.h"
 #include "davis_ros_driver/driver_utils.h"
 #include <std_msgs/Int32.h>
+#include <opencv2/core/core.hpp>
+#include <opencv2/imgproc/imgproc.hpp>
+#include <cv_bridge/cv_bridge.h>
+#include <sensor_msgs/Image.h>
 
 //DAVIS Bias types
 #define CF_N_TYPE(COARSE, FINE) (struct caer_bias_coarsefine) \
@@ -37,7 +41,6 @@ DavisRosDriver::DavisRosDriver(ros::NodeHandle & nh, ros::NodeHandle nh_private)
   double reset_timestamps_delay;
   nh_private.param<double>("reset_timestamps_delay", reset_timestamps_delay, -1.0);
   nh_private.param<int>("imu_calibration_sample_size", imu_calibration_sample_size_, 1000);
-
   // initialize bias
   nh_private.param<double>("imu_bias/ax", bias.linear_acceleration.x, 0.0);
   nh_private.param<double>("imu_bias/ay", bias.linear_acceleration.y, 0.0);
@@ -782,7 +785,7 @@ void DavisRosDriver::readout()
                     uint16_t* image = caerFrameEventGetPixelArrayUnsafe(event);
 
                     sensor_msgs::Image msg;
-                    
+                    sensor_msgs::Image msg_tmp;
                     // get image metadata
                     caer_frame_event_color_channels frame_channels = caerFrameEventGetChannelNumber(event);
                     const int32_t frame_width = caerFrameEventGetLengthX(event);
@@ -792,7 +795,7 @@ void DavisRosDriver::readout()
                     msg.width = frame_width;
                     msg.height = frame_height;
                     msg.step = frame_width * frame_channels;
-                    
+
                     if (frame_channels==1)
                     {
                       msg.encoding = "mono8";
@@ -801,7 +804,6 @@ void DavisRosDriver::readout()
                     {
                       msg.encoding = "rgb8";
                     }
-                    
                     // set message data
                     for (int img_y=0; img_y<frame_height*frame_channels; img_y++)
                     {
@@ -811,12 +813,33 @@ void DavisRosDriver::readout()
                             msg.data.push_back(value >> 8);
                         }
                     }
+                    // debayer
+                    cv_bridge::CvImagePtr cv_ptr;
+                    cv::Mat color_image;
+                    try
+                    {
+                      cv_ptr = cv_bridge::toCvCopy(msg);
+                    }
+                    catch (cv_bridge::Exception& e)
+                    {
+                      ROS_ERROR("cv_bridge exception: %s", e.what());
+                      return;
+                    }
+                    cv::cvtColor(cv_ptr->image, color_image, CV_BayerBG2RGB);
+                    cv_ptr->image = color_image;
+                    cv_ptr->encoding = "rgb8";
 
                     // time
-                    msg.header.stamp = reset_time_ +
-                            ros::Duration().fromNSec(caerFrameEventGetTimestamp64(event, frame) * 1000);
+                    cv_ptr->header.stamp = reset_time_ +
+                        ros::Duration().fromNSec(caerFrameEventGetTimestamp64(event, frame) * 1000);
 
-                    image_pub_.publish(msg);
+                    image_pub_.publish(cv_ptr->toImageMsg());
+
+                    // time
+//                    msg.header.stamp = reset_time_ +
+//                            ros::Duration().fromNSec(caerFrameEventGetTimestamp64(event, frame) * 1000);
+
+//                    image_pub_.publish(msg);
 
                     // publish image exposure
                     const int32_t exposure_time_microseconds = caerFrameEventGetExposureLength(event);
