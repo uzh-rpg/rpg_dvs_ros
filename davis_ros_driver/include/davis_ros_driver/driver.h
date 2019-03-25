@@ -54,6 +54,7 @@ private:
   ros::Publisher camera_info_pub_;
   ros::Publisher imu_pub_;
   ros::Publisher image_pub_;
+  ros::Publisher image_color_pub_;
   ros::Publisher exposure_pub_;
   caerDeviceHandle davis_handle_;
   

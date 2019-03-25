@@ -58,6 +58,7 @@ DavisRosDriver::DavisRosDriver(ros::NodeHandle & nh, ros::NodeHandle nh_private)
   camera_info_pub_ = nh_.advertise<sensor_msgs::CameraInfo>(ns + "/camera_info", 1);
   imu_pub_ = nh_.advertise<sensor_msgs::Imu>(ns + "/imu", 10);
   image_pub_ = nh_.advertise<sensor_msgs::Image>(ns + "/image_raw", 1);
+  image_color_pub_ = nh_.advertise<sensor_msgs::Image>(ns + "/image_color", 1);
   exposure_pub_ = nh_.advertise<std_msgs::Int32>(ns + "/exposure", 10);
 
   // reset timestamps is publisher as master, subscriber as slave
@@ -833,13 +834,13 @@ void DavisRosDriver::readout()
                     cv_ptr->header.stamp = reset_time_ +
                         ros::Duration().fromNSec(caerFrameEventGetTimestamp64(event, frame) * 1000);
 
-                    image_pub_.publish(cv_ptr->toImageMsg());
+                    image_color_pub_.publish(cv_ptr->toImageMsg());
 
                     // time
-//                    msg.header.stamp = reset_time_ +
-//                            ros::Duration().fromNSec(caerFrameEventGetTimestamp64(event, frame) * 1000);
+                    msg.header.stamp = reset_time_ +
+                            ros::Duration().fromNSec(caerFrameEventGetTimestamp64(event, frame) * 1000);
 
-//                    image_pub_.publish(msg);
+                    image_pub_.publish(msg);
 
                     // publish image exposure
                     const int32_t exposure_time_microseconds = caerFrameEventGetExposureLength(event);
