@@ -1,0 +1,4 @@
+# All DVS/DAVIS/Dynap-SE systems
+SUBSYSTEM=="usb", ATTR{idVendor}=="152a", ATTR{idProduct}=="84[0-1]?", MODE="0666"
+# eDVS 4337
+SUBSYSTEM=="usb", ATTR{idVendor}=="0403", ATTR{idProduct}=="6014", MODE="0666"
