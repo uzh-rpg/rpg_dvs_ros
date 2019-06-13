@@ -14,6 +14,8 @@ Renderer::Renderer(ros::NodeHandle & nh, ros::NodeHandle nh_private) : nh_(nh),
   std::string display_method_str;
   nh_private.param<std::string>("display_method", display_method_str, "");
   display_method_ = (display_method_str == std::string("grayscale")) ? GRAYSCALE : RED_BLUE;
+  nh_private.param<bool>("color", color_image_, false);
+  used_last_image_ = false;
 
   // setup subscribers and publishers
   event_sub_ = nh_.subscribe("events", 1, &Renderer::eventsCallback, this);
@@ -75,7 +77,17 @@ void Renderer::imageCallback(const sensor_msgs::Image::ConstPtr& msg)
 
   // convert to BGR image
   if (msg->encoding == "rgb8") cv::cvtColor(cv_ptr->image, last_image_, CV_RGB2BGR);
-  if (msg->encoding == "mono8") cv::cvtColor(cv_ptr->image, last_image_, CV_GRAY2BGR);
+  if (msg->encoding == "mono8")
+  {
+    if (color_image_)
+    {
+      cv::cvtColor(cv_ptr->image, last_image_, CV_BayerBG2BGR);
+    }
+    else
+    {
+      cv::cvtColor(cv_ptr->image, last_image_, CV_GRAY2BGR);
+    }
+  }
 
   if (!used_last_image_)
   {

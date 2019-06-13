@@ -37,6 +37,7 @@ private:
   void publishStats();
 
   bool got_camera_info_;
+  bool color_image_;
   cv::Mat camera_matrix_, dist_coeffs_;
 
   ros::Subscriber event_sub_;
