@@ -17,11 +17,11 @@
   
   
   <!-- display -->
-  <node name="image_view_left" pkg="image_view" type="image_view">
+  <node name="image_view_left" pkg="rqt_image_view" type="rqt_image_view">
   	<remap from="image" to="dvs_rendering_left"/>
   </node>
   
-  <node name="image_view_right" pkg="image_view" type="image_view">
+  <node name="image_view_right" pkg="rqt_image_view" type="rqt_image_view">
   	<remap from="image" to="dvs_rendering_right"/>
   </node>
   
