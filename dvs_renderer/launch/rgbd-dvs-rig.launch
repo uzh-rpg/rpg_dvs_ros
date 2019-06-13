@@ -11,12 +11,12 @@
   <include file="$(find openni_launch)/launch/openni.launch"/>
   
   <!-- display DVS -->
-  <node name="image_view_dvs" pkg="image_view" type="image_view">
+  <node name="image_view_dvs" pkg="rqt_image_view" type="rqt_image_view">
   	<remap from="image" to="dvs_rendering"/>
   </node>
 
   <!-- display RGB-D -->
-  <node name="image_view_rgbd" pkg="image_view" type="image_view">
+  <node name="image_view_rgbd" pkg="rqt_image_view" type="rqt_image_view">
   	<remap from="image" to="/camera/rgb/image_raw"/>
   </node>
 

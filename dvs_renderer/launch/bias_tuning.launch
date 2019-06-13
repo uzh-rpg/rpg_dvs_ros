@@ -10,11 +10,11 @@
   -->
 
   <!-- display -->
-  <node name="image_view_accumulated" pkg="image_view" type="image_view">
+  <node name="image_view_accumulated" pkg="rqt_image_view" type="rqt_image_view">
   	<remap from="image" to="dvs_accumulated_events"/>
   </node>
 
-  <node name="image_view_accumulated_edges" pkg="image_view" type="image_view">
+  <node name="image_view_accumulated_edges" pkg="rqt_image_view" type="rqt_image_view">
   	<remap from="image" to="dvs_accumulated_events_edges"/>
   </node>
 
