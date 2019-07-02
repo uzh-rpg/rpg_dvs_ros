@@ -12,11 +12,11 @@ The source code is released under the **MIT License**.
 
 # Package Overview
 
-The ROS DVS package provides C++ drivers for the [Dynamic Vision Sensor (DVS)](https://inilabs.com/products/dynamic-vision-sensors/) and the [Dynamic and Active-pixel Vision Sensor (DAVIS)](https://inilabs.com/products/dynamic-and-active-pixel-vision-sensor/).
+The ROS DVS package provides C++ drivers for the [Dynamic Vision Sensors (DVS/DAVIS)](https://inivation.com/dvs/).
 Even if you do not have a DAVS or DAVIS device, you can still [use this driver to read pre-recorded event data files (see the example below)](#ExampleEventCameraDataset).
 The package also provides a calibration tool for both intrinsic and stereo calibration.
 To find out more about event cameras, visit the website of the [Institute of Neuroinformatics](http://siliconretina.ini.uzh.ch/wiki/index.php).
-The package is based on [libcaer](https://github.com/inilabs/libcaer).
+The package is based on [libcaer](https://gitlab.com/inivation/libcaer/).
 
 Authors: Elias Mueggler, Basil Huber, Luca Longinotti, Tobi Delbruck
 
@@ -93,7 +93,7 @@ If you use this work in an academic context, please cite the following publicati
 
    ![davis_ros_driver_rqt_reconfigure](https://cloud.githubusercontent.com/assets/8024432/25172274/c1267b8a-24f0-11e7-8130-af551a8a958d.png)
 
-   A guide on how to modify the parameters in the bottom half of the GUI (biases) can be found here: https://inilabs.com/support/hardware/biasing/
+   A guide on how to modify the parameters in the bottom half of the GUI (biases) can be found here: https://inivation.com/support/hardware/biasing/
 
 
 # Calibration

@@ -1,3 +1,0 @@
-# All DVS/DAVIS systems
-
-SUBSYSTEM=="usb", ATTR{idVendor}=="152a", ATTR{idProduct}=="84[0-1]?",  MODE="0666"
