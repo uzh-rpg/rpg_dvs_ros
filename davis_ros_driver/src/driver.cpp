@@ -150,7 +150,7 @@ void DavisRosDriver::caerConnect()
 
   ROS_INFO("%s --- ID: %d, Master: %d, DVS X: %d, DVS Y: %d, Logic: %d.\n", davis_info_.deviceString,
            davis_info_.deviceID, davis_info_.deviceIsMaster, davis_info_.dvsSizeX, davis_info_.dvsSizeY,
-           davis_info_.logicVersion);
+           davis_info_.firmwareVersion);
 
   if (master_ && !davis_info_.deviceIsMaster)
   {
