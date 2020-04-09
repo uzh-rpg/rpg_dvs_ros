@@ -663,7 +663,7 @@ bool CirclesGridFinder::isDetectionCorrect()
 {
   switch (parameters.gridType)
   {
-    case cv::CirclesGridFinderParameters::SYMMETRIC_GRID:
+    case CirclesGridFinderParameters::SYMMETRIC_GRID:
     {
       if (holes.size() != patternSize.height)
         return false;
@@ -683,7 +683,7 @@ bool CirclesGridFinder::isDetectionCorrect()
       return vertices.size() == patternSize.area();
     }
 
-    case cv::CirclesGridFinderParameters::ASYMMETRIC_GRID:
+    case CirclesGridFinderParameters::ASYMMETRIC_GRID:
     {
       if (holes.size() < holes2.size() || holes[0].size() < holes2[0].size())
       {
