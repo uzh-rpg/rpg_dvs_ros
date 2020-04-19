@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 2.8.3)
 project(davis_ros_driver)
 
 find_package(catkin_simple REQUIRED)
+find_package(libcaer REQUIRED)
 
 catkin_simple()
 
@@ -25,12 +26,14 @@ cs_add_library(davis_ros_driver_nodelet
 target_link_libraries(davis_ros_driver
   ${catkin_LIBRARIES}
   ${Boost_LIBRARIES}
+  libcaer::caer
 )
 
 # link the executable to the necesarry libs
 target_link_libraries(davis_ros_driver_nodelet
   ${catkin_LIBRARIES}
   ${Boost_LIBRARIES}
+  libcaer::caer
 )
 
 # Install the nodelet library

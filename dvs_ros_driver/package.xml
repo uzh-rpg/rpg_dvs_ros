@@ -10,7 +10,6 @@
   <buildtool_depend>catkin_simple</buildtool_depend>
 
   <depend>roscpp</depend>
-  <depend>libcaer_catkin</depend>
   <depend>dvs_msgs</depend>
   <depend>std_msgs</depend>
   <depend>dynamic_reconfigure</depend>
