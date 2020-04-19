@@ -14,11 +14,11 @@
   </node>
 
   <!-- display -->
-  <node name="rqt_image_view" pkg="image_view" type="rqt_image_view">
+  <node name="rqt_image_view" pkg="rqt_image_view" type="rqt_image_view">
   	<remap from="image" to="dvs_rendering"/>
   </node>
 
   <!-- configure -->
-  <!-- <node name="rqt_reconfigure" pkg="rqt_reconfigure" type="rqt_reconfigure" /> -->
+  <node name="rqt_reconfigure" pkg="rqt_reconfigure" type="rqt_reconfigure" />
 
 </launch>
