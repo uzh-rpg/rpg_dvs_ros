@@ -711,12 +711,6 @@ void DavisRosDriver::readout()
 
                         event_array_msg.reset();
                     }
-
-                    if (camera_info_manager_->isCalibrated())
-                    {
-                        sensor_msgs::CameraInfoPtr camera_info_msg(new sensor_msgs::CameraInfo(camera_info_manager_->getCameraInfo()));
-                        camera_info_pub_.publish(camera_info_msg);
-                    }
                 }
                 else if (type == IMU6_EVENT)
                 {
@@ -836,6 +830,13 @@ void DavisRosDriver::readout()
                         const int new_exposure = computeNewExposure(msg.data, current_exposure);
 
                         caerDeviceConfigSet(davis_handle_, DAVIS_CONFIG_APS, DAVIS_CONFIG_APS_EXPOSURE, new_exposure);
+                    }
+
+                    if (camera_info_manager_->isCalibrated())
+                    {
+                        sensor_msgs::CameraInfoPtr camera_info_msg(new sensor_msgs::CameraInfo(camera_info_manager_->getCameraInfo()));
+                        camera_info_msg->header.stamp = msg.header.stamp;
+                        camera_info_pub_.publish(camera_info_msg);
                     }
                 }
             }
