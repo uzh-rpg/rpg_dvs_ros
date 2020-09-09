@@ -77,7 +77,7 @@ DavisRosDriver::DavisRosDriver(ros::NodeHandle & nh, ros::NodeHandle nh_private)
 
   caerConnect();
   current_config_.streaming_rate = 30;
-  delta_ = boost::posix_time::microseconds(1e6/current_config_.streaming_rate);
+  delta_ = boost::posix_time::microseconds(long(1e6/current_config_.streaming_rate));
 
   imu_calibration_sub_ = nh_.subscribe((ns + "/calibrate_imu").c_str(), 1, &DavisRosDriver::imuCalibrationCallback, this);
   snapshot_sub_ = nh_.subscribe((ns + "/trigger_snapshot").c_str(), 1, &DavisRosDriver::snapshotCallback, this);
@@ -620,7 +620,7 @@ void DavisRosDriver::callback(davis_ros_driver::DAVIS_ROS_DriverConfig &config, 
         current_config_.streaming_rate = config.streaming_rate;
         if (current_config_.streaming_rate > 0)
         {
-            delta_ = boost::posix_time::microseconds(1e6/current_config_.streaming_rate);
+            delta_ = boost::posix_time::microseconds(long(1e6/current_config_.streaming_rate));
         }
     }
 }
