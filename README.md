@@ -37,32 +37,31 @@ If you use this work in an academic context, please cite the following publicati
 
 2. Install ROS dependencies:  
    `$ sudo apt-get install ros-kinetic-camera-info-manager`  
-   `$ sudo apt-get install ros-kinetic-image-view`  
+   `$ sudo apt-get install ros-kinetic-image-view`
 
-3. Install catkin tools:  
+3. Install libcaer:
+   `$ sudo apt-get install libcaer-dev`
+
+4. Install catkin tools:  
    `$ sudo apt-get install python-catkin-tools`
 
-4. Create a catkin workspace (if you have not done it yet):  
+5. Create a catkin workspace (if you have not done it yet):  
    `$ cd`  
    `$ mkdir -p catkin_ws/src`  
    `$ cd catkin_ws`  
    `$ catkin config --init --mkdirs --extend /opt/ros/kinetic --merge-devel --cmake-args -DCMAKE_BUILD_TYPE=Release`  
 
-5. Clone the `catkin_simple` package (https://github.com/catkin/catkin_simple), which will be used to build the DVS/DAVIS driver packages:  
+6. Clone the `catkin_simple` package (https://github.com/catkin/catkin_simple), which will be used to build the DVS/DAVIS driver packages:  
    `$ cd ~/catkin_ws/src`  
    `$ git clone https://github.com/catkin/catkin_simple.git`  
 
-6. Clone this repository:  
+7. Clone this repository:  
    `$ cd ~/catkin_ws/src`  
    `$ git clone https://github.com/uzh-rpg/rpg_dvs_ros.git`  
 
-7. Build the packages:  
+8. Build the packages:  
     * `$ catkin build dvs_ros_driver`  (if you are using the DVS)  
     * `$ catkin build davis_ros_driver`  (if you are using the DAVIS)  
-
-8. Only a udev rule is needed to run the DVS driver. An installation script is provided in the package `libcaer_catkin`.  
-  `$ roscd libcaer_catkin`  (need to source your setup.bash file first, or just do `$ cd libcaer_catkin`)  
-  `$ sudo ./install.sh`
 
 9. You can test the installation by running a provided launch file. It starts the driver (DVS or DAVIS) and the renderer (an image viewer).  
     1. First, build the renderer:  
