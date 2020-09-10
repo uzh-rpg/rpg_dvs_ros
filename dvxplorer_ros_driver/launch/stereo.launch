@@ -1,0 +1,19 @@
+<launch>
+  <!-- master DVXplorer -->
+  <node ns="dvxplorer_left" name="dvxplorer_ros_driver" pkg="dvxplorer_ros_driver" type="dvxplorer_ros_driver" output="screen">
+    <param name="serial_number" type="str" value="02460074" />
+    <param name="master" value="True"/>
+
+    <!-- timeout before resetting time -->
+    <param name="reset_timestamps_delay" value="2.0"/>
+  </node>
+
+  <!-- slave DVXplorer -->
+  <node ns="dvxplorer_right" name="dvxplorer_ros_driver" pkg="dvxplorer_ros_driver" type="dvxplorer_ros_driver" output="screen">
+    <param name="serial_number" type="str" value="84010026" />
+    <param name="master" value="False"/>
+
+    <!-- get reset signal from master -->
+    <remap from="reset_timestamps" to="/dvxplorer_left/reset_timestamps"/>
+  </node>
+</launch>
