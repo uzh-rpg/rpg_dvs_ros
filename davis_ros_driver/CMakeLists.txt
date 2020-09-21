@@ -43,3 +43,6 @@ cs_install()
 install(FILES davis_ros_driver_nodelet.xml
   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
 )
+
+# Export package
+cs_export()

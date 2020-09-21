@@ -14,3 +14,6 @@ cs_add_executable(dvs_file_writer
 target_link_libraries(dvs_file_writer
    ${catkin_LIBRARIES}
 )
+
+# Export package
+cs_export()
