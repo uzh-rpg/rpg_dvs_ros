@@ -23,20 +23,27 @@ cs_add_library(dvs_renderer_nodelet
   src/renderer.cpp
 )
 
-# link the executable to the necesarry libs
+# link the executable to the necessary libs
 target_link_libraries(dvs_renderer
-   ${catkin_LIBRARIES}
-   ${OpenCV_LIBRARIES}
+  ${catkin_LIBRARIES}
+  ${OpenCV_LIBRARIES}
 )
 
 target_link_libraries(dvs_renderer_nodelet
-   ${catkin_LIBRARIES}
-   ${OpenCV_LIBRARIES}
+  ${catkin_LIBRARIES}
+  ${OpenCV_LIBRARIES}
+)
+
+# install the executable
+install(
+  TARGETS dvs_renderer
+  RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
+
+# Install other support files for installation
+install(FILES dvs_renderer_nodelet.xml launch/nodelet_stereo.launch launch/nodelet_mono.launch
+  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
 )
 
 cs_install()
-
-# Install other support files for installation
-install(FILES dvs_renderer_nodelet.xml nodelet_stereo.launch nodelet_mono.launch
-  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
-)
+cs_export()
