@@ -49,7 +49,7 @@ DvsRosDriver::DvsRosDriver(ros::NodeHandle & nh, ros::NodeHandle nh_private) :
            dvs128_info_.firmwareVersion);
 
   current_config_.streaming_rate = 30;
-  delta_ = boost::posix_time::microseconds(1e6/current_config_.streaming_rate);
+  delta_ = boost::posix_time::microseconds(long(1e6 / current_config_.streaming_rate));
 
   // set namespace
   std::string ns = ros::this_node::getNamespace();
@@ -212,7 +212,7 @@ void DvsRosDriver::callback(dvs_ros_driver::DVS_ROS_DriverConfig &config, uint32
      current_config_.streaming_rate = config.streaming_rate;
      if (current_config_.streaming_rate > 0)
      {
-       delta_ = boost::posix_time::microseconds(1e6/current_config_.streaming_rate);
+       delta_ = boost::posix_time::microseconds(long(1e6/current_config_.streaming_rate));
      }
    }
 }

@@ -1,0 +1,7 @@
+<library path="lib/libdvxplorer_ros_driver_nodelet">
+  <class name="dvxplorer_ros_driver/DvxplorerRosDriverNodelet" type="dvxplorer_ros_driver::DvxplorerRosDriverNodelet" base_class_type="nodelet::Nodelet">
+    <description>
+      A nodelet wrapper for the dvxplorer_ros_driver.
+    </description>
+  </class>
+</library>

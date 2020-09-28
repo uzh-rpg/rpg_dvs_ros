@@ -1,15 +1,12 @@
 <launch>
   <!-- camera driver -->
-  <node name="davis_ros_driver" pkg="davis_ros_driver" type="davis_ros_driver" />
+  <node name="dvxplorer_ros_driver" pkg="dvxplorer_ros_driver" type="dvxplorer_ros_driver" />
 
   <!-- visualization -->
   <node name="dvs_renderer" pkg="dvs_renderer" type="dvs_renderer">
-    <param name="display_method" value="red-blue"/>
     <!-- <param name="display_method" value="grayscale"/> -->
-    <param name="color" value="true"/>
-    <param name="image_display" value="color"/>
+    <param name="display_method" value="red-blue"/>
     <remap from="events" to="/dvs/events" />
-    <remap from="image" to="/dvs/image_raw" />
     <remap from="camera_info" to="/dvs/camera_info" />
   </node>
 
