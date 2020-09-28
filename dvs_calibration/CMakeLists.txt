@@ -69,3 +69,6 @@ target_link_libraries(camera_dvs
    ${catkin_LIBRARIES}
    ${OpenCV_LIBRARIES}
 )
+
+# Export package
+cs_export()
