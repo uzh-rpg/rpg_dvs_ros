@@ -30,7 +30,7 @@ void MonoDvsCalibration::calibrate()
   cv::Mat cameraMatrix, distCoeffs;
   std::vector<cv::Mat> rvecs, tvecs;
   double reproj_error = cv::calibrateCamera(object_points_, image_points_, cv::Size(sensor_width_, sensor_height_),
-                                            cameraMatrix, distCoeffs, rvecs, tvecs, CV_CALIB_FIX_K3);
+                                            cameraMatrix, distCoeffs, rvecs, tvecs, cv::CALIB_FIX_K3);
 
   // update camera info
   new_camera_info_.height = sensor_height_;
