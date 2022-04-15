@@ -254,6 +254,7 @@ void DvsRosDriver::readout()
           caerPolarityEventPacket polarity = (caerPolarityEventPacket) packetHeader;
 
           const int numEvents = caerEventPacketHeaderGetEventNumber(packetHeader);
+          event_array_msg->events.reserve(event_array_msg->events.size() + numEvents);
 
           for (int j = 0; j < numEvents; j++)
           {
@@ -274,7 +275,9 @@ void DvsRosDriver::readout()
           if (boost::posix_time::microsec_clock::local_time() > next_send_time || current_config_.streaming_rate == 0)
           {
             event_array_pub_.publish(event_array_msg);
-            event_array_msg->events.clear();
+            event_array_msg.reset(new dvs_msgs::EventArray());
+            event_array_msg->height = dvs128_info_.dvsSizeY;
+            event_array_msg->width = dvs128_info_.dvsSizeX;
             if (current_config_.streaming_rate > 0)
             {
               next_send_time += delta_;
