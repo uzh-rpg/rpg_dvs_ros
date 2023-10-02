@@ -1,7 +1,9 @@
-cmake_minimum_required(VERSION 2.8.3)
+cmake_minimum_required(VERSION 3.1.3)
 project(dvs_ros_driver)
 
 find_package(catkin_simple REQUIRED)
+find_package(OpenCV REQUIRED)
+
 find_package(libcaer REQUIRED)
 
 catkin_simple()
@@ -26,6 +28,7 @@ cs_add_library(dvs_ros_driver_nodelet
 target_link_libraries(dvs_ros_driver
   ${catkin_LIBRARIES}
   ${Boost_LIBRARIES}
+  ${OpenCV_LIBRARIES}
   libcaer::caer
 )
 
@@ -33,6 +36,7 @@ target_link_libraries(dvs_ros_driver
 target_link_libraries(dvs_ros_driver_nodelet
   ${catkin_LIBRARIES}
   ${Boost_LIBRARIES}
+  ${OpenCV_LIBRARIES}
   libcaer::caer
 )
 

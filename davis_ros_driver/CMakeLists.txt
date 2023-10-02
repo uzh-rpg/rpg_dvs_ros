@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 2.8.3)
+cmake_minimum_required(VERSION 3.1.3)
 project(davis_ros_driver)
 
 find_package(catkin_simple REQUIRED)
@@ -7,6 +7,7 @@ find_package(libcaer REQUIRED)
 catkin_simple()
 
 SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -O3")
+find_package(OpenCV REQUIRED)
 
 find_package(Boost REQUIRED COMPONENTS system thread)
 
@@ -25,6 +26,7 @@ cs_add_library(davis_ros_driver_nodelet
 # link the executable to the necesarry libs
 target_link_libraries(davis_ros_driver
   ${catkin_LIBRARIES}
+  ${OpenCV_LIBRARIES}
   ${Boost_LIBRARIES}
   libcaer::caer
 )
@@ -32,6 +34,7 @@ target_link_libraries(davis_ros_driver
 # link the executable to the necesarry libs
 target_link_libraries(davis_ros_driver_nodelet
   ${catkin_LIBRARIES}
+  ${OpenCV_LIBRARIES}
   ${Boost_LIBRARIES}
   libcaer::caer
 )

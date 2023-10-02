@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 2.8.3)
+cmake_minimum_required(VERSION 3.1.3)
 project(dvs_msgs)
 
 # search for everything we need to build the messages, dont forget the message_generation
