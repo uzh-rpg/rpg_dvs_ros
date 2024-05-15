@@ -38,7 +38,7 @@ NOTE: substitute any mention of kinetic in the following instruction with the na
 *   `$ sudo apt-get install ros-kinetic-camera-info-manager`
 *   `$ sudo apt-get install ros-kinetic-image-view`
 
-2. Install libcaer (add required repositories as per [iniVation documentation](https://inivation.gitlab.io/dv/dv-docs/docs/getting-started.html#ubuntu-linux) first):
+2. Install libcaer (add required repositories as per [iniVation documentation](https://docs.inivation.com/software/dv/gui/install.html#linux) first):
 *   `$ sudo apt-get install libcaer-dev`
 
 3. Install catkin tools:
