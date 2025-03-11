@@ -38,11 +38,12 @@ NOTE: substitute any mention of kinetic in the following instruction with the na
 *   `$ sudo apt-get install ros-kinetic-camera-info-manager`
 *   `$ sudo apt-get install ros-kinetic-image-view`
 
-2. Install libcaer (add required repositories as per [iniVation documentation](https://inivation.gitlab.io/dv/dv-docs/docs/getting-started.html#ubuntu-linux) first):
+2. Install libcaer (add required repositories as per [iniVation documentation](https://docs.inivation.com/software/dv/gui/install.html#ubuntu-linux) first):
 *   `$ sudo apt-get install libcaer-dev`
 
 3. Install catkin tools:
-*   `$ sudo apt-get install python-catkin-tools`
+*   `$ sudo apt-get install python3-catkin-tools` (if ROS Melodic or ROS Noetic).
+*   `$ sudo apt-get install python-catkin-tools` (if ROS Kinetic)
 
 4. Create a catkin workspace (if you have not done it yet):
 *   `$ cd`
